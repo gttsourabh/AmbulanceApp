@@ -1,33 +1,11 @@
 import React from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { View, Text, StyleSheet } from 'react-native';
+import SplashScreen from '../screens/auth/SplashScreen';
+import LoginScreen from '../screens/auth/LoginScreen';
+import OtpScreen from '../screens/auth/OtpScreen';
 
 const Stack = createNativeStackNavigator();
-
-const SplashScreen = () => {
-    return (
-        <View style={styles.container}>
-            <Text style={styles.title}>Arvaya</Text>
-            <Text>Driver App</Text>
-        </View>
-    );
-};
-
-const LoginScreen = () => {
-    return (
-        <View style={styles.container}>
-            <Text style={styles.title}>Login Screen</Text>
-        </View>
-    );
-};
-
-const OtpScreen = () => {
-    return (
-        <View style={styles.container}>
-            <Text style={styles.title}>OTP Verification</Text>
-        </View>
-    );
-};
 
 const AuthNavigator = () => {
     return (
@@ -36,7 +14,11 @@ const AuthNavigator = () => {
             screenOptions={{
                 headerShown: false,
             }}>
-            <Stack.Screen name="Splash" component={SplashScreen} />
+            <Stack.Screen name="Splash">
+                {({ navigation }) => (
+                    <SplashScreen onFinish={() => navigation.replace('Login')} />
+                )}
+            </Stack.Screen>
             <Stack.Screen name="Login" component={LoginScreen} />
             <Stack.Screen name="OTP" component={OtpScreen} />
         </Stack.Navigator>
