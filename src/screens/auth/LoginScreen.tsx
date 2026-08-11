@@ -5,12 +5,13 @@ import {
     View,
     TextInput,
     TouchableOpacity,
-    SafeAreaView,
     KeyboardAvoidingView,
     Platform,
     StatusBar,
     Image,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { colors } from '../../theme';
 
 const LoginScreen = () => {
     const [phoneNumber, setPhoneNumber] = useState('');

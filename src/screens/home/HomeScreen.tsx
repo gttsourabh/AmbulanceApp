@@ -1,199 +1,416 @@
 import React from 'react';
-import { StyleSheet, Text, View, SafeAreaView, ScrollView, TouchableOpacity } from 'react-native';
+import {
+    ScrollView,
+    StyleSheet,
+    Text,
+    View,
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
-const HomeScreen = () => {
+import {
+    colors,
+    typography,
+    shadows,
+    spacing,
+} from '../../theme';
+
+import { AppIcon } from '../../icons';
+import Header from '../../components/Header/Header';
+
+// =====================================================
+// HOME STACK TYPES
+// =====================================================
+
+export type HomeStackParamList = {
+    Home: undefined;
+    Notifications: undefined;
+};
+
+type HomeScreenProps = NativeStackScreenProps<
+    HomeStackParamList,
+    'Home'
+>;
+
+// =====================================================
+// HOME SCREEN
+// =====================================================
+
+const HomeScreen = ({ navigation }: HomeScreenProps) => {
     return (
-        <SafeAreaView style={styles.container}>
-         
+        <SafeAreaView
+            style={styles.container}
+            edges={['top']}
+        >
 
-            {/* --- Main Scrollable Content --- */}
-            <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+            {/* ================= HEADER ================= */}
 
-                {/* --- Hero Card (Emergency Request) --- */}
+            <Header
+                // leftIcon="menu"
+                rightIcon="bell-outline"
+
+                onLeftPress={() => {
+                    console.log('Menu pressed');
+                }}
+
+                onRightPress={() => {
+                    navigation.navigate('Notifications');
+                }}
+
+                centerContent={
+                    <View style={styles.statusContainer}>
+                        <View style={styles.onlineDot} />
+
+                        <Text style={styles.onlineText}>
+                            ONLINE
+                        </Text>
+                    </View>
+                }
+            />
+
+            {/* ================= CONTENT ================= */}
+
+            <ScrollView
+                showsVerticalScrollIndicator={false}
+                contentContainerStyle={styles.scrollContent}
+            >
+
+                {/* ================= HERO ================= */}
+
                 <View style={styles.heroCard}>
+
                     <View style={styles.heroTextContent}>
-                        <Text style={styles.heroSubtext}>Waiting for new</Text>
-                        <Text style={styles.heroTitle}>Emergency Request</Text>
+
+                        <Text style={styles.heroSubtext}>
+                            Waiting for new
+                        </Text>
+
+                        <Text style={styles.heroTitle}>
+                            Emergency Request
+                        </Text>
+
                     </View>
-                    <View style={styles.heroImagePlaceholder}>
-                        <Text style={styles.ambulanceEmoji}>🚑</Text>
+
+                    <View style={styles.heroImageContainer}>
+                        <AppIcon
+                            family="material"
+                            name="ambulance"
+                            size={58}
+                            color={colors.primary}
+                        />
                     </View>
+
                 </View>
 
-                {/* --- Today's Overview Section --- */}
+                {/* ================= OVERVIEW ================= */}
+
                 <View style={styles.overviewSection}>
-                    <Text style={styles.sectionTitle}>Today's Overview</Text>
+
+                    <Text style={styles.sectionTitle}>
+                        Today's Overview
+                    </Text>
 
                     <View style={styles.overviewCard}>
-                        {/* Completed Row */}
+
+                        {/* COMPLETED */}
+
                         <View style={styles.overviewRow}>
+
                             <View style={styles.rowLeft}>
-                                <View style={[styles.iconBox, { backgroundColor: '#E6F4EA' }]}>
-                                    <Text style={{ color: '#137333', fontWeight: 'bold' }}>✓</Text>
+
+                                <View
+                                    style={[
+                                        styles.iconBox,
+                                        {
+                                            backgroundColor:
+                                                colors.successLight,
+                                        },
+                                    ]}
+                                >
+                                    <AppIcon
+                                        family="material"
+                                        name="check-circle"
+                                        size={18}
+                                        color={colors.successDark}
+                                    />
                                 </View>
-                                <Text style={styles.rowLabel}>Completed</Text>
+
+                                <Text style={styles.rowLabel}>
+                                    Completed
+                                </Text>
+
                             </View>
-                            <Text style={styles.rowValue}>04</Text>
+
+                            <Text style={styles.rowValue}>
+                                04
+                            </Text>
+
                         </View>
 
-                        {/* Cancelled Row */}
+                        {/* CANCELLED */}
+
                         <View style={styles.overviewRow}>
+
                             <View style={styles.rowLeft}>
-                                <View style={[styles.iconBox, { backgroundColor: '#FCE8E6' }]}>
-                                    <Text style={{ color: '#C5221F', fontWeight: 'bold' }}>✕</Text>
+
+                                <View
+                                    style={[
+                                        styles.iconBox,
+                                        {
+                                            backgroundColor:
+                                                colors.dangerLight,
+                                        },
+                                    ]}
+                                >
+                                    <AppIcon
+                                        family="material"
+                                        name="close-circle"
+                                        size={18}
+                                        color={colors.danger}
+                                    />
                                 </View>
-                                <Text style={styles.rowLabel}>Cancelled</Text>
+
+                                <Text style={styles.rowLabel}>
+                                    Cancelled
+                                </Text>
+
                             </View>
-                            <Text style={styles.rowValue}>01</Text>
+
+                            <Text style={styles.rowValue}>
+                                01
+                            </Text>
+
                         </View>
 
-                        {/* Earnings Row */}
-                        <View style={[styles.overviewRow, styles.lastRow]}>
+                        {/* EARNINGS */}
+
+                        <View
+                            style={[
+                                styles.overviewRow,
+                                styles.lastRow,
+                            ]}
+                        >
+
                             <View style={styles.rowLeft}>
-                                <View style={[styles.iconBox, { backgroundColor: '#FEF3E1' }]}>
-                                    <Text style={{ color: '#E37400', fontWeight: 'bold' }}>₹</Text>
+
+                                <View
+                                    style={[
+                                        styles.iconBox,
+                                        {
+                                            backgroundColor:
+                                                colors.warningLight,
+                                        },
+                                    ]}
+                                >
+                                    <AppIcon
+                                        family="material"
+                                        name="cash"
+                                        size={18}
+                                        color={colors.warning}
+                                    />
                                 </View>
-                                <Text style={styles.rowLabel}>Earnings</Text>
+
+                                <Text style={styles.rowLabel}>
+                                    Earnings
+                                </Text>
+
                             </View>
-                            <Text style={styles.rowValue}>₹1,250</Text>
+
+                            <Text style={styles.rowValue}>
+                                ₹1,250
+                            </Text>
+
                         </View>
+
                     </View>
+
                 </View>
+
             </ScrollView>
+
         </SafeAreaView>
     );
 };
 
 export default HomeScreen;
 
+// =====================================================
+// STYLES
+// =====================================================
+
 const styles = StyleSheet.create({
+
+    // =================================================
+    // SCREEN
+    // =================================================
+
     container: {
         flex: 1,
-        backgroundColor: '#F8F9FD',
+        backgroundColor: colors.white,
     },
-    header: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        paddingHorizontal: 20,
-        paddingVertical: 15,
-        backgroundColor: '#F8F9FD',
+
+    scrollContent: {
+        paddingBottom: spacing.xxxl,
     },
-    menuIcon: {
-        fontSize: 24,
-        color: '#1A2541',
-    },
-    bellIcon: {
-        fontSize: 20,
-    },
+
+    // =================================================
+    // HEADER STATUS
+    // =================================================
+
     statusContainer: {
         flexDirection: 'row',
         alignItems: 'center',
     },
+
     onlineDot: {
-        width: 8,
-        height: 8,
+        width: 7,
+        height: 7,
         borderRadius: 4,
-        backgroundColor: '#16A34A',
-        marginRight: 6,
+        backgroundColor: colors.success,
+        marginRight: spacing.xs,
     },
+
     onlineText: {
         fontFamily: 'GoogleSans-Bold',
-        color: '#16A34A',
-        fontSize: 14,
-        letterSpacing: 0.5,
-        textTransform: 'uppercase',
+        fontSize: typography.fontSize.xs,
+        color: colors.successDark,
+        letterSpacing: 0.3,
     },
-    scrollContent: {
-        paddingBottom: 20,
-    },
+
+    // =================================================
+    // HERO CARD
+    // =================================================
+
     heroCard: {
-        backgroundColor: '#F0F5FF',
-        marginHorizontal: 20,
-        marginTop: 10,
-        borderRadius: 16,
-        padding: 20,
+        minHeight: 115,
+
+        marginHorizontal: spacing.lg,
+        marginTop: spacing.sm,
+
+        paddingLeft: spacing.md,
+        paddingRight: spacing.sm,
+
+        borderRadius: spacing.md,
+
+        backgroundColor: colors.primaryLight,
+
         flexDirection: 'row',
-        justifyContent: 'space-between',
         alignItems: 'center',
-        elevation: 2,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.05,
-        shadowRadius: 3,
+        justifyContent: 'space-between',
+
+        ...shadows.card,
     },
+
     heroTextContent: {
         flex: 1,
     },
+
     heroSubtext: {
-        fontFamily: 'GoogleSans-Medium',
-        fontSize: 14,
-        color: '#6B7280',
-        marginBottom: 4,
+        fontFamily: 'GoogleSans-Regular',
+        fontSize: typography.fontSize.xs,
+        color: colors.textSecondary,
+        marginBottom: 3,
     },
+
     heroTitle: {
         fontFamily: 'GoogleSans-Bold',
-        fontSize: 18,
-        color: '#1A2541',
+        fontSize: typography.fontSize.md,
+        color: colors.textPrimary,
     },
-    heroImagePlaceholder: {
-        justifyContent: 'center',
+
+    heroImageContainer: {
+        width: 85,
+        height: 85,
+
         alignItems: 'center',
+        justifyContent: 'center',
     },
-    ambulanceEmoji: {
-        fontSize: 45,
-    },
+
+    // =================================================
+    // OVERVIEW
+    // =================================================
+
     overviewSection: {
-        marginHorizontal: 20,
-        marginTop: 30,
+        marginHorizontal: spacing.lg,
+        marginTop: spacing.lg,
     },
+
     sectionTitle: {
         fontFamily: 'GoogleSans-Bold',
-        fontSize: 18,
-        color: '#1A2541',
-        marginBottom: 15,
+        fontSize: typography.fontSize.md,
+        color: colors.textPrimary,
+        marginBottom: spacing.sm,
     },
+
+    // =================================================
+    // OVERVIEW CARD
+    // =================================================
+
     overviewCard: {
-        backgroundColor: '#FFFFFF',
-        borderRadius: 16,
-        paddingHorizontal: 20,
-        elevation: 3,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.05,
-        shadowRadius: 5,
+        backgroundColor: colors.white,
+
+        borderRadius: spacing.md,
+
+        paddingHorizontal: spacing.md,
+
+        ...shadows.card,
     },
+
+    // =================================================
+    // ROW
+    // =================================================
+
     overviewRow: {
+        minHeight: 58,
+
+        paddingVertical: spacing.sm,
+
         flexDirection: 'row',
-        justifyContent: 'space-between',
         alignItems: 'center',
-        paddingVertical: 18,
+        justifyContent: 'space-between',
+
         borderBottomWidth: 1,
-        borderBottomColor: '#F3F4F6',
+        borderBottomColor: colors.divider,
     },
+
     lastRow: {
         borderBottomWidth: 0,
     },
+
     rowLeft: {
         flexDirection: 'row',
         alignItems: 'center',
     },
+
+    // =================================================
+    // ICON
+    // =================================================
+
     iconBox: {
-        width: 36,
-        height: 36,
-        borderRadius: 10,
-        justifyContent: 'center',
+        width: 34,
+        height: 34,
+
+        borderRadius: spacing.sm,
+
         alignItems: 'center',
-        marginRight: 15,
+        justifyContent: 'center',
+
+        marginRight: spacing.sm,
     },
+
+    // =================================================
+    // TEXT
+    // =================================================
+
     rowLabel: {
         fontFamily: 'GoogleSans-Medium',
-        fontSize: 16,
-        color: '#4B5563',
+        fontSize: typography.fontSize.sm,
+        color: colors.textSecondary,
     },
+
     rowValue: {
         fontFamily: 'GoogleSans-Bold',
-        fontSize: 18,
-        color: '#1A2541',
-    }
+        fontSize: typography.fontSize.md,
+        color: colors.textPrimary,
+    },
 });
