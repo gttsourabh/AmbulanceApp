@@ -9,7 +9,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AppIcon } from '../../icons';
-import { colors } from '../../theme';
+import { colors, typography, shadows, spacing } from '../../theme';
 
 type FilterType = 'All' | 'Completed' | 'Cancelled';
 
@@ -28,7 +28,7 @@ const trips: Trip[] = [
     {
         id: 1,
         name: 'John Doe',
-        time: '12:00 AM',
+        time: '12:00 PM',
         pickupTime: '2:30 PM',
         distance: '12.4 km',
         amount: '₹350',
@@ -58,7 +58,7 @@ const trips: Trip[] = [
     {
         id: 4,
         name: 'Cancelled Trip',
-        time: '',
+        time: '11:30 AM',
         pickupTime: '3:20 PM',
         distance: '',
         amount: '₹0',
@@ -86,20 +86,26 @@ const TripsScreen = () => {
         const isCancelled = trip.status === 'Cancelled';
 
         return (
-            <View key={trip.id} style={styles.tripCard}>
+            <View
+                key={trip.id}
+                style={styles.tripCard}
+            >
+                {/* =====================================================
+            ICON
+        ===================================================== */}
 
-                {/* LEFT ICON */}
                 <View
                     style={[
                         styles.tripIcon,
                         isCancelled
                             ? styles.cancelledIcon
                             : styles.completedIcon,
-                    ]}>
+                    ]}
+                >
                     <AppIcon
                         family="material"
                         name={trip.icon}
-                        size={18}
+                        size={20}
                         color={
                             isCancelled
                                 ? colors.danger
@@ -108,7 +114,10 @@ const TripsScreen = () => {
                     />
                 </View>
 
-                {/* MIDDLE CONTENT */}
+                {/* =====================================================
+            TRIP INFO
+        ===================================================== */}
+
                 <View style={styles.tripInfo}>
 
                     <Text style={styles.passengerName}>
@@ -116,6 +125,7 @@ const TripsScreen = () => {
                     </Text>
 
                     <View style={styles.tripDetailsRow}>
+
                         <Text style={styles.pickupTime}>
                             {trip.pickupTime}
                         </Text>
@@ -125,18 +135,20 @@ const TripsScreen = () => {
                                 {trip.distance}
                             </Text>
                         ) : null}
+
                     </View>
 
                 </View>
 
-                {/* RIGHT CONTENT */}
+                {/* =====================================================
+            RIGHT
+        ===================================================== */}
+
                 <View style={styles.tripRight}>
 
-                    {trip.time ? (
-                        <Text style={styles.tripTime}>
-                            {trip.time}
-                        </Text>
-                    ) : null}
+                    <Text style={styles.tripTime}>
+                        {trip.time}
+                    </Text>
 
                     <Text style={styles.amount}>
                         {trip.amount}
@@ -148,12 +160,12 @@ const TripsScreen = () => {
                             isCancelled
                                 ? styles.cancelledStatus
                                 : styles.completedStatus,
-                        ]}>
+                        ]}
+                    >
                         {trip.status}
                     </Text>
 
                 </View>
-
             </View>
         );
     };
@@ -161,9 +173,11 @@ const TripsScreen = () => {
     return (
         <SafeAreaView
             style={styles.container}
-            edges={['top']}>
-
-            {/* ================= HEADER ================= */}
+            edges={['top']}
+        >
+            {/* =====================================================
+          HEADER
+      ===================================================== */}
 
             <View style={styles.header}>
 
@@ -173,63 +187,69 @@ const TripsScreen = () => {
 
                 <TouchableOpacity
                     activeOpacity={0.7}
-                    style={styles.filterIconButton}>
-
+                    style={styles.filterIconButton}
+                >
                     <AppIcon
                         family="material"
                         name="filter-variant"
-                        size={20}
+                        size={22}
                         color={colors.primary}
                     />
-
                 </TouchableOpacity>
 
             </View>
 
-            {/* ================= FILTERS ================= */}
+            {/* =====================================================
+          FILTERS
+      ===================================================== */}
 
             <View style={styles.filterContainer}>
 
-                {(['All', 'Completed', 'Cancelled'] as FilterType[]).map(
-                    filter => {
+                {(
+                    ['All', 'Completed', 'Cancelled'] as FilterType[]
+                ).map(filter => {
 
-                        const isActive =
-                            selectedFilter === filter;
+                    const isActive =
+                        selectedFilter === filter;
 
-                        return (
-                            <TouchableOpacity
-                                key={filter}
-                                activeOpacity={0.8}
-                                onPress={() =>
-                                    setSelectedFilter(filter)
-                                }
+                    return (
+                        <TouchableOpacity
+                            key={filter}
+                            activeOpacity={0.8}
+                            onPress={() =>
+                                setSelectedFilter(filter)
+                            }
+                            style={[
+                                styles.filterButton,
+                                isActive &&
+                                styles.activeFilterButton,
+                            ]}
+                        >
+                            <Text
                                 style={[
-                                    styles.filterButton,
+                                    styles.filterText,
                                     isActive &&
-                                    styles.activeFilterButton,
-                                ]}>
-
-                                <Text
-                                    style={[
-                                        styles.filterText,
-                                        isActive &&
-                                        styles.activeFilterText,
-                                    ]}>
-                                    {filter}
-                                </Text>
-
-                            </TouchableOpacity>
-                        );
-                    },
-                )}
+                                    styles.activeFilterText,
+                                ]}
+                            >
+                                {filter}
+                            </Text>
+                        </TouchableOpacity>
+                    );
+                })}
 
             </View>
 
-            {/* ================= TRIPS ================= */}
+            {/* =====================================================
+          TRIPS
+      ===================================================== */}
 
             <ScrollView
                 showsVerticalScrollIndicator={false}
-                contentContainerStyle={styles.scrollContent}>
+                contentContainerStyle={
+                    styles.scrollContent
+                }
+            >
 
                 {/* TODAY */}
 
@@ -267,7 +287,7 @@ const TripsScreen = () => {
                         <AppIcon
                             family="material"
                             name="clipboard-text-outline"
-                            size={45}
+                            size={48}
                             color={colors.textLight}
                         />
 
@@ -279,7 +299,6 @@ const TripsScreen = () => {
                 )}
 
             </ScrollView>
-
         </SafeAreaView>
     );
 };
@@ -287,17 +306,23 @@ const TripsScreen = () => {
 export default TripsScreen;
 
 const styles = StyleSheet.create({
+    // =====================================================
+    // SCREEN
+    // =====================================================
+
     container: {
         flex: 1,
         backgroundColor: colors.white,
     },
 
-    // ================= HEADER =================
+    // =====================================================
+    // HEADER
+    // =====================================================
 
     header: {
-        height: 55,
+        height: 58,
 
-        paddingHorizontal: 20,
+        paddingHorizontal: spacing.lg,
 
         flexDirection: 'row',
         alignItems: 'center',
@@ -305,38 +330,41 @@ const styles = StyleSheet.create({
     },
 
     headerTitle: {
-        fontFamily: 'GoogleSans-Bold',
-        fontSize: 18,
+        fontFamily: 'GoogleSans-Medium',
+        fontSize: typography.fontSize.lg,
         color: colors.textPrimary,
     },
 
     filterIconButton: {
         position: 'absolute',
-        right: 20,
+        right: spacing.lg,
 
-        width: 36,
-        height: 36,
+        width: 40,
+        height: 40,
 
         alignItems: 'center',
         justifyContent: 'center',
     },
 
-    // ================= FILTER =================
+    // =====================================================
+    // FILTER
+    // =====================================================
 
     filterContainer: {
         flexDirection: 'row',
 
-        paddingHorizontal: 18,
-        marginTop: 4,
-        marginBottom: 12,
+        paddingHorizontal: spacing.lg,
 
-        justifyContent: 'space-between',
+        marginTop: spacing.xs,
+        marginBottom: spacing.md,
+
+        gap: spacing.sm,
     },
 
     filterButton: {
-        width: '30%',
+        flex: 1,
 
-        height: 36,
+        height: 40,
 
         borderRadius: 20,
 
@@ -352,63 +380,73 @@ const styles = StyleSheet.create({
 
     filterText: {
         fontFamily: 'GoogleSans-Medium',
-        fontSize: 12,
+        fontSize: typography.fontSize.xs,
         color: colors.textSecondary,
     },
 
     activeFilterText: {
         color: colors.textWhite,
-        fontFamily: 'GoogleSans-Bold',
+        fontFamily: 'GoogleSans-Medium',
     },
 
-    // ================= CONTENT =================
+    // =====================================================
+    // CONTENT
+    // =====================================================
 
     scrollContent: {
-        paddingHorizontal: 18,
-        paddingBottom: 100,
+        paddingHorizontal: spacing.lg,
+        paddingBottom: spacing.huge,
     },
 
     section: {
-        marginTop: 8,
+        marginTop: spacing.sm,
     },
 
     sectionTitle: {
-        fontFamily: 'GoogleSans-Bold',
-        fontSize: 13,
+        fontFamily: 'GoogleSans-Medium',
+        fontSize: typography.fontSize.sm,
         color: colors.textSecondary,
 
-        marginBottom: 7,
+        marginBottom: spacing.sm,
         marginLeft: 2,
     },
 
-    // ================= TRIP CARD =================
+    // =====================================================
+    // TRIP CARD
+    // =====================================================
 
     tripCard: {
-        minHeight: 82,
+        minHeight: 88,
 
         backgroundColor: colors.card,
 
-        borderRadius: 12,
+        borderRadius: spacing.md,
 
-        marginBottom: 7,
+        marginBottom: spacing.sm,
 
-        paddingHorizontal: 10,
-        paddingVertical: 10,
+        paddingHorizontal: spacing.sm,
+        paddingVertical: spacing.sm,
 
         flexDirection: 'row',
         alignItems: 'center',
+
+        ...shadows.card,
     },
 
-    tripIcon: {
-        width: 38,
-        height: 38,
+    // =====================================================
+    // TRIP ICON
+    // =====================================================
 
-        borderRadius: 12,
+    tripIcon: {
+        width: 42,
+        height: 42,
+
+        borderRadius: spacing.sm,
 
         alignItems: 'center',
         justifyContent: 'center',
 
-        marginRight: 10,
+        marginRight: spacing.sm,
     },
 
     completedIcon: {
@@ -419,7 +457,9 @@ const styles = StyleSheet.create({
         backgroundColor: colors.dangerLight,
     },
 
-    // ================= TRIP INFO =================
+    // =====================================================
+    // TRIP INFO
+    // =====================================================
 
     tripInfo: {
         flex: 1,
@@ -428,11 +468,11 @@ const styles = StyleSheet.create({
     },
 
     passengerName: {
-        fontFamily: 'GoogleSans-Bold',
-        fontSize: 13,
+        fontFamily: 'GoogleSans-Medium',
+        fontSize: typography.fontSize.sm,
         color: colors.textPrimary,
 
-        marginBottom: 5,
+        marginBottom: spacing.xs,
     },
 
     tripDetailsRow: {
@@ -442,37 +482,39 @@ const styles = StyleSheet.create({
 
     pickupTime: {
         fontFamily: 'GoogleSans-Regular',
-        fontSize: 11,
+        fontSize: typography.fontSize.xs,
         color: colors.textSecondary,
 
-        marginRight: 14,
+        marginRight: spacing.md,
     },
 
     distance: {
         fontFamily: 'GoogleSans-Regular',
-        fontSize: 11,
+        fontSize: typography.fontSize.xs,
         color: colors.textSecondary,
     },
 
-    // ================= RIGHT =================
+    // =====================================================
+    // RIGHT
+    // =====================================================
 
     tripRight: {
-        minWidth: 70,
+        minWidth: 78,
 
         alignItems: 'flex-end',
     },
 
     tripTime: {
         fontFamily: 'GoogleSans-Regular',
-        fontSize: 10,
+        fontSize: typography.fontSize.xs,
         color: colors.textLight,
 
         marginBottom: 2,
     },
 
     amount: {
-        fontFamily: 'GoogleSans-Bold',
-        fontSize: 14,
+        fontFamily: 'GoogleSans-Medium',
+        fontSize: typography.fontSize.sm,
         color: colors.textPrimary,
 
         marginBottom: 3,
@@ -480,7 +522,7 @@ const styles = StyleSheet.create({
 
     status: {
         fontFamily: 'GoogleSans-Medium',
-        fontSize: 10,
+        fontSize: typography.fontSize.xs,
     },
 
     completedStatus: {
@@ -491,7 +533,9 @@ const styles = StyleSheet.create({
         color: colors.danger,
     },
 
-    // ================= EMPTY =================
+    // =====================================================
+    // EMPTY
+    // =====================================================
 
     emptyContainer: {
         flex: 1,
@@ -504,9 +548,9 @@ const styles = StyleSheet.create({
 
     emptyText: {
         fontFamily: 'GoogleSans-Medium',
-        fontSize: 14,
+        fontSize: typography.fontSize.sm,
         color: colors.textLight,
 
-        marginTop: 10,
+        marginTop: spacing.sm,
     },
 });

@@ -244,6 +244,7 @@ import {
     typography,
     spacing,
 } from '../../theme';
+import ProfileStack from '../stacks/Profilestack';
 
 const Tab = createBottomTabNavigator();
 
@@ -585,7 +586,7 @@ const MainTabNavigator = () => {
 
             <Tab.Screen
                 name="Profile"
-                component={ProfileScreen}
+                component={ProfileStack}
             />
 
         </Tab.Navigator>

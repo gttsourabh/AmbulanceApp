@@ -19,7 +19,10 @@ const AuthNavigator = () => {
                     <SplashScreen onFinish={() => navigation.replace('Login')} />
                 )}
             </Stack.Screen>
+
+
             <Stack.Screen name="Login" component={LoginScreen} />
+            
             <Stack.Screen name="OTP" component={OtpScreen} />
         </Stack.Navigator>
     );

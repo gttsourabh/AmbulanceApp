@@ -48,9 +48,10 @@ const HomeScreen = ({ navigation }: HomeScreenProps) => {
             <Header
                 // leftIcon="menu"
                 rightIcon="bell-outline"
-
+                leftIcon='chevron-back'
+                leftIconFamily='ionicons'
                 onLeftPress={() => {
-                    console.log('Menu pressed');
+                    navigation.navigate("Availability")
                 }}
 
                 onRightPress={() => {
