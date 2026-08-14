@@ -641,8 +641,8 @@ const styles = StyleSheet.create({
 
         // backgroundColor: colors.primary,
 
-        borderTopLeftRadius: 35,
-        borderTopRightRadius: 35,
+        // borderTopLeftRadius: 35,
+        // borderTopRightRadius: 35,
     },
 
 
@@ -722,7 +722,7 @@ const styles = StyleSheet.create({
 
         borderRadius: 31,
 
-        backgroundColor: colors.info,
+        backgroundColor: colors.primary,
 
         alignItems: 'center',
         justifyContent: 'center',
@@ -730,15 +730,15 @@ const styles = StyleSheet.create({
         borderWidth: 4,
         borderColor: colors.white,
 
-        elevation: 6,
+        elevation: 10,
 
         shadowColor: colors.shadow,
         shadowOffset: {
             width: 0,
             height: 3,
         },
-        shadowOpacity: 0.18,
-        shadowRadius: 5,
+        shadowOpacity: 1,
+        shadowRadius: 10,
 
         zIndex: 20,
     },

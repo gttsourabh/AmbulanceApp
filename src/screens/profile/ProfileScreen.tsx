@@ -30,6 +30,8 @@ interface ProfileOption {
     subtitle: string;
     icon: string;
     iconFamily: 'material' | 'ionicons' | 'feather' | 'fontawesome';
+    iconBg: string;
+    iconColor: string;
     onPress: () => void;
 }
 
@@ -42,6 +44,8 @@ const ProfileScreen = () => {
             subtitle: 'View and manage your personal information',
             icon: 'account-outline',
             iconFamily: 'material',
+            iconBg: colors.primaryLight,
+            iconColor: colors.primary,
             onPress: () => navigation.navigate('UserInfo'),
         },
         {
@@ -49,6 +53,8 @@ const ProfileScreen = () => {
             subtitle: 'View and manage your vehicle details',
             icon: 'car-outline',
             iconFamily: 'material',
+            iconBg: colors.infoLight,
+            iconColor: colors.info,
             onPress: () => navigation.navigate('VehicleDocument'),
         },
         {
@@ -56,6 +62,8 @@ const ProfileScreen = () => {
             subtitle: 'Manage app preferences',
             icon: 'settings-outline',
             iconFamily: 'ionicons',
+            iconBg: colors.warningLight,
+            iconColor: colors.warning,
             onPress: () => navigation.navigate('Settings'),
         },
         {
@@ -63,6 +71,8 @@ const ProfileScreen = () => {
             subtitle: 'Get help or contact support',
             icon: 'help-circle-outline',
             iconFamily: 'ionicons',
+            iconBg: colors.successLight,
+            iconColor: colors.successDark,
             onPress: () => navigation.navigate('Help'),
         },
     ];
@@ -86,13 +96,24 @@ const ProfileScreen = () => {
                 {/* PROFILE */}
 
                 <View style={styles.profileSection}>
-                    <View style={styles.profileImageContainer}>
-                        <Image
-                            source={{
-                                uri: 'https://i.pravatar.cc/300?img=12',
-                            }}
-                            style={styles.profileImage}
-                        />
+                    <View style={styles.profileImageRing}>
+                        <View style={styles.profileImageContainer}>
+                            <Image
+                                source={{
+                                    uri: 'https://i.pravatar.cc/300?img=12',
+                                }}
+                                style={styles.profileImage}
+                            />
+                        </View>
+
+                        <View style={styles.editBadge}>
+                            <AppIcon
+                                family="material"
+                                name="pencil"
+                                size={12}
+                                color={colors.white}
+                            />
+                        </View>
                     </View>
 
                     <Text style={styles.profileName}>
@@ -102,6 +123,19 @@ const ProfileScreen = () => {
                     <Text style={styles.phoneNumber}>
                         +91 98765 43210
                     </Text>
+
+                    <View style={styles.verifiedPill}>
+                        <AppIcon
+                            family="material"
+                            name="check-decagram"
+                            size={13}
+                            color={colors.successDark}
+                        />
+
+                        <Text style={styles.verifiedText}>
+                            Verified Driver
+                        </Text>
+                    </View>
                 </View>
 
                 {/* PROFILE OPTIONS */}
@@ -116,12 +150,17 @@ const ProfileScreen = () => {
                             >
                                 {/* ICON */}
 
-                                <View style={styles.iconContainer}>
+                                <View
+                                    style={[
+                                        styles.iconContainer,
+                                        { backgroundColor: item.iconBg },
+                                    ]}
+                                >
                                     <AppIcon
                                         family={item.iconFamily}
                                         name={item.icon}
                                         size={20}
-                                        color={colors.textSecondary}
+                                        color={item.iconColor}
                                     />
                                 </View>
 
@@ -139,12 +178,14 @@ const ProfileScreen = () => {
 
                                 {/* ARROW */}
 
-                                <AppIcon
-                                    family="material"
-                                    name="chevron-right"
-                                    size={21}
-                                    color={colors.textLight}
-                                />
+                                <View style={styles.chevronContainer}>
+                                    <AppIcon
+                                        family="material"
+                                        name="chevron-right"
+                                        size={19}
+                                        color={colors.textLight}
+                                    />
+                                </View>
                             </TouchableOpacity>
 
                             {/* DIVIDER */}
@@ -155,6 +196,24 @@ const ProfileScreen = () => {
                         </React.Fragment>
                     ))}
                 </View>
+
+                {/* LOGOUT */}
+
+                <TouchableOpacity
+                    activeOpacity={0.75}
+                    style={styles.logoutButton}
+                >
+                    <AppIcon
+                        family="material"
+                        name="logout"
+                        size={18}
+                        color={colors.danger}
+                    />
+
+                    <Text style={styles.logoutText}>
+                        Log Out
+                    </Text>
+                </TouchableOpacity>
 
                 {/* VERSION */}
 
@@ -189,18 +248,40 @@ const styles = StyleSheet.create({
 
     profileSection: {
         alignItems: 'center',
-        paddingTop: spacing.md,
+        paddingTop: spacing.lg,
         paddingBottom: spacing.xl,
+    },
+
+    profileImageRing: {
+        width: 96,
+        height: 96,
+
+        borderRadius: 48,
+
+        alignItems: 'center',
+        justifyContent: 'center',
+
+        marginBottom: spacing.md,
+
+        backgroundColor: colors.card,
+
+        borderWidth: 2,
+        borderColor: colors.primaryLight,
+
+        shadowColor: colors.shadow,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.08,
+        shadowRadius: 12,
+        elevation: 3,
     },
 
     profileImageContainer: {
         width: 82,
         height: 82,
-        borderRadius: 31,
+        borderRadius: 41,
         backgroundColor: colors.divider,
         alignItems: 'center',
         justifyContent: 'center',
-        marginBottom: spacing.sm,
         overflow: 'hidden',
     },
 
@@ -209,17 +290,60 @@ const styles = StyleSheet.create({
         height: '100%',
     },
 
+    editBadge: {
+        position: 'absolute',
+
+        bottom: 0,
+        right: 0,
+
+        width: 26,
+        height: 26,
+
+        borderRadius: 13,
+
+        backgroundColor: colors.primary,
+
+        alignItems: 'center',
+        justifyContent: 'center',
+
+        borderWidth: 2,
+        borderColor: colors.card,
+    },
+
     profileName: {
         fontFamily: 'GoogleSans-Bold',
         fontSize: typography.fontSize.md,
         color: colors.textPrimary,
-        marginBottom: spacing.xs,
+        letterSpacing: 0.1,
+        marginBottom: 4,
     },
 
     phoneNumber: {
         fontFamily: 'GoogleSans-Regular',
         fontSize: typography.fontSize.xs,
         color: colors.textSecondary,
+        marginBottom: spacing.sm,
+    },
+
+    verifiedPill: {
+        flexDirection: 'row',
+        alignItems: 'center',
+
+        paddingHorizontal: 10,
+        paddingVertical: 4,
+
+        borderRadius: 20,
+
+        backgroundColor: colors.successLight,
+
+        gap: 4,
+    },
+
+    verifiedText: {
+        fontFamily: 'GoogleSans-Medium',
+        fontSize: 11,
+        color: colors.successDark,
+        letterSpacing: 0.2,
     },
 
     // =====================================================
@@ -227,10 +351,18 @@ const styles = StyleSheet.create({
     // =====================================================
 
     optionsCard: {
-        backgroundColor: colors.white,
-        borderRadius: spacing.md,
+        backgroundColor: colors.card,
+        borderRadius: 18,
         paddingHorizontal: spacing.md,
-        ...shadows.card,
+
+        borderWidth: 1,
+        borderColor: colors.border,
+
+        shadowColor: colors.shadow,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.05,
+        shadowRadius: 12,
+        elevation: 2,
     },
 
     // =====================================================
@@ -238,7 +370,7 @@ const styles = StyleSheet.create({
     // =====================================================
 
     optionRow: {
-        minHeight: 70,
+        minHeight: 72,
         flexDirection: 'row',
         alignItems: 'center',
     },
@@ -248,9 +380,9 @@ const styles = StyleSheet.create({
     // =====================================================
 
     iconContainer: {
-        width: 38,
-        height: 38,
-        borderRadius: spacing.sm,
+        width: 40,
+        height: 40,
+        borderRadius: 13,
         alignItems: 'center',
         justifyContent: 'center',
         marginRight: spacing.md,
@@ -263,12 +395,14 @@ const styles = StyleSheet.create({
     optionContent: {
         flex: 1,
         justifyContent: 'center',
+        paddingRight: spacing.xs,
     },
 
     optionTitle: {
         fontFamily: 'GoogleSans-Medium',
         fontSize: typography.fontSize.sm,
         color: colors.textPrimary,
+        letterSpacing: 0.1,
         marginBottom: 3,
     },
 
@@ -278,14 +412,53 @@ const styles = StyleSheet.create({
         color: colors.textSecondary,
     },
 
+    chevronContainer: {
+        width: 28,
+        height: 28,
+
+        borderRadius: 14,
+
+        alignItems: 'center',
+        justifyContent: 'center',
+
+        backgroundColor: colors.background,
+    },
+
     // =====================================================
     // DIVIDER
     // =====================================================
 
     divider: {
-        height: 1,
+        height: StyleSheet.hairlineWidth,
         backgroundColor: colors.divider,
-        marginLeft: 50,
+        marginLeft: 52,
+    },
+
+    // =====================================================
+    // LOGOUT
+    // =====================================================
+
+    logoutButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+
+        gap: spacing.xs,
+
+        minHeight: 54,
+
+        marginTop: spacing.lg,
+
+        borderRadius: 16,
+
+        backgroundColor: colors.dangerLight,
+    },
+
+    logoutText: {
+        fontFamily: 'GoogleSans-Medium',
+        fontSize: typography.fontSize.sm,
+        color: colors.danger,
+        letterSpacing: 0.1,
     },
 
     // =====================================================

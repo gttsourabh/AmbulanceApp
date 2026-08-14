@@ -40,19 +40,19 @@ const VehicleDocumentsScreen = () => {
     },
   ];
 
-  const getStatusColor = (status: DocumentItem['status']) => {
+  const getStatusColors = (status: DocumentItem['status']) => {
     switch (status) {
       case 'Verified':
-        return colors.success || '#16A34A';
+        return { text: colors.successDark, bg: colors.successLight };
 
       case 'Pending':
-        return '#F59E0B';
+        return { text: colors.warning, bg: colors.warningLight };
 
       case 'Expired':
-        return '#EF4444';
+        return { text: colors.danger, bg: colors.dangerLight };
 
       default:
-        return colors.textSecondary;
+        return { text: colors.textSecondary, bg: colors.divider };
     }
   };
 
@@ -78,7 +78,7 @@ const VehicleDocumentsScreen = () => {
         <View style={styles.vehicleCard}>
           <View style={styles.vehicleInfo}>
             <Text style={styles.sectionLabel}>
-              Vehicle Details
+              VEHICLE DETAILS
             </Text>
 
             <Text style={styles.vehicleNumber}>
@@ -90,24 +90,27 @@ const VehicleDocumentsScreen = () => {
             </Text>
           </View>
 
-          <Image
-            source={{
-              uri: 'https://upload.wikimedia.org/wikipedia/commons/thumb/4/4f/Force_Traveller.jpg/640px-Force_Traveller.jpg',
-            }}
-            style={styles.vehicleImage}
-            resizeMode="contain"
-          />
+          <View style={styles.vehicleImageContainer}>
+            <Image
+              source={{
+                uri: 'https://upload.wikimedia.org/wikipedia/commons/thumb/4/4f/Force_Traveller.jpg/640px-Force_Traveller.jpg',
+              }}
+              style={styles.vehicleImage}
+              resizeMode="contain"
+            />
+          </View>
         </View>
 
         {/* ================= DOCUMENTS ================= */}
 
+        <Text style={styles.sectionHeading}>
+          Documents
+        </Text>
+
         <View style={styles.documentsCard}>
-          <Text style={styles.documentsTitle}>
-            Documents
-          </Text>
 
           {documents.map((document, index) => {
-            const statusColor = getStatusColor(
+            const statusColors = getStatusColors(
               document.status,
             );
 
@@ -120,6 +123,17 @@ const VehicleDocumentsScreen = () => {
                   styles.lastDocumentRow,
                 ]}
               >
+                {/* ICON */}
+
+                <View style={styles.documentIcon}>
+                  <AppIcon
+                    family="material"
+                    name="file-document-outline"
+                    size={17}
+                    color={colors.primary}
+                  />
+                </View>
+
                 {/* DOCUMENT INFO */}
 
                 <View style={styles.documentInfo}>
@@ -136,33 +150,27 @@ const VehicleDocumentsScreen = () => {
 
                 {/* STATUS */}
 
-                <View style={styles.statusContainer}>
+                <View
+                  style={[
+                    styles.statusPill,
+                    { backgroundColor: statusColors.bg },
+                  ]}
+                >
+                  <AppIcon
+                    family="material"
+                    name="check-circle"
+                    size={12}
+                    color={statusColors.text}
+                  />
+
                   <Text
                     style={[
                       styles.statusText,
-                      {
-                        color: statusColor,
-                      },
+                      { color: statusColors.text },
                     ]}
                   >
                     {document.status}
                   </Text>
-
-                  <View
-                    style={[
-                      styles.statusIcon,
-                      {
-                        borderColor: statusColor,
-                      },
-                    ]}
-                  >
-                    <AppIcon
-                      family="material"
-                      name="check"
-                      size={11}
-                      color={statusColor}
-                    />
-                  </View>
                 </View>
               </View>
             );
@@ -187,6 +195,7 @@ const styles = StyleSheet.create({
 
   scrollContent: {
     paddingHorizontal: spacing.lg,
+    paddingTop: spacing.sm,
     paddingBottom: spacing.huge,
   },
 
@@ -195,18 +204,26 @@ const styles = StyleSheet.create({
   // =====================================================
 
   vehicleCard: {
-    minHeight: 105,
-    backgroundColor: colors.white,
+    minHeight: 110,
+    backgroundColor: colors.primaryLight,
 
-    borderRadius: spacing.md,
+    borderRadius: 20,
 
-    paddingHorizontal: spacing.md,
+    paddingLeft: spacing.md,
+    paddingRight: spacing.sm,
     paddingVertical: spacing.md,
+
+    borderWidth: 1,
+    borderColor: colors.border,
 
     flexDirection: 'row',
     alignItems: 'center',
 
-    ...shadows.card,
+    shadowColor: colors.shadow,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.06,
+    shadowRadius: 16,
+    elevation: 3,
   },
 
   vehicleInfo: {
@@ -216,8 +233,9 @@ const styles = StyleSheet.create({
 
   sectionLabel: {
     fontFamily: 'GoogleSans-Medium',
-    fontSize: typography.fontSize.xs,
-    color: colors.textPrimary,
+    fontSize: 10,
+    color: colors.textLight,
+    letterSpacing: 0.6,
 
     marginBottom: spacing.xs,
   },
@@ -226,6 +244,7 @@ const styles = StyleSheet.create({
     fontFamily: 'GoogleSans-Bold',
     fontSize: typography.fontSize.sm,
     color: colors.textPrimary,
+    letterSpacing: 0.2,
 
     marginBottom: 3,
   },
@@ -236,9 +255,39 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
   },
 
+  vehicleImageContainer: {
+    width: 118,
+    height: 78,
+
+    borderRadius: 14,
+
+    backgroundColor: colors.white,
+
+    alignItems: 'center',
+    justifyContent: 'center',
+
+    overflow: 'hidden',
+  },
+
   vehicleImage: {
-    width: 125,
-    height: 75,
+    width: '90%',
+    height: '80%',
+  },
+
+  // =====================================================
+  // DOCUMENTS
+  // =====================================================
+
+  sectionHeading: {
+    fontFamily: 'GoogleSans-Medium',
+    fontSize: 11,
+    color: colors.textLight,
+    letterSpacing: 0.6,
+    textTransform: 'uppercase',
+
+    marginTop: spacing.lg,
+    marginBottom: spacing.sm,
+    marginLeft: 2,
   },
 
   // =====================================================
@@ -248,22 +297,18 @@ const styles = StyleSheet.create({
   documentsCard: {
     backgroundColor: colors.white,
 
-    borderRadius: spacing.md,
-
-    marginTop: spacing.md,
+    borderRadius: 18,
 
     paddingHorizontal: spacing.md,
-    paddingTop: spacing.md,
 
-    ...shadows.card,
-  },
+    borderWidth: 1,
+    borderColor: colors.border,
 
-  documentsTitle: {
-    fontFamily: 'GoogleSans-Bold',
-    fontSize: typography.fontSize.xs,
-    color: colors.textPrimary,
-
-    marginBottom: spacing.sm,
+    shadowColor: colors.shadow,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 12,
+    elevation: 2,
   },
 
   // =====================================================
@@ -271,12 +316,12 @@ const styles = StyleSheet.create({
   // =====================================================
 
   documentRow: {
-    minHeight: 54,
+    minHeight: 62,
 
     flexDirection: 'row',
     alignItems: 'center',
 
-    borderBottomWidth: 1,
+    borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: colors.divider,
   },
 
@@ -284,9 +329,28 @@ const styles = StyleSheet.create({
     borderBottomWidth: 0,
   },
 
+  // =====================================================
+  // DOCUMENT ICON
+  // =====================================================
+
+  documentIcon: {
+    width: 36,
+    height: 36,
+
+    borderRadius: 12,
+
+    backgroundColor: colors.primaryLight,
+
+    alignItems: 'center',
+    justifyContent: 'center',
+
+    marginRight: spacing.sm,
+  },
+
   documentInfo: {
     flex: 1,
     justifyContent: 'center',
+    paddingRight: spacing.xs,
   },
 
   documentName: {
@@ -300,33 +364,27 @@ const styles = StyleSheet.create({
   documentSubtitle: {
     fontFamily: 'GoogleSans-Regular',
     fontSize: 10,
-    color: colors.textSecondary,
+    color: colors.textLight,
   },
 
   // =====================================================
   // STATUS
   // =====================================================
 
-  statusContainer: {
+  statusPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 7,
+    gap: 4,
+
+    paddingHorizontal: 9,
+    paddingVertical: 5,
+
+    borderRadius: 10,
   },
 
   statusText: {
     fontFamily: 'GoogleSans-Medium',
     fontSize: 10,
-  },
-
-  statusIcon: {
-    width: 17,
-    height: 17,
-
-    borderRadius: 9,
-
-    borderWidth: 1.5,
-
-    alignItems: 'center',
-    justifyContent: 'center',
+    letterSpacing: 0.2,
   },
 });

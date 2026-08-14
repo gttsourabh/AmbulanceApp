@@ -33,6 +33,12 @@ const AvailabilityScreen = () => {
         navigation.navigate('MainTabs' as never);
     };
 
+
+    const handleEmergencyRequest = () => {
+        navigation.navigate('IncomingRequests' as never);
+    };
+
+
     // =====================================================
     // SCREEN
     // =====================================================
@@ -69,7 +75,7 @@ const AvailabilityScreen = () => {
                         <AppIcon
                             family="material"
                             name="account"
-                            size={28}
+                            size={26}
                             color={colors.textSecondary}
                         />
                     </View>
@@ -85,34 +91,45 @@ const AvailabilityScreen = () => {
                     <View style={styles.availabilityContent}>
 
                         <Text style={styles.youAreText}>
-                            You are
+                            YOUR STATUS
                         </Text>
 
                         <View style={styles.statusRow}>
 
                             <View
                                 style={[
-                                    styles.onlineDot,
+                                    styles.statusPill,
                                     {
                                         backgroundColor: isOnline
-                                            ? '#22C55E'
-                                            : colors.textLight,
-                                    },
-                                ]}
-                            />
-
-                            <Text
-                                style={[
-                                    styles.statusText,
-                                    {
-                                        color: isOnline
-                                            ? '#22A06B'
-                                            : colors.textSecondary,
+                                            ? colors.successLight
+                                            : colors.divider,
                                     },
                                 ]}
                             >
-                                {isOnline ? 'ONLINE' : 'OFFLINE'}
-                            </Text>
+                                <View
+                                    style={[
+                                        styles.onlineDot,
+                                        {
+                                            backgroundColor: isOnline
+                                                ? colors.success
+                                                : colors.textLight,
+                                        },
+                                    ]}
+                                />
+
+                                <Text
+                                    style={[
+                                        styles.statusText,
+                                        {
+                                            color: isOnline
+                                                ? colors.success
+                                                : colors.textSecondary,
+                                        },
+                                    ]}
+                                >
+                                    {isOnline ? 'AVAILABLE' : 'OFFLINE'}
+                                </Text>
+                            </View>
 
                         </View>
 
@@ -123,7 +140,7 @@ const AvailabilityScreen = () => {
                         onValueChange={setIsOnline}
                         trackColor={{
                             false: colors.divider,
-                            true: '#35C978',
+                            true: colors.success,
                         }}
                         thumbColor={colors.white}
                         ios_backgroundColor={colors.divider}
@@ -150,6 +167,8 @@ const AvailabilityScreen = () => {
                             04
                         </Text>
 
+                        <View style={styles.statDivider} />
+
                         <Text style={styles.statBottom}>
                             Completed
                         </Text>
@@ -168,6 +187,8 @@ const AvailabilityScreen = () => {
                             ₹ 1,250
                         </Text>
 
+                        <View style={styles.statDivider} />
+
                         <Text style={styles.statBottom}>
                             Today
                         </Text>
@@ -181,7 +202,7 @@ const AvailabilityScreen = () => {
         ===================================================== */}
 
                 <TouchableOpacity
-                    activeOpacity={0.7}
+                    activeOpacity={0.75}
                     style={styles.goHomeButton}
                     onPress={handleGoToHome}
                 >
@@ -193,7 +214,7 @@ const AvailabilityScreen = () => {
                                 family="material"
                                 name="home-outline"
                                 size={18}
-                                color="#315EFF"
+                                color={colors.primary}
                             />
                         </View>
 
@@ -212,7 +233,29 @@ const AvailabilityScreen = () => {
 
                 </TouchableOpacity>
 
+                {/* =====================================================
+    EMERGENCY REQUEST
+===================================================== */}
+
+                <TouchableOpacity
+                    activeOpacity={0.75}
+                    style={styles.emergencyButton}
+                    onPress={handleEmergencyRequest}
+                >
+                    <AppIcon
+                        family="material"
+                        name="alert-circle-outline"
+                        size={20}
+                        color={colors.danger}
+                    />
+
+                    <Text style={styles.emergencyButtonText}>
+                        Emergency Request
+                    </Text>
+                </TouchableOpacity>
+
             </View>
+
         </SafeAreaView>
     );
 };
@@ -262,8 +305,8 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
 
-        marginTop: spacing.sm,
-        marginBottom: spacing.lg,
+        marginTop: spacing.md,
+        marginBottom: spacing.xl,
     },
 
     greetingContent: {
@@ -274,14 +317,16 @@ const styles = StyleSheet.create({
         fontFamily: 'GoogleSans-Regular',
         fontSize: typography.fontSize.xs,
         color: colors.textSecondary,
+        letterSpacing: 0.2,
 
-        marginBottom: 3,
+        marginBottom: 4,
     },
 
     userName: {
         fontFamily: 'GoogleSans-Medium',
-        fontSize: typography.fontSize.lg,
+        fontSize: typography.fontSize.xl,
         color: colors.textPrimary,
+        letterSpacing: 0.1,
     },
 
     // =====================================================
@@ -289,17 +334,20 @@ const styles = StyleSheet.create({
     // =====================================================
 
     profileAvatar: {
-        width: 46,
-        height: 46,
+        width: 50,
+        height: 50,
 
-        borderRadius: 23,
+        borderRadius: 25,
 
-        backgroundColor: '#E9EDF2',
+        backgroundColor: colors.primaryLight,
 
         alignItems: 'center',
         justifyContent: 'center',
 
         overflow: 'hidden',
+
+        borderWidth: 1,
+        borderColor: colors.border,
     },
 
     // =====================================================
@@ -307,22 +355,27 @@ const styles = StyleSheet.create({
     // =====================================================
 
     availabilityCard: {
-        minHeight: 78,
+        minHeight: 84,
 
-        paddingHorizontal: spacing.md,
+        paddingHorizontal: spacing.lg,
+        paddingVertical: spacing.md,
 
-        borderRadius: spacing.md,
+        borderRadius: 18,
 
         backgroundColor: colors.white,
 
         borderWidth: 1,
-        borderColor: colors.divider,
+        borderColor: colors.border,
 
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
 
-        ...shadows.card,
+        shadowColor: colors.shadow,
+        shadowOffset: { width: 0, height: 6 },
+        shadowOpacity: 0.06,
+        shadowRadius: 16,
+        elevation: 3,
     },
 
     availabilityContent: {
@@ -330,9 +383,10 @@ const styles = StyleSheet.create({
     },
 
     youAreText: {
-        fontFamily: 'GoogleSans-Regular',
-        fontSize: typography.fontSize.xs,
-        color: colors.textSecondary,
+        fontFamily: 'GoogleSans-Medium',
+        fontSize: 10,
+        color: colors.textLight,
+        letterSpacing: 0.8,
 
         marginBottom: spacing.xs,
     },
@@ -342,24 +396,35 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
 
+    statusPill: {
+        flexDirection: 'row',
+        alignItems: 'center',
+
+        paddingVertical: 5,
+        paddingHorizontal: 10,
+
+        borderRadius: 20,
+    },
+
     onlineDot: {
-        width: 8,
-        height: 8,
+        width: 7,
+        height: 7,
 
-        borderRadius: 4,
+        borderRadius: 3.5,
 
-        marginRight: spacing.xs,
+        marginRight: 6,
     },
 
     statusText: {
         fontFamily: 'GoogleSans-Medium',
         fontSize: typography.fontSize.sm,
+        letterSpacing: 0.4,
     },
 
     switch: {
         transform: [
-            { scaleX: 0.9 },
-            { scaleY: 0.9 },
+            { scaleX: 0.92 },
+            { scaleY: 0.92 },
         ],
     },
 
@@ -372,25 +437,34 @@ const styles = StyleSheet.create({
 
         gap: spacing.sm,
 
-        marginTop: spacing.md,
+        marginTop: spacing.lg,
     },
 
     statCard: {
         flex: 1,
 
-        minHeight: 104,
+        minHeight: 112,
 
         paddingHorizontal: spacing.md,
         paddingVertical: spacing.md,
 
-        borderRadius: spacing.md,
+        borderRadius: 16,
 
-        backgroundColor: colors.white,
+        backgroundColor: colors.surface,
 
         borderWidth: 1,
-        borderColor: colors.divider,
+        borderColor: colors.border,
 
-        ...shadows.card,
+        // Soft shadow
+        shadowColor: '#000',
+        shadowOffset: {
+            width: 4,
+            height: 4,
+        },
+        shadowOpacity: 8,
+        shadowRadius: 10,
+
+        elevation: 4,
     },
 
     statLabel: {
@@ -398,29 +472,34 @@ const styles = StyleSheet.create({
         fontSize: typography.fontSize.xs,
         color: colors.textSecondary,
 
-        marginBottom: spacing.xs,
+        marginBottom: 6,
     },
 
     tripValue: {
         fontFamily: 'GoogleSans-Medium',
         fontSize: typography.fontSize.xxl,
         color: colors.textPrimary,
-
-        marginBottom: 2,
+        letterSpacing: 0.2,
     },
 
     earningValue: {
         fontFamily: 'GoogleSans-Medium',
         fontSize: typography.fontSize.xl,
-        color: colors.textPrimary,
+        color: colors.primary,
+        letterSpacing: 0.2,
+    },
 
-        marginBottom: 3,
+    statDivider: {
+        height: StyleSheet.hairlineWidth,
+        backgroundColor: colors.divider,
+
+        marginVertical: 8,
     },
 
     statBottom: {
         fontFamily: 'GoogleSans-Regular',
-        fontSize: typography.fontSize.xs,
-        color: colors.textSecondary,
+        fontSize: 11,
+        color: colors.textLight,
     },
 
     // =====================================================
@@ -428,24 +507,28 @@ const styles = StyleSheet.create({
     // =====================================================
 
     goHomeButton: {
-        minHeight: 54,
+        minHeight: 58,
 
-        marginTop: spacing.md,
+        marginTop: spacing.lg,
 
         paddingHorizontal: spacing.md,
 
-        borderRadius: spacing.md,
+        borderRadius: 16,
 
         backgroundColor: colors.white,
 
         borderWidth: 1,
-        borderColor: colors.divider,
+        borderColor: colors.border,
 
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
 
-        ...shadows.card,
+        shadowColor: colors.shadow,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.04,
+        shadowRadius: 12,
+        elevation: 2,
     },
 
     goHomeLeft: {
@@ -455,14 +538,52 @@ const styles = StyleSheet.create({
 
     homeIconContainer: {
         width: 34,
+        height: 34,
 
-        alignItems: 'flex-start',
+        marginRight: 4,
+
+        borderRadius: 10,
+        backgroundColor: colors.primaryLight,
+
+        alignItems: 'center',
         justifyContent: 'center',
     },
 
     goHomeText: {
         fontFamily: 'GoogleSans-Medium',
         fontSize: typography.fontSize.sm,
-        color: '#315EFF',
+        color: colors.textPrimary,
+        letterSpacing: 0.1,
+    },
+
+    // =====================================================
+    // EMERGENCY REQUEST
+    // =====================================================
+
+    emergencyButton: {
+        minHeight: 54,
+
+        marginTop: spacing.sm,
+
+        paddingHorizontal: spacing.md,
+
+        borderRadius: 16,
+
+        backgroundColor: colors.dangerLight,
+
+        borderWidth: 1,
+        borderColor: colors.danger,
+
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+
+        gap: 8,
+    },
+
+    emergencyButtonText: {
+        fontFamily: 'GoogleSans-Medium',
+        fontSize: typography.fontSize.sm,
+        color: colors.danger,
     },
 });

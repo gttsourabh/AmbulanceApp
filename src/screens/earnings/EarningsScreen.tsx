@@ -93,13 +93,29 @@ const EarningsScreen = () => {
                 {/* ================= EARNINGS SUMMARY ================= */}
 
                 <View style={styles.summaryCard}>
-                    <Text style={styles.summaryLabel}>
-                        Today's Earnings
-                    </Text>
 
-                    <Text style={styles.totalAmount}>
-                        ₹ 1,250
-                    </Text>
+                    <View style={styles.summaryTopRow}>
+
+                        <View>
+                            <Text style={styles.summaryLabel}>
+                                Today's Earnings
+                            </Text>
+
+                            <Text style={styles.totalAmount}>
+                                ₹ 1,250
+                            </Text>
+                        </View>
+
+                        <View style={styles.summaryIconCircle}>
+                            <AppIcon
+                                family="material"
+                                name="cash-multiple"
+                                size={22}
+                                color={colors.primary}
+                            />
+                        </View>
+
+                    </View>
 
                     <View style={styles.statsContainer}>
 
@@ -174,9 +190,11 @@ const EarningsScreen = () => {
 
                             {/* Amount */}
 
-                            <Text style={styles.transactionAmount}>
-                                {transaction.amount}
-                            </Text>
+                            <View style={styles.amountPill}>
+                                <Text style={styles.transactionAmount}>
+                                    {transaction.amount}
+                                </Text>
+                            </View>
 
                         </View>
                     ))}
@@ -218,6 +236,7 @@ const styles = StyleSheet.create({
         fontFamily: 'GoogleSans-Bold',
         fontSize: 18,
         color: colors.textPrimary,
+        letterSpacing: 0.1,
     },
 
     // =====================================================
@@ -227,30 +246,38 @@ const styles = StyleSheet.create({
     periodContainer: {
         flexDirection: 'row',
 
-        paddingHorizontal: 18,
+        marginHorizontal: 18,
 
-        marginTop: 5,
-        marginBottom: 14,
+        marginTop: 4,
+        marginBottom: 16,
 
-        justifyContent: 'space-between',
+        padding: 4,
 
-        backgroundColor: colors.white,
+        borderRadius: 16,
+
+        backgroundColor: colors.divider,
     },
 
     periodButton: {
-        width: '30%',
+        flex: 1,
         height: 36,
 
-        borderRadius: 20,
+        borderRadius: 12,
 
         alignItems: 'center',
         justifyContent: 'center',
 
-        backgroundColor: '#F1F3F7',
+        backgroundColor: 'transparent',
     },
 
     activePeriodButton: {
-        backgroundColor: colors.primary,
+        backgroundColor: colors.card,
+
+        shadowColor: colors.shadow,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.08,
+        shadowRadius: 6,
+        elevation: 2,
     },
 
     periodText: {
@@ -262,7 +289,7 @@ const styles = StyleSheet.create({
 
     activePeriodText: {
         fontFamily: 'GoogleSans-Bold',
-        color: colors.textWhite,
+        color: colors.primary,
     },
 
     // =====================================================
@@ -281,25 +308,48 @@ const styles = StyleSheet.create({
     // =====================================================
 
     summaryCard: {
-        backgroundColor: colors.white,
+        backgroundColor: colors.card,
 
-        borderRadius: 14,
+        borderRadius: 20,
 
-        paddingHorizontal: 15,
-        paddingTop: 15,
-        paddingBottom: 14,
+        paddingHorizontal: 18,
+        paddingTop: 18,
+        paddingBottom: 16,
 
-        marginBottom: 20,
+        marginBottom: 22,
+
+        borderWidth: 1,
+        borderColor: colors.border,
 
         elevation: 3,
 
-        shadowColor: '#000',
+        shadowColor: colors.shadow,
         shadowOffset: {
             width: 0,
-            height: 2,
+            height: 6,
         },
-        shadowOpacity: 0.08,
-        shadowRadius: 6,
+        shadowOpacity: 0.06,
+        shadowRadius: 16,
+    },
+
+    summaryTopRow: {
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+        justifyContent: 'space-between',
+
+        marginBottom: 18,
+    },
+
+    summaryIconCircle: {
+        width: 44,
+        height: 44,
+
+        borderRadius: 22,
+
+        backgroundColor: colors.primaryLight,
+
+        alignItems: 'center',
+        justifyContent: 'center',
     },
 
     summaryLabel: {
@@ -307,17 +357,17 @@ const styles = StyleSheet.create({
         fontSize: 12,
 
         color: colors.textSecondary,
+        letterSpacing: 0.2,
 
-        marginBottom: 3,
+        marginBottom: 5,
     },
 
     totalAmount: {
         fontFamily: 'GoogleSans-Bold',
-        fontSize: 25,
+        fontSize: 27,
 
         color: colors.textPrimary,
-
-        marginBottom: 18,
+        letterSpacing: 0.2,
     },
 
     // =====================================================
@@ -328,6 +378,11 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
 
         alignItems: 'center',
+
+        paddingTop: 16,
+
+        borderTopWidth: StyleSheet.hairlineWidth,
+        borderTopColor: colors.divider,
     },
 
     statItem: {
@@ -338,7 +393,7 @@ const styles = StyleSheet.create({
         fontFamily: 'GoogleSans-Regular',
         fontSize: 11,
 
-        color: colors.textSecondary,
+        color: colors.textLight,
 
         marginBottom: 4,
     },
@@ -351,7 +406,7 @@ const styles = StyleSheet.create({
     },
 
     statDivider: {
-        width: 1,
+        width: StyleSheet.hairlineWidth,
         height: 38,
 
         backgroundColor: colors.divider,
@@ -365,29 +420,35 @@ const styles = StyleSheet.create({
 
     sectionTitle: {
         fontFamily: 'GoogleSans-Bold',
-        fontSize: 14,
+        fontSize: 13,
 
-        color: colors.textPrimary,
+        color: colors.textLight,
+        letterSpacing: 0.6,
+        textTransform: 'uppercase',
 
-        marginBottom: 9,
+        marginBottom: 10,
+        marginLeft: 2,
     },
 
     transactionCard: {
-        backgroundColor: colors.white,
+        backgroundColor: colors.card,
 
-        borderRadius: 14,
+        borderRadius: 18,
 
-        paddingHorizontal: 13,
+        paddingHorizontal: 14,
+
+        borderWidth: 1,
+        borderColor: colors.border,
 
         elevation: 3,
 
-        shadowColor: '#000',
+        shadowColor: colors.shadow,
         shadowOffset: {
             width: 0,
-            height: 2,
+            height: 4,
         },
-        shadowOpacity: 0.08,
-        shadowRadius: 6,
+        shadowOpacity: 0.05,
+        shadowRadius: 12,
     },
 
     transactionRow: {
@@ -396,7 +457,7 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
 
-        borderBottomWidth: 1,
+        borderBottomWidth: StyleSheet.hairlineWidth,
         borderBottomColor: colors.divider,
     },
 
@@ -409,17 +470,17 @@ const styles = StyleSheet.create({
     // =====================================================
 
     transactionIcon: {
-        width: 36,
-        height: 36,
+        width: 38,
+        height: 38,
 
-        borderRadius: 18,
+        borderRadius: 13,
 
         backgroundColor: colors.primaryLight,
 
         alignItems: 'center',
         justifyContent: 'center',
 
-        marginRight: 11,
+        marginRight: 12,
     },
 
     // =====================================================
@@ -449,6 +510,15 @@ const styles = StyleSheet.create({
     // =====================================================
     // AMOUNT
     // =====================================================
+
+    amountPill: {
+        paddingHorizontal: 9,
+        paddingVertical: 4,
+
+        borderRadius: 8,
+
+        backgroundColor: colors.successLight,
+    },
 
     transactionAmount: {
         fontFamily: 'GoogleSans-Bold',

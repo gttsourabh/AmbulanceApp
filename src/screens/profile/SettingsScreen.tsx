@@ -21,6 +21,8 @@ interface SettingItemProps {
   value?: boolean;
   onValueChange?: (value: boolean) => void;
   rightText?: string;
+  iconBg: string;
+  iconColor: string;
   onPress?: () => void;
 }
 
@@ -74,6 +76,8 @@ const SettingsScreen = () => {
     value,
     onValueChange,
     rightText,
+    iconBg,
+    iconColor,
     onPress,
   }: SettingItemProps) => {
     return (
@@ -84,12 +88,17 @@ const SettingsScreen = () => {
       >
         {/* ICON */}
 
-        <View style={styles.iconContainer}>
+        <View
+          style={[
+            styles.iconContainer,
+            { backgroundColor: iconBg },
+          ]}
+        >
           <AppIcon
             family="material"
             name={icon}
-            size={19}
-            color={colors.textSecondary}
+            size={18}
+            color={iconColor}
           />
         </View>
 
@@ -107,7 +116,7 @@ const SettingsScreen = () => {
             onValueChange={onValueChange}
             trackColor={{
               false: colors.divider,
-              true: '#35C978',
+              true: colors.success,
             }}
             thumbColor={colors.white}
             ios_backgroundColor={colors.divider}
@@ -121,12 +130,14 @@ const SettingsScreen = () => {
               </Text>
             )}
 
-            <AppIcon
-              family="material"
-              name="chevron-right"
-              size={20}
-              color={colors.textLight}
-            />
+            <View style={styles.chevronContainer}>
+              <AppIcon
+                family="material"
+                name="chevron-right"
+                size={18}
+                color={colors.textLight}
+              />
+            </View>
           </View>
         )}
       </TouchableOpacity>
@@ -150,7 +161,11 @@ const SettingsScreen = () => {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
-        {/* ================= SETTINGS CARD ================= */}
+        {/* ================= GENERAL ================= */}
+
+        <Text style={styles.sectionHeading}>
+          General
+        </Text>
 
         <View style={styles.settingsCard}>
 
@@ -160,6 +175,8 @@ const SettingsScreen = () => {
             icon: 'translate',
             title: 'Language',
             rightText: 'English',
+            iconBg: colors.primaryLight,
+            iconColor: colors.primary,
             onPress: handleLanguage,
           })}
 
@@ -173,6 +190,8 @@ const SettingsScreen = () => {
             type: 'switch',
             value: notificationsEnabled,
             onValueChange: setNotificationsEnabled,
+            iconBg: colors.warningLight,
+            iconColor: colors.warning,
           })}
 
           <View style={styles.divider} />
@@ -185,15 +204,27 @@ const SettingsScreen = () => {
             type: 'switch',
             value: soundEnabled,
             onValueChange: setSoundEnabled,
+            iconBg: colors.infoLight,
+            iconColor: colors.info,
           })}
 
-          <View style={styles.divider} />
+        </View>
+
+        {/* ================= ABOUT ================= */}
+
+        <Text style={styles.sectionHeading}>
+          About
+        </Text>
+
+        <View style={styles.settingsCard}>
 
           {/* PRIVACY */}
 
           {renderSettingItem({
             icon: 'lock-outline',
             title: 'Privacy Policy',
+            iconBg: colors.primaryLight,
+            iconColor: colors.primary,
             onPress: handlePrivacyPolicy,
           })}
 
@@ -204,6 +235,8 @@ const SettingsScreen = () => {
           {renderSettingItem({
             icon: 'file-document-outline',
             title: 'Terms & Conditions',
+            iconBg: colors.primaryLight,
+            iconColor: colors.primary,
             onPress: handleTerms,
           })}
 
@@ -214,6 +247,8 @@ const SettingsScreen = () => {
           {renderSettingItem({
             icon: 'help-circle-outline',
             title: 'Help & Support',
+            iconBg: colors.successLight,
+            iconColor: colors.successDark,
             onPress: handleHelp,
           })}
 
@@ -229,14 +264,20 @@ const SettingsScreen = () => {
           <AppIcon
             family="material"
             name="logout"
-            size={20}
-            color="#EF4444"
+            size={19}
+            color={colors.danger}
           />
 
           <Text style={styles.logoutText}>
             Logout
           </Text>
         </TouchableOpacity>
+
+        {/* VERSION */}
+
+        <Text style={styles.versionText}>
+          Version 1.0.0
+        </Text>
 
       </ScrollView>
     </SafeAreaView>
@@ -257,7 +298,24 @@ const styles = StyleSheet.create({
 
   scrollContent: {
     paddingHorizontal: spacing.lg,
+    paddingTop: spacing.sm,
     paddingBottom: spacing.huge,
+  },
+
+  // =====================================================
+  // SECTION HEADING
+  // =====================================================
+
+  sectionHeading: {
+    fontFamily: 'GoogleSans-Medium',
+    fontSize: 11,
+    color: colors.textLight,
+    letterSpacing: 0.6,
+    textTransform: 'uppercase',
+
+    marginTop: spacing.lg,
+    marginBottom: spacing.sm,
+    marginLeft: 2,
   },
 
   // =====================================================
@@ -267,11 +325,18 @@ const styles = StyleSheet.create({
   settingsCard: {
     backgroundColor: colors.white,
 
-    borderRadius: spacing.md,
+    borderRadius: 18,
 
     paddingHorizontal: spacing.md,
 
-    ...shadows.card,
+    borderWidth: 1,
+    borderColor: colors.border,
+
+    shadowColor: colors.shadow,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 12,
+    elevation: 2,
   },
 
   // =====================================================
@@ -279,7 +344,7 @@ const styles = StyleSheet.create({
   // =====================================================
 
   settingRow: {
-    minHeight: 56,
+    minHeight: 60,
 
     flexDirection: 'row',
     alignItems: 'center',
@@ -291,9 +356,14 @@ const styles = StyleSheet.create({
 
   iconContainer: {
     width: 36,
+    height: 36,
 
-    alignItems: 'flex-start',
+    borderRadius: 12,
+
+    alignItems: 'center',
     justifyContent: 'center',
+
+    marginRight: spacing.sm,
   },
 
   // =====================================================
@@ -306,6 +376,7 @@ const styles = StyleSheet.create({
     fontFamily: 'GoogleSans-Medium',
     fontSize: 12,
     color: colors.textPrimary,
+    letterSpacing: 0.1,
   },
 
   // =====================================================
@@ -316,13 +387,23 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
 
-    gap: 4,
+    gap: 2,
   },
 
   rightText: {
     fontFamily: 'GoogleSans-Regular',
     fontSize: 11,
     color: colors.textSecondary,
+  },
+
+  chevronContainer: {
+    width: 24,
+    height: 24,
+
+    borderRadius: 12,
+
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 
   switch: {
@@ -337,9 +418,11 @@ const styles = StyleSheet.create({
   // =====================================================
 
   divider: {
-    height: 1,
+    height: StyleSheet.hairlineWidth,
 
     backgroundColor: colors.divider,
+
+    marginLeft: 48,
   },
 
   // =====================================================
@@ -349,27 +432,36 @@ const styles = StyleSheet.create({
   logoutButton: {
     height: 54,
 
-    marginTop: spacing.lg,
+    marginTop: spacing.xl,
 
-    borderRadius: spacing.md,
+    borderRadius: 16,
 
-    backgroundColor: colors.white,
-
-    borderWidth: 1,
-    borderColor: colors.divider,
+    backgroundColor: colors.dangerLight,
 
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
 
     gap: 8,
-
-    ...shadows.card,
   },
 
   logoutText: {
     fontFamily: 'GoogleSans-Medium',
-    fontSize: 12,
-    color: '#EF4444',
+    fontSize: 13,
+    color: colors.danger,
+    letterSpacing: 0.1,
+  },
+
+  // =====================================================
+  // VERSION
+  // =====================================================
+
+  versionText: {
+    fontFamily: 'GoogleSans-Regular',
+    fontSize: typography.fontSize.xs,
+    color: colors.textLight,
+    textAlign: 'center',
+
+    marginTop: spacing.lg,
   },
 });

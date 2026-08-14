@@ -120,20 +120,34 @@ const TripsScreen = () => {
 
                 <View style={styles.tripInfo}>
 
-                    <Text style={styles.passengerName}>
+                    <Text
+                        style={styles.passengerName}
+                        numberOfLines={1}
+                    >
                         {trip.name}
                     </Text>
 
                     <View style={styles.tripDetailsRow}>
+
+                        <AppIcon
+                            family="material"
+                            name="clock-outline"
+                            size={12}
+                            color={colors.textLight}
+                        />
 
                         <Text style={styles.pickupTime}>
                             {trip.pickupTime}
                         </Text>
 
                         {trip.distance ? (
-                            <Text style={styles.distance}>
-                                {trip.distance}
-                            </Text>
+                            <>
+                                <View style={styles.dotSeparator} />
+
+                                <Text style={styles.distance}>
+                                    {trip.distance}
+                                </Text>
+                            </>
                         ) : null}
 
                     </View>
@@ -154,16 +168,25 @@ const TripsScreen = () => {
                         {trip.amount}
                     </Text>
 
-                    <Text
+                    <View
                         style={[
-                            styles.status,
+                            styles.statusPill,
                             isCancelled
-                                ? styles.cancelledStatus
-                                : styles.completedStatus,
+                                ? styles.cancelledPill
+                                : styles.completedPill,
                         ]}
                     >
-                        {trip.status}
-                    </Text>
+                        <Text
+                            style={[
+                                styles.status,
+                                isCancelled
+                                    ? styles.cancelledStatus
+                                    : styles.completedStatus,
+                            ]}
+                        >
+                            {trip.status}
+                        </Text>
+                    </View>
 
                 </View>
             </View>
@@ -192,7 +215,7 @@ const TripsScreen = () => {
                     <AppIcon
                         family="material"
                         name="filter-variant"
-                        size={22}
+                        size={20}
                         color={colors.primary}
                     />
                 </TouchableOpacity>
@@ -284,15 +307,21 @@ const TripsScreen = () => {
                 {filteredTrips.length === 0 && (
                     <View style={styles.emptyContainer}>
 
-                        <AppIcon
-                            family="material"
-                            name="clipboard-text-outline"
-                            size={48}
-                            color={colors.textLight}
-                        />
+                        <View style={styles.emptyIconCircle}>
+                            <AppIcon
+                                family="material"
+                                name="clipboard-text-outline"
+                                size={40}
+                                color={colors.textLight}
+                            />
+                        </View>
 
                         <Text style={styles.emptyText}>
                             No trips found
+                        </Text>
+
+                        <Text style={styles.emptySubtext}>
+                            Trips you complete will show up here
                         </Text>
 
                     </View>
@@ -333,17 +362,22 @@ const styles = StyleSheet.create({
         fontFamily: 'GoogleSans-Medium',
         fontSize: typography.fontSize.lg,
         color: colors.textPrimary,
+        letterSpacing: 0.1,
     },
 
     filterIconButton: {
         position: 'absolute',
         right: spacing.lg,
 
-        width: 40,
-        height: 40,
+        width: 38,
+        height: 38,
+
+        borderRadius: 12,
 
         alignItems: 'center',
         justifyContent: 'center',
+
+        backgroundColor: colors.primaryLight,
     },
 
     // =====================================================
@@ -353,29 +387,39 @@ const styles = StyleSheet.create({
     filterContainer: {
         flexDirection: 'row',
 
-        paddingHorizontal: spacing.lg,
+        marginHorizontal: spacing.lg,
 
         marginTop: spacing.xs,
         marginBottom: spacing.md,
 
-        gap: spacing.sm,
+        padding: 4,
+
+        borderRadius: 16,
+
+        backgroundColor: colors.divider,
     },
 
     filterButton: {
         flex: 1,
 
-        height: 40,
+        height: 38,
 
-        borderRadius: 20,
+        borderRadius: 13,
 
         alignItems: 'center',
         justifyContent: 'center',
 
-        backgroundColor: '#F1F3F7',
+        backgroundColor: 'transparent',
     },
 
     activeFilterButton: {
-        backgroundColor: colors.primary,
+        backgroundColor: colors.card,
+
+        shadowColor: colors.shadow,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.08,
+        shadowRadius: 6,
+        elevation: 2,
     },
 
     filterText: {
@@ -385,7 +429,7 @@ const styles = StyleSheet.create({
     },
 
     activeFilterText: {
-        color: colors.textWhite,
+        color: colors.primary,
         fontFamily: 'GoogleSans-Medium',
     },
 
@@ -404,8 +448,10 @@ const styles = StyleSheet.create({
 
     sectionTitle: {
         fontFamily: 'GoogleSans-Medium',
-        fontSize: typography.fontSize.sm,
-        color: colors.textSecondary,
+        fontSize: 11,
+        color: colors.textLight,
+        letterSpacing: 0.6,
+        textTransform: 'uppercase',
 
         marginBottom: spacing.sm,
         marginLeft: 2,
@@ -420,17 +466,24 @@ const styles = StyleSheet.create({
 
         backgroundColor: colors.card,
 
-        borderRadius: spacing.md,
+        borderRadius: 16,
 
         marginBottom: spacing.sm,
 
         paddingHorizontal: spacing.sm,
         paddingVertical: spacing.sm,
 
+        borderWidth: 1,
+        borderColor: colors.border,
+
         flexDirection: 'row',
         alignItems: 'center',
 
-        ...shadows.card,
+        shadowColor: colors.shadow,
+        shadowOffset: { width: 0, height: 3 },
+        shadowOpacity: 0.04,
+        shadowRadius: 10,
+        elevation: 1,
     },
 
     // =====================================================
@@ -441,7 +494,7 @@ const styles = StyleSheet.create({
         width: 42,
         height: 42,
 
-        borderRadius: spacing.sm,
+        borderRadius: 13,
 
         alignItems: 'center',
         justifyContent: 'center',
@@ -465,14 +518,17 @@ const styles = StyleSheet.create({
         flex: 1,
 
         justifyContent: 'center',
+
+        paddingRight: spacing.xs,
     },
 
     passengerName: {
         fontFamily: 'GoogleSans-Medium',
         fontSize: typography.fontSize.sm,
         color: colors.textPrimary,
+        letterSpacing: 0.1,
 
-        marginBottom: spacing.xs,
+        marginBottom: 4,
     },
 
     tripDetailsRow: {
@@ -485,7 +541,17 @@ const styles = StyleSheet.create({
         fontSize: typography.fontSize.xs,
         color: colors.textSecondary,
 
-        marginRight: spacing.md,
+        marginLeft: 4,
+    },
+
+    dotSeparator: {
+        width: 3,
+        height: 3,
+        borderRadius: 1.5,
+
+        backgroundColor: colors.textLight,
+
+        marginHorizontal: 6,
     },
 
     distance: {
@@ -499,7 +565,7 @@ const styles = StyleSheet.create({
     // =====================================================
 
     tripRight: {
-        minWidth: 78,
+        minWidth: 82,
 
         alignItems: 'flex-end',
     },
@@ -509,20 +575,36 @@ const styles = StyleSheet.create({
         fontSize: typography.fontSize.xs,
         color: colors.textLight,
 
-        marginBottom: 2,
+        marginBottom: 3,
     },
 
     amount: {
-        fontFamily: 'GoogleSans-Medium',
+        fontFamily: 'GoogleSans-Bold',
         fontSize: typography.fontSize.sm,
         color: colors.textPrimary,
 
-        marginBottom: 3,
+        marginBottom: 6,
+    },
+
+    statusPill: {
+        paddingHorizontal: 8,
+        paddingVertical: 3,
+
+        borderRadius: 8,
+    },
+
+    completedPill: {
+        backgroundColor: colors.successLight,
+    },
+
+    cancelledPill: {
+        backgroundColor: colors.dangerLight,
     },
 
     status: {
         fontFamily: 'GoogleSans-Medium',
-        fontSize: typography.fontSize.xs,
+        fontSize: 10,
+        letterSpacing: 0.2,
     },
 
     completedStatus: {
@@ -543,14 +625,34 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
 
-        paddingTop: 100,
+        paddingTop: 90,
+    },
+
+    emptyIconCircle: {
+        width: 88,
+        height: 88,
+
+        borderRadius: 44,
+
+        backgroundColor: colors.divider,
+
+        alignItems: 'center',
+        justifyContent: 'center',
+
+        marginBottom: spacing.md,
     },
 
     emptyText: {
         fontFamily: 'GoogleSans-Medium',
         fontSize: typography.fontSize.sm,
+        color: colors.textPrimary,
+    },
+
+    emptySubtext: {
+        fontFamily: 'GoogleSans-Regular',
+        fontSize: typography.fontSize.xs,
         color: colors.textLight,
 
-        marginTop: spacing.sm,
+        marginTop: 4,
     },
 });

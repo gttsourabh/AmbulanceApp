@@ -16,6 +16,8 @@ interface InfoItemProps {
     title: string;
     value: string;
     valueColor?: string;
+    iconBg: string;
+    iconColor: string;
     onPress?: () => void;
 }
 
@@ -37,6 +39,8 @@ const UserInfo = () => {
         title,
         value,
         valueColor,
+        iconBg,
+        iconColor,
         onPress,
     }: InfoItemProps) => {
         return (
@@ -47,12 +51,17 @@ const UserInfo = () => {
             >
                 {/* ICON */}
 
-                <View style={styles.iconContainer}>
+                <View
+                    style={[
+                        styles.iconContainer,
+                        { backgroundColor: iconBg },
+                    ]}
+                >
                     <AppIcon
                         family="material"
                         name={icon}
                         size={19}
-                        color={colors.textSecondary}
+                        color={iconColor}
                     />
                 </View>
 
@@ -75,12 +84,14 @@ const UserInfo = () => {
 
                 {/* ARROW */}
 
-                <AppIcon
-                    family="material"
-                    name="chevron-right"
-                    size={20}
-                    color={colors.textLight}
-                />
+                <View style={styles.chevronContainer}>
+                    <AppIcon
+                        family="material"
+                        name="chevron-right"
+                        size={19}
+                        color={colors.textLight}
+                    />
+                </View>
             </TouchableOpacity>
         );
     };
@@ -108,8 +119,8 @@ const UserInfo = () => {
                         <AppIcon
                             family="material"
                             name="account"
-                            size={42}
-                            color={colors.textSecondary}
+                            size={40}
+                            color={colors.primary}
                         />
                     </View>
 
@@ -125,6 +136,10 @@ const UserInfo = () => {
 
                 {/* ================= INFORMATION CARD ================= */}
 
+                <Text style={styles.sectionTitle}>
+                    Driver Details
+                </Text>
+
                 <View style={styles.infoCard}>
 
                     {/* VEHICLE */}
@@ -133,6 +148,8 @@ const UserInfo = () => {
                         icon: 'car-outline',
                         title: 'Vehicle Info',
                         value: 'KA 01 AB 1234',
+                        iconBg: colors.primaryLight,
+                        iconColor: colors.primary,
                         onPress: handleVehicle,
                     })}
 
@@ -144,6 +161,8 @@ const UserInfo = () => {
                         icon: 'briefcase-outline',
                         title: 'Experience',
                         value: '3 Years',
+                        iconBg: colors.warningLight,
+                        iconColor: colors.warning,
                         onPress: handleExperience,
                     })}
 
@@ -155,7 +174,9 @@ const UserInfo = () => {
                         icon: 'file-document-outline',
                         title: 'Documents',
                         value: 'Verified',
-                        valueColor: '#22A06B',
+                        valueColor: colors.successDark,
+                        iconBg: colors.successLight,
+                        iconColor: colors.successDark,
                         onPress: handleDocuments,
                     })}
 
@@ -192,29 +213,33 @@ const styles = StyleSheet.create({
         alignItems: 'center',
 
         paddingTop: spacing.sm,
-        paddingBottom: spacing.lg,
+        paddingBottom: spacing.xl,
     },
 
     avatarContainer: {
-        width: 72,
-        height: 72,
+        width: 76,
+        height: 76,
 
-        borderRadius: 36,
+        borderRadius: 38,
 
-        backgroundColor: '#F1F3F5',
+        backgroundColor: colors.primaryLight,
 
         alignItems: 'center',
         justifyContent: 'center',
 
         overflow: 'hidden',
 
-        marginBottom: spacing.xs,
+        borderWidth: 1,
+        borderColor: colors.border,
+
+        marginBottom: spacing.sm,
     },
 
     userName: {
         fontFamily: 'GoogleSans-Medium',
-        fontSize: 13,
+        fontSize: 14,
         color: colors.textPrimary,
+        letterSpacing: 0.1,
 
         marginTop: 3,
     },
@@ -228,17 +253,39 @@ const styles = StyleSheet.create({
     },
 
     // =====================================================
+    // SECTION TITLE
+    // =====================================================
+
+    sectionTitle: {
+        fontFamily: 'GoogleSans-Medium',
+        fontSize: 11,
+        color: colors.textLight,
+        letterSpacing: 0.6,
+        textTransform: 'uppercase',
+
+        marginBottom: spacing.sm,
+        marginLeft: 2,
+    },
+
+    // =====================================================
     // INFORMATION CARD
     // =====================================================
 
     infoCard: {
         backgroundColor: colors.white,
 
-        borderRadius: spacing.md,
+        borderRadius: 18,
 
         paddingHorizontal: spacing.md,
 
-        ...shadows.card,
+        borderWidth: 1,
+        borderColor: colors.border,
+
+        shadowColor: colors.shadow,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.05,
+        shadowRadius: 12,
+        elevation: 2,
     },
 
     // =====================================================
@@ -246,7 +293,7 @@ const styles = StyleSheet.create({
     // =====================================================
 
     infoRow: {
-        minHeight: 58,
+        minHeight: 62,
 
         flexDirection: 'row',
         alignItems: 'center',
@@ -257,10 +304,15 @@ const styles = StyleSheet.create({
     // =====================================================
 
     iconContainer: {
-        width: 36,
+        width: 38,
+        height: 38,
 
-        alignItems: 'flex-start',
+        borderRadius: 12,
+
+        alignItems: 'center',
         justifyContent: 'center',
+
+        marginRight: spacing.sm,
     },
 
     // =====================================================
@@ -277,6 +329,7 @@ const styles = StyleSheet.create({
         fontFamily: 'GoogleSans-Medium',
         fontSize: 12,
         color: colors.textPrimary,
+        letterSpacing: 0.1,
 
         marginBottom: 3,
     },
@@ -287,12 +340,25 @@ const styles = StyleSheet.create({
         color: colors.textSecondary,
     },
 
+    chevronContainer: {
+        width: 26,
+        height: 26,
+
+        borderRadius: 13,
+
+        alignItems: 'center',
+        justifyContent: 'center',
+
+        backgroundColor: colors.background,
+    },
+
     // =====================================================
     // DIVIDER
     // =====================================================
 
     divider: {
-        height: 1,
+        height: StyleSheet.hairlineWidth,
         backgroundColor: colors.divider,
+        marginLeft: 50,
     },
 });

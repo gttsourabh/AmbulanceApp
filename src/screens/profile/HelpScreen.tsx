@@ -56,8 +56,8 @@ const HelpScreen = () => {
           <AppIcon
             family="material"
             name={icon}
-            size={19}
-            color="#315EFF"
+            size={18}
+            color={colors.primary}
           />
         </View>
 
@@ -69,12 +69,14 @@ const HelpScreen = () => {
 
         {/* ARROW */}
 
-        <AppIcon
-          family="material"
-          name="chevron-right"
-          size={20}
-          color={colors.textLight}
-        />
+        <View style={styles.chevronContainer}>
+          <AppIcon
+            family="material"
+            name="chevron-right"
+            size={18}
+            color={colors.textLight}
+          />
+        </View>
       </TouchableOpacity>
     );
   };
@@ -94,13 +96,13 @@ const HelpScreen = () => {
 
       <View style={styles.content}>
 
+        <Text style={styles.question}>
+          How can we help you?
+        </Text>
+
         {/* ================= HELP CARD ================= */}
 
         <View style={styles.helpCard}>
-
-          <Text style={styles.question}>
-            How can we help you?
-          </Text>
 
           {/* FAQs */}
 
@@ -146,32 +148,45 @@ const HelpScreen = () => {
 
         <View style={styles.emergencyCard}>
 
+          <View style={styles.emergencyIconBadge}>
+            <AppIcon
+              family="material"
+              name="lifebuoy"
+              size={20}
+              color={colors.primary}
+            />
+          </View>
+
           <View style={styles.emergencyContent}>
 
-            <Text style={styles.emergencyTitle}>
-              Emergency Support
-            </Text>
+            <View style={styles.emergencyTitleRow}>
+              <Text style={styles.emergencyTitle}>
+                EMERGENCY SUPPORT
+              </Text>
+
+              <View style={styles.liveDot} />
+
+              <Text style={styles.availableText}>
+                24x7 Available
+              </Text>
+            </View>
 
             <Text style={styles.phoneNumber}>
               +91 80 1234 5678
             </Text>
 
-            <Text style={styles.availableText}>
-              24x7 Available
-            </Text>
-
           </View>
 
           <TouchableOpacity
-            activeOpacity={0.7}
+            activeOpacity={0.75}
             style={styles.callButton}
             onPress={handleEmergencyCall}
           >
             <AppIcon
               family="material"
               name="phone"
-              size={20}
-              color="#315EFF"
+              size={19}
+              color={colors.white}
             />
           </TouchableOpacity>
 
@@ -202,30 +217,37 @@ const styles = StyleSheet.create({
   },
 
   // =====================================================
+  // QUESTION
+  // =====================================================
+
+  question: {
+    fontFamily: 'GoogleSans-Bold',
+    fontSize: typography.fontSize.md,
+    color: colors.textPrimary,
+    letterSpacing: 0.1,
+
+    marginBottom: spacing.sm,
+  },
+
+  // =====================================================
   // HELP CARD
   // =====================================================
 
   helpCard: {
     backgroundColor: colors.white,
 
-    borderRadius: spacing.md,
+    borderRadius: 18,
 
     paddingHorizontal: spacing.md,
 
-    ...shadows.card,
-  },
+    borderWidth: 1,
+    borderColor: colors.border,
 
-  // =====================================================
-  // QUESTION
-  // =====================================================
-
-  question: {
-    fontFamily: 'GoogleSans-Medium',
-    fontSize: 12,
-    color: colors.textPrimary,
-
-    paddingTop: spacing.md,
-    paddingBottom: spacing.sm,
+    shadowColor: colors.shadow,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 12,
+    elevation: 2,
   },
 
   // =====================================================
@@ -233,7 +255,7 @@ const styles = StyleSheet.create({
   // =====================================================
 
   helpRow: {
-    minHeight: 56,
+    minHeight: 60,
 
     flexDirection: 'row',
     alignItems: 'center',
@@ -245,9 +267,16 @@ const styles = StyleSheet.create({
 
   iconContainer: {
     width: 36,
+    height: 36,
 
-    alignItems: 'flex-start',
+    borderRadius: 12,
+
+    backgroundColor: colors.primaryLight,
+
+    alignItems: 'center',
     justifyContent: 'center',
+
+    marginRight: spacing.sm,
   },
 
   // =====================================================
@@ -260,6 +289,15 @@ const styles = StyleSheet.create({
     fontFamily: 'GoogleSans-Medium',
     fontSize: 12,
     color: colors.textPrimary,
+    letterSpacing: 0.1,
+  },
+
+  chevronContainer: {
+    width: 24,
+    height: 24,
+
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 
   // =====================================================
@@ -267,9 +305,11 @@ const styles = StyleSheet.create({
   // =====================================================
 
   divider: {
-    height: 1,
+    height: StyleSheet.hairlineWidth,
 
     backgroundColor: colors.divider,
+
+    marginLeft: 48,
   },
 
   // =====================================================
@@ -277,44 +317,77 @@ const styles = StyleSheet.create({
   // =====================================================
 
   emergencyCard: {
-    marginTop: spacing.md,
+    marginTop: spacing.lg,
 
-    minHeight: 78,
+    minHeight: 86,
 
     paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
+    paddingVertical: spacing.md,
 
-    borderRadius: spacing.md,
+    borderRadius: 20,
 
-    backgroundColor: '#F5F8FF',
+    backgroundColor: colors.primaryLight,
 
     borderWidth: 1,
-    borderColor: '#DCE5FF',
+    borderColor: colors.border,
 
     flexDirection: 'row',
     alignItems: 'center',
 
-    ...shadows.card,
+    shadowColor: colors.shadow,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.06,
+    shadowRadius: 16,
+    elevation: 3,
+  },
+
+  emergencyIconBadge: {
+    width: 44,
+    height: 44,
+
+    borderRadius: 14,
+
+    backgroundColor: colors.white,
+
+    alignItems: 'center',
+    justifyContent: 'center',
+
+    marginRight: spacing.sm,
   },
 
   emergencyContent: {
     flex: 1,
   },
 
+  emergencyTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+
+    marginBottom: 5,
+  },
+
   emergencyTitle: {
     fontFamily: 'GoogleSans-Medium',
-    fontSize: 11,
-    color: '#315EFF',
+    fontSize: 10,
+    color: colors.primary,
+    letterSpacing: 0.5,
+  },
 
-    marginBottom: 3,
+  liveDot: {
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+
+    backgroundColor: colors.success,
+
+    marginHorizontal: 6,
   },
 
   phoneNumber: {
-    fontFamily: 'GoogleSans-Medium',
-    fontSize: 15,
-    color: '#EF4444',
-
-    marginBottom: 3,
+    fontFamily: 'GoogleSans-Bold',
+    fontSize: 16,
+    color: colors.textPrimary,
+    letterSpacing: 0.2,
   },
 
   availableText: {
@@ -328,14 +401,20 @@ const styles = StyleSheet.create({
   // =====================================================
 
   callButton: {
-    width: 40,
-    height: 40,
+    width: 44,
+    height: 44,
 
-    borderRadius: 20,
+    borderRadius: 22,
 
-    backgroundColor: '#EAF0FF',
+    backgroundColor: colors.primary,
 
     alignItems: 'center',
     justifyContent: 'center',
+
+    shadowColor: colors.primaryDark,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.24,
+    shadowRadius: 8,
+    elevation: 3,
   },
 });

@@ -261,21 +261,28 @@ const styles = StyleSheet.create({
     statusContainer: {
         flexDirection: 'row',
         alignItems: 'center',
+
+        paddingVertical: 5,
+        paddingHorizontal: 10,
+
+        borderRadius: 20,
+
+        backgroundColor: colors.successLight,
     },
 
     onlineDot: {
-        width: 7,
-        height: 7,
-        borderRadius: 4,
+        width: 6,
+        height: 6,
+        borderRadius: 3,
         backgroundColor: colors.success,
-        marginRight: spacing.xs,
+        marginRight: 6,
     },
 
     onlineText: {
         fontFamily: 'GoogleSans-Bold',
         fontSize: typography.fontSize.xs,
         color: colors.successDark,
-        letterSpacing: 0.3,
+        letterSpacing: 0.4,
     },
 
     // =================================================
@@ -283,23 +290,30 @@ const styles = StyleSheet.create({
     // =================================================
 
     heroCard: {
-        minHeight: 115,
+        minHeight: 120,
 
         marginHorizontal: spacing.lg,
         marginTop: spacing.sm,
 
-        paddingLeft: spacing.md,
+        paddingLeft: spacing.lg,
         paddingRight: spacing.sm,
 
-        borderRadius: spacing.md,
+        borderRadius: 20,
 
         backgroundColor: colors.primaryLight,
+
+        borderWidth: 1,
+        borderColor: colors.border,
 
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
 
-        ...shadows.card,
+        shadowColor: colors.shadow,
+        shadowOffset: { width: 0, height: 6 },
+        shadowOpacity: 0.06,
+        shadowRadius: 16,
+        elevation: 3,
     },
 
     heroTextContent: {
@@ -310,21 +324,33 @@ const styles = StyleSheet.create({
         fontFamily: 'GoogleSans-Regular',
         fontSize: typography.fontSize.xs,
         color: colors.textSecondary,
-        marginBottom: 3,
+        letterSpacing: 0.2,
+        marginBottom: 4,
     },
 
     heroTitle: {
         fontFamily: 'GoogleSans-Bold',
-        fontSize: typography.fontSize.md,
+        fontSize: typography.fontSize.lg,
         color: colors.textPrimary,
+        letterSpacing: 0.1,
     },
 
     heroImageContainer: {
-        width: 85,
-        height: 85,
+        width: 88,
+        height: 88,
+
+        borderRadius: 44,
+
+        backgroundColor: colors.card,
 
         alignItems: 'center',
         justifyContent: 'center',
+
+        shadowColor: colors.shadow,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.05,
+        shadowRadius: 10,
+        elevation: 2,
     },
 
     // =================================================
@@ -333,13 +359,14 @@ const styles = StyleSheet.create({
 
     overviewSection: {
         marginHorizontal: spacing.lg,
-        marginTop: spacing.lg,
+        marginTop: spacing.xl,
     },
 
     sectionTitle: {
         fontFamily: 'GoogleSans-Bold',
         fontSize: typography.fontSize.md,
         color: colors.textPrimary,
+        letterSpacing: 0.1,
         marginBottom: spacing.sm,
     },
 
@@ -348,13 +375,20 @@ const styles = StyleSheet.create({
     // =================================================
 
     overviewCard: {
-        backgroundColor: colors.white,
+        backgroundColor: colors.card,
 
-        borderRadius: spacing.md,
+        borderRadius: 18,
 
         paddingHorizontal: spacing.md,
 
-        ...shadows.card,
+        borderWidth: 1,
+        borderColor: colors.border,
+
+        shadowColor: colors.shadow,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.04,
+        shadowRadius: 12,
+        elevation: 2,
     },
 
     // =================================================
@@ -362,7 +396,7 @@ const styles = StyleSheet.create({
     // =================================================
 
     overviewRow: {
-        minHeight: 58,
+        minHeight: 60,
 
         paddingVertical: spacing.sm,
 
@@ -370,7 +404,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'space-between',
 
-        borderBottomWidth: 1,
+        borderBottomWidth: StyleSheet.hairlineWidth,
         borderBottomColor: colors.divider,
     },
 
@@ -388,10 +422,10 @@ const styles = StyleSheet.create({
     // =================================================
 
     iconBox: {
-        width: 34,
-        height: 34,
+        width: 36,
+        height: 36,
 
-        borderRadius: spacing.sm,
+        borderRadius: 12,
 
         alignItems: 'center',
         justifyContent: 'center',
@@ -407,11 +441,13 @@ const styles = StyleSheet.create({
         fontFamily: 'GoogleSans-Medium',
         fontSize: typography.fontSize.sm,
         color: colors.textSecondary,
+        letterSpacing: 0.1,
     },
 
     rowValue: {
         fontFamily: 'GoogleSans-Bold',
         fontSize: typography.fontSize.md,
         color: colors.textPrimary,
+        letterSpacing: 0.1,
     },
 });

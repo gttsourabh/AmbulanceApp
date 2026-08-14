@@ -10,6 +10,8 @@ import PickupScreen from '../screens/trips/Ongoingtrip/PickupScreen';
 import EnRouteScreen from '../screens/trips/Ongoingtrip/EnRouteScreen';
 import OnTripScreen from '../screens/trips/Ongoingtrip/OnTripScreen';
 import TripCompletedScreen from '../screens/trips/Ongoingtrip/TripCompletedScreen';
+import IncomingRequestScreen from '../screens/trips/Ongoingtrip/IncomingRequestScreen';
+import NavigationToPickup from '../screens/trips/Ongoingtrip/NavigationToPickup';
 
 const Stack = createNativeStackNavigator();
 
@@ -45,7 +47,19 @@ const AppNavigator = () => {
 
             <Stack.Screen
                 name="IncomingRequests"
-                component={IncomingRequestsScreen}
+                component={IncomingRequestScreen}
+                options={{
+                    presentation: 'transparentModal',
+                    animation: 'slide_from_bottom',
+                    contentStyle: {
+                        backgroundColor: 'transparent',
+                    },
+                }}
+            />
+
+            <Stack.Screen
+                name="NavigationToPickup"
+                component={NavigationToPickup}
             />
 
             <Stack.Screen
