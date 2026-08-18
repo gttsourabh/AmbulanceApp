@@ -14,10 +14,13 @@ const AuthNavigator = () => {
             screenOptions={{
                 headerShown: false,
             }}>
+
             <Stack.Screen name="Splash">
+            
                 {({ navigation }) => (
                     <SplashScreen onFinish={() => navigation.replace('Login')} />
                 )}
+
             </Stack.Screen>
 
 

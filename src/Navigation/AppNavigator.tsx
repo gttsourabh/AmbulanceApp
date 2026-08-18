@@ -18,20 +18,12 @@ const Stack = createNativeStackNavigator();
 const AppNavigator = () => {
     return (
         <Stack.Navigator
-            initialRouteName="Availability"
+            initialRouteName="MainTabs"
             screenOptions={{
                 headerShown: false,
             }}
         >
-            {/* =====================================================
-          AVAILABILITY
-      ===================================================== */}
-
-            <Stack.Screen
-                name="Availability"
-                component={AvailabilityScreen}
-            />
-
+      
             {/* =====================================================
           MAIN APP
       ===================================================== */}

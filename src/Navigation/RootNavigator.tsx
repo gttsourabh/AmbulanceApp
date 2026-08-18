@@ -5,7 +5,7 @@ import AppNavigator from './AppNavigator';
 
 const RootNavigator = () => {
     
-    const [isAuthenticated, setIsAuthenticated] = useState(true);
+    const [isAuthenticated, setIsAuthenticated] = useState(false);
 
     return (
         <NavigationContainer>

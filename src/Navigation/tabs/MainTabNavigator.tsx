@@ -503,9 +503,9 @@ const CustomTabBar = ({
                                             tab.iconFamily
                                         }
                                         name={tab.icon}
-                                        size={22}
+                                        size={26}
                                         color={
-                                            colors.textSecondary
+                                            colors.textPrimary
                                         }
                                     />
 
@@ -614,37 +614,37 @@ const styles = StyleSheet.create({
         left: 0,
         right: 0,
 
-        height: 78,
+        height: 70,
 
         justifyContent: 'flex-end',
     },
-
 
     iosTabContainer: {
         height: 100,
         paddingBottom: 22,
     },
 
-
     // =================================================
-    // BLUE CURVE
+    // HEALTH GREEN CURVE
     // =================================================
 
     backgroundCurve: {
         position: 'absolute',
 
-        left: 0,
-        right: 0,
         bottom: 0,
 
         height: 70,
+        width: '95%',
 
-        // backgroundColor: colors.primary,
+        alignSelf: 'center',
 
-        // borderTopLeftRadius: 35,
-        // borderTopRightRadius: 35,
+        backgroundColor: 'rgba(6, 164, 203, 0.67)',
+
+        borderRadius: 15,
+
+        marginBottom: 14,
+        // paddingBottom:10
     },
-
 
     // =================================================
     // TAB ROW
@@ -665,7 +665,6 @@ const styles = StyleSheet.create({
         zIndex: 10,
     },
 
-
     // =================================================
     // TAB ITEM
     // =================================================
@@ -679,7 +678,6 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
     },
 
-
     // =================================================
     // INACTIVE TAB
     // =================================================
@@ -691,20 +689,18 @@ const styles = StyleSheet.create({
         minWidth: 55,
     },
 
-
     // =================================================
     // LABEL
     // =================================================
 
     tabLabel: {
-        marginTop: 3,
+        marginTop: 1,
 
         fontFamily: 'GoogleSans-Medium',
         fontSize: typography.fontSize.xs,
 
         color: colors.textPrimary,
     },
-
 
     // =================================================
     // ACTIVE FLOATING BUTTON
@@ -717,17 +713,17 @@ const styles = StyleSheet.create({
 
         bottom: 18,
 
-        width: 62,
-        height: 62,
+        width: 55,
+        height: 55,
 
-        borderRadius: 31,
+        borderRadius: 15,
 
-        backgroundColor: colors.primary,
+        backgroundColor: 'rgba(17, 70, 243, 0.9)',
 
         alignItems: 'center',
         justifyContent: 'center',
 
-        borderWidth: 4,
+        borderWidth: 3,
         borderColor: colors.white,
 
         elevation: 10,
@@ -742,4 +738,6 @@ const styles = StyleSheet.create({
 
         zIndex: 20,
     },
+
+    
 });

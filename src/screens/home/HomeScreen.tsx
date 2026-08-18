@@ -1,8 +1,10 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
     ScrollView,
     StyleSheet,
+    Switch,
     Text,
+    TouchableOpacity,
     View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -11,16 +13,11 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import {
     colors,
     typography,
-    shadows,
     spacing,
 } from '../../theme';
 
 import { AppIcon } from '../../icons';
 import Header from '../../components/Header/Header';
-
-// =====================================================
-// HOME STACK TYPES
-// =====================================================
 
 export type HomeStackParamList = {
     Home: undefined;
@@ -32,93 +29,158 @@ type HomeScreenProps = NativeStackScreenProps<
     'Home'
 >;
 
-// =====================================================
-// HOME SCREEN
-// =====================================================
-
 const HomeScreen = ({ navigation }: HomeScreenProps) => {
+    const [isOnline, setIsOnline] = useState(true);
+
+    const handleNotifications = () => {
+        navigation.navigate('Notifications');
+    };
+
+    const handleEmergencyRequest = () => {
+        navigation.navigate('IncomingRequests' as never);
+    };
+
     return (
         <SafeAreaView
             style={styles.container}
             edges={['top']}
         >
-
-            {/* ================= HEADER ================= */}
-
             <Header
-                // leftIcon="menu"
                 rightIcon="bell-outline"
-                leftIcon='chevron-back'
-                leftIconFamily='ionicons'
+                onRightPress={handleNotifications}
                 onLeftPress={() => {
-                    navigation.navigate("Availability")
+                    console.log('Menu');
                 }}
-
-                onRightPress={() => {
-                    navigation.navigate('Notifications');
-                }}
-
                 centerContent={
-                    <View style={styles.statusContainer}>
-                        <View style={styles.onlineDot} />
+                    <View
+                        style={[
+                            styles.statusContainer,
+                            {
+                                backgroundColor: isOnline
+                                    ? colors.successLight
+                                    : colors.divider,
+                            },
+                        ]}
+                    >
+                        <View
+                            style={[
+                                styles.headerOnlineDot,
+                                {
+                                    backgroundColor: isOnline
+                                        ? colors.success
+                                        : colors.textLight,
+                                },
+                            ]}
+                        />
 
-                        <Text style={styles.onlineText}>
-                            ONLINE
+                        <Text
+                            style={[
+                                styles.onlineText,
+                                {
+                                    color: isOnline
+                                        ? colors.successDark
+                                        : colors.textSecondary,
+                                },
+                            ]}
+                        >
+                            {isOnline ? 'ONLINE' : 'OFFLINE'}
                         </Text>
                     </View>
                 }
             />
 
-            {/* ================= CONTENT ================= */}
-
             <ScrollView
                 showsVerticalScrollIndicator={false}
                 contentContainerStyle={styles.scrollContent}
             >
-
-                {/* ================= HERO ================= */}
-
-                <View style={styles.heroCard}>
-
-                    <View style={styles.heroTextContent}>
-
-                        <Text style={styles.heroSubtext}>
-                            Waiting for new
+                <View style={styles.greetingSection}>
+                    <View style={styles.greetingContent}>
+                        <Text style={styles.greeting}>
+                            Good Morning,
                         </Text>
 
-                        <Text style={styles.heroTitle}>
-                            Emergency Request
+                        <Text style={styles.userName}>
+                            Ramesh Kumar
                         </Text>
-
                     </View>
 
-                    <View style={styles.heroImageContainer}>
+                    <View style={styles.profileAvatar}>
                         <AppIcon
                             family="material"
-                            name="ambulance"
-                            size={58}
-                            color={colors.primary}
+                            name="account"
+                            size={26}
+                            color={colors.textSecondary}
                         />
                     </View>
-
                 </View>
 
-                {/* ================= OVERVIEW ================= */}
+                <View style={styles.availabilityCard}>
+                    <View style={styles.availabilityContent}>
+                        <Text style={styles.youAreText}>
+                            YOUR STATUS
+                        </Text>
+
+                        <View style={styles.statusRow}>
+                            <View
+                                style={[
+                                    styles.statusPill,
+                                    {
+                                        backgroundColor: isOnline
+                                            ? colors.successLight
+                                            : colors.divider,
+                                    },
+                                ]}
+                            >
+                                <View
+                                    style={[
+                                        styles.onlineDot,
+                                        {
+                                            backgroundColor: isOnline
+                                                ? colors.success
+                                                : colors.textLight,
+                                        },
+                                    ]}
+                                />
+
+                                <Text
+                                    style={[
+                                        styles.statusText,
+                                        {
+                                            color: isOnline
+                                                ? colors.success
+                                                : colors.textSecondary,
+                                        },
+                                    ]}
+                                >
+                                    {isOnline
+                                        ? 'AVAILABLE'
+                                        : 'OFFLINE'}
+                                </Text>
+                            </View>
+                        </View>
+                    </View>
+
+                    <Switch
+                        value={isOnline}
+                        onValueChange={setIsOnline}
+                        trackColor={{
+                            false: colors.divider,
+                            true: colors.success,
+                        }}
+                        thumbColor={colors.white}
+                        ios_backgroundColor={colors.divider}
+                        style={styles.switch}
+                    />
+                </View>
 
                 <View style={styles.overviewSection}>
-
                     <Text style={styles.sectionTitle}>
                         Today's Overview
                     </Text>
 
                     <View style={styles.overviewCard}>
-
-                        {/* COMPLETED */}
-
                         <View style={styles.overviewRow}>
-
                             <View style={styles.rowLeft}>
-
                                 <View
                                     style={[
                                         styles.iconBox,
@@ -139,21 +201,15 @@ const HomeScreen = ({ navigation }: HomeScreenProps) => {
                                 <Text style={styles.rowLabel}>
                                     Completed
                                 </Text>
-
                             </View>
 
                             <Text style={styles.rowValue}>
                                 04
                             </Text>
-
                         </View>
 
-                        {/* CANCELLED */}
-
                         <View style={styles.overviewRow}>
-
                             <View style={styles.rowLeft}>
-
                                 <View
                                     style={[
                                         styles.iconBox,
@@ -174,16 +230,12 @@ const HomeScreen = ({ navigation }: HomeScreenProps) => {
                                 <Text style={styles.rowLabel}>
                                     Cancelled
                                 </Text>
-
                             </View>
 
                             <Text style={styles.rowValue}>
                                 01
                             </Text>
-
                         </View>
-
-                        {/* EARNINGS */}
 
                         <View
                             style={[
@@ -191,9 +243,7 @@ const HomeScreen = ({ navigation }: HomeScreenProps) => {
                                 styles.lastRow,
                             ]}
                         >
-
                             <View style={styles.rowLeft}>
-
                                 <View
                                     style={[
                                         styles.iconBox,
@@ -214,36 +264,39 @@ const HomeScreen = ({ navigation }: HomeScreenProps) => {
                                 <Text style={styles.rowLabel}>
                                     Earnings
                                 </Text>
-
                             </View>
 
                             <Text style={styles.rowValue}>
                                 ₹1,250
                             </Text>
-
                         </View>
-
                     </View>
-
                 </View>
 
-            </ScrollView>
+                <TouchableOpacity
+                    activeOpacity={0.75}
+                    style={styles.emergencyButton}
+                    onPress={handleEmergencyRequest}
+                >
+                    <AppIcon
+                        family="material"
+                        name="alert-circle-outline"
+                        size={20}
+                        color={colors.danger}
+                    />
 
+                    <Text style={styles.emergencyButtonText}>
+                        Emergency Request
+                    </Text>
+                </TouchableOpacity>
+            </ScrollView>
         </SafeAreaView>
     );
 };
 
 export default HomeScreen;
 
-// =====================================================
-// STYLES
-// =====================================================
-
 const styles = StyleSheet.create({
-
-    // =================================================
-    // SCREEN
-    // =================================================
 
     container: {
         flex: 1,
@@ -251,76 +304,43 @@ const styles = StyleSheet.create({
     },
 
     scrollContent: {
+        paddingHorizontal: spacing.lg,
         paddingBottom: spacing.xxxl,
     },
-
-    // =================================================
-    // HEADER STATUS
-    // =================================================
 
     statusContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-
         paddingVertical: 5,
         paddingHorizontal: 10,
-
         borderRadius: 20,
-
-        backgroundColor: colors.successLight,
     },
 
-    onlineDot: {
+    headerOnlineDot: {
         width: 6,
         height: 6,
         borderRadius: 3,
-        backgroundColor: colors.success,
         marginRight: 6,
     },
 
     onlineText: {
         fontFamily: 'GoogleSans-Bold',
         fontSize: typography.fontSize.xs,
-        color: colors.successDark,
         letterSpacing: 0.4,
     },
 
-    // =================================================
-    // HERO CARD
-    // =================================================
-
-    heroCard: {
-        minHeight: 120,
-
-        marginHorizontal: spacing.lg,
-        marginTop: spacing.sm,
-
-        paddingLeft: spacing.lg,
-        paddingRight: spacing.sm,
-
-        borderRadius: 20,
-
-        backgroundColor: colors.primaryLight,
-
-        borderWidth: 1,
-        borderColor: colors.border,
-
+    greetingSection: {
         flexDirection: 'row',
         alignItems: 'center',
-        justifyContent: 'space-between',
-
-        shadowColor: colors.shadow,
-        shadowOffset: { width: 0, height: 6 },
-        shadowOpacity: 0.06,
-        shadowRadius: 16,
-        elevation: 3,
+        marginTop: spacing.md,
+        marginBottom: spacing.xl,
     },
 
-    heroTextContent: {
+    greetingContent: {
         flex: 1,
     },
 
-    heroSubtext: {
+    greeting: {
         fontFamily: 'GoogleSans-Regular',
         fontSize: typography.fontSize.xs,
         color: colors.textSecondary,
@@ -328,37 +348,96 @@ const styles = StyleSheet.create({
         marginBottom: 4,
     },
 
-    heroTitle: {
-        fontFamily: 'GoogleSans-Bold',
-        fontSize: typography.fontSize.lg,
+    userName: {
+        fontFamily: 'GoogleSans-Medium',
+        fontSize: typography.fontSize.xl,
         color: colors.textPrimary,
         letterSpacing: 0.1,
     },
 
-    heroImageContainer: {
-        width: 88,
-        height: 88,
-
-        borderRadius: 44,
-
-        backgroundColor: colors.card,
-
+    profileAvatar: {
+        width: 50,
+        height: 50,
+        borderRadius: 25,
+        backgroundColor: colors.primaryLight,
         alignItems: 'center',
         justifyContent: 'center',
-
-        shadowColor: colors.shadow,
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.05,
-        shadowRadius: 10,
-        elevation: 2,
+        overflow: 'hidden',
+        borderWidth: 1,
+        borderColor: colors.border,
     },
 
-    // =================================================
-    // OVERVIEW
-    // =================================================
+    availabilityCard: {
+        minHeight: 84,
+        paddingHorizontal: spacing.lg,
+        paddingVertical: spacing.sm,
+        borderRadius: 18,
+        backgroundColor: colors.white,
+        borderWidth: 1,
+        borderColor: colors.border,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        shadowColor: colors.shadow,
+        shadowOffset: {
+            width: 0,
+            height: 6,
+        },
+        shadowOpacity: 0.06,
+        shadowRadius: 16,
+        elevation: 3,
+    },
+
+    availabilityContent: {
+        justifyContent: 'center',
+    },
+
+    youAreText: {
+        fontFamily: 'GoogleSans-Medium',
+        fontSize: 10,
+        color: colors.textLight,
+        letterSpacing: 0.8,
+        marginBottom: spacing.xs,
+    },
+
+    statusRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+
+    statusPill: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingVertical: 5,
+        paddingHorizontal: 10,
+        borderRadius: 20,
+    },
+
+    onlineDot: {
+        width: 7,
+        height: 7,
+        borderRadius: 3.5,
+        marginRight: 6,
+    },
+
+    statusText: {
+        fontFamily: 'GoogleSans-Medium',
+        fontSize: typography.fontSize.sm,
+        letterSpacing: 0.4,
+    },
+
+    switch: {
+        transform: [
+            {
+                scaleX: 0.92,
+            },
+            {
+                scaleY: 0.92,
+            },
+        ],
+    },
 
     overviewSection: {
-        marginHorizontal: spacing.lg,
         marginTop: spacing.xl,
     },
 
@@ -370,40 +449,28 @@ const styles = StyleSheet.create({
         marginBottom: spacing.sm,
     },
 
-    // =================================================
-    // OVERVIEW CARD
-    // =================================================
-
     overviewCard: {
         backgroundColor: colors.card,
-
         borderRadius: 18,
-
         paddingHorizontal: spacing.md,
-
         borderWidth: 1,
         borderColor: colors.border,
-
         shadowColor: colors.shadow,
-        shadowOffset: { width: 0, height: 4 },
+        shadowOffset: {
+            width: 0,
+            height: 4,
+        },
         shadowOpacity: 0.04,
         shadowRadius: 12,
         elevation: 2,
     },
 
-    // =================================================
-    // ROW
-    // =================================================
-
     overviewRow: {
         minHeight: 60,
-
         paddingVertical: spacing.sm,
-
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-
         borderBottomWidth: StyleSheet.hairlineWidth,
         borderBottomColor: colors.divider,
     },
@@ -417,25 +484,14 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
 
-    // =================================================
-    // ICON
-    // =================================================
-
     iconBox: {
         width: 36,
         height: 36,
-
         borderRadius: 12,
-
         alignItems: 'center',
         justifyContent: 'center',
-
         marginRight: spacing.sm,
     },
-
-    // =================================================
-    // TEXT
-    // =================================================
 
     rowLabel: {
         fontFamily: 'GoogleSans-Medium',
@@ -450,4 +506,25 @@ const styles = StyleSheet.create({
         color: colors.textPrimary,
         letterSpacing: 0.1,
     },
+
+    emergencyButton: {
+        minHeight: 54,
+        marginTop: spacing.sm,
+        paddingHorizontal: spacing.md,
+        borderRadius: 16,
+        backgroundColor: colors.dangerLight,
+        borderWidth: 1,
+        borderColor: colors.danger,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 8,
+    },
+
+    emergencyButtonText: {
+        fontFamily: 'GoogleSans-Medium',
+        fontSize: typography.fontSize.sm,
+        color: colors.danger,
+    },
+    
 });
