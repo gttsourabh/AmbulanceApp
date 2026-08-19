@@ -196,7 +196,7 @@ const styles = StyleSheet.create({
 
     container: {
         flex: 1,
-        backgroundColor: colors.white,
+         backgroundColor: colors.background,
     },
 
     content: {
@@ -272,7 +272,7 @@ const styles = StyleSheet.create({
     // =====================================================
 
     infoCard: {
-        backgroundColor: colors.white,
+         backgroundColor: colors.background,
 
         borderRadius: 18,
 

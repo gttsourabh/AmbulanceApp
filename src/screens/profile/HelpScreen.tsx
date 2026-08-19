@@ -206,7 +206,7 @@ const styles = StyleSheet.create({
 
   container: {
     flex: 1,
-    backgroundColor: colors.white,
+     backgroundColor: colors.background,
   },
 
   content: {
@@ -234,7 +234,7 @@ const styles = StyleSheet.create({
   // =====================================================
 
   helpCard: {
-    backgroundColor: colors.white,
+     backgroundColor: colors.background,
 
     borderRadius: 18,
 
@@ -347,7 +347,7 @@ const styles = StyleSheet.create({
 
     borderRadius: 14,
 
-    backgroundColor: colors.white,
+     backgroundColor: colors.background,
 
     alignItems: 'center',
     justifyContent: 'center',

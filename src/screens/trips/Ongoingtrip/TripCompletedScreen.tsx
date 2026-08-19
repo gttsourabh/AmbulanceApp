@@ -260,7 +260,7 @@ const styles = StyleSheet.create({
 
         borderRadius: 26,
 
-        backgroundColor: colors.white,
+         backgroundColor: colors.background,
 
         alignItems: 'center',
         justifyContent: 'center',
@@ -303,7 +303,7 @@ const styles = StyleSheet.create({
     contentCard: {
         padding: spacing.md,
 
-        backgroundColor: colors.white,
+         backgroundColor: colors.background,
 
         borderRadius: 20,
 

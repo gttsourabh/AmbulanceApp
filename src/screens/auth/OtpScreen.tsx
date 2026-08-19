@@ -11,66 +11,102 @@ import {
   Keyboard,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useNavigation } from '@react-navigation/native';
+
+import Button from '../../components/Button/Button';
+import {
+  colors,
+  dimensions,
+  shadows,
+  spacing,
+  typography,
+} from '../../theme';
 
 const OtpScreen = () => {
+  const navigation = useNavigation<any>();
+
   const [otp, setOtp] = useState('');
   const inputRef = useRef<TextInput>(null);
 
   const OTP_LENGTH = 4;
 
+  // =========================
+  // OTP CHANGE
+  // =========================
+
   const handleOtpChange = (value: string) => {
     const numbersOnly = value.replace(/[^0-9]/g, '');
-
     const newOtp = numbersOnly.slice(0, OTP_LENGTH);
 
     setOtp(newOtp);
+  };
 
-    // Automatically verify when 4 digits are entered
-    if (newOtp.length === OTP_LENGTH) {
-      Keyboard.dismiss();
+  // =========================
+  // VERIFY OTP
+  // =========================
 
-      console.log('OTP:', newOtp);
+  const handleVerifyOTP = () => {
+    Keyboard.dismiss();
 
-      // Verify OTP API here
+    if (otp.length !== OTP_LENGTH) {
+      console.log('Please enter complete OTP');
+      return;
+    }
+
+    console.log('OTP:', otp);
+
+    // Demo OTP
+    if (otp === '1234') {
+      navigation.replace('MainTabs');
+    } else {
+      console.log('Invalid OTP');
     }
   };
+
+  // =========================
+  // RESEND OTP
+  // =========================
 
   const handleResendOTP = () => {
     console.log('Resend OTP');
   };
 
+  // =========================
+  // UI
+  // =========================
+
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar
         barStyle="dark-content"
-        backgroundColor="#FFFFFF"
+        backgroundColor={colors.white}
       />
 
       <KeyboardAvoidingView
         style={styles.keyboardView}
-        behavior={
-          Platform.OS === 'ios'
-            ? 'padding'
-            : undefined
-        }
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
         <View style={styles.content}>
 
-          {/* Back Button */}
+          {/* =========================
+              Back Button
+          ========================== */}
+
           <TouchableOpacity
             style={styles.backButton}
             activeOpacity={0.7}
             onPress={() => {
               Keyboard.dismiss();
-              console.log('Go Back');
+              navigation.goBack();
             }}
           >
-            <Text style={styles.backIcon}>
-              ‹
-            </Text>
+            <Text style={styles.backIcon}>‹</Text>
           </TouchableOpacity>
 
-          {/* Main Content */}
+          {/* =========================
+              Main Content
+          ========================== */}
+
           <View style={styles.mainContent}>
 
             <Text style={styles.title}>
@@ -85,21 +121,21 @@ const OtpScreen = () => {
               +91 98765 43210
             </Text>
 
-            {/* OTP Input Area */}
+            {/* =========================
+                OTP Input
+            ========================== */}
+
             <TouchableOpacity
               activeOpacity={1}
               style={styles.otpInputWrapper}
-              onPress={() =>
-                inputRef.current?.focus()
-              }
+              onPress={() => inputRef.current?.focus()}
             >
-              {/* Actual TextInput */}
+              {/* Hidden Native Input */}
+
               <TextInput
                 ref={inputRef}
                 value={otp}
-                onChangeText={
-                  handleOtpChange
-                }
+                onChangeText={handleOtpChange}
                 keyboardType="number-pad"
                 maxLength={OTP_LENGTH}
                 style={styles.hiddenInput}
@@ -110,92 +146,89 @@ const OtpScreen = () => {
               />
 
               {/* OTP Boxes */}
-              <View
-                style={
-                  styles.otpContainer
-                }
-              >
-                {Array.from({
-                  length: OTP_LENGTH,
-                }).map((_, index) => {
-                  const digit =
-                    otp[index];
 
-                  const isActive =
-                    index === otp.length;
+              <View style={styles.otpContainer}>
+                {Array.from({ length: OTP_LENGTH }).map(
+                  (_, index) => {
+                    const digit = otp[index];
 
-                  return (
-                    <View
-                      key={index}
-                      style={[
-                        styles.otpBox,
-                        isActive &&
-                        styles.otpBoxActive,
-                        digit &&
-                        styles.otpBoxFilled,
-                      ]}
-                    >
-                      <Text
-                        style={
-                          styles.otpText
-                        }
+                    const isActive =
+                      index === otp.length;
+
+                    return (
+                      <View
+                        key={index}
+                        style={[
+                          styles.otpBox,
+                          isActive &&
+                          styles.otpBoxActive,
+                          digit &&
+                          styles.otpBoxFilled,
+                        ]}
                       >
-                        {digit || ''}
-                      </Text>
+                        <Text style={styles.otpText}>
+                          {digit || ''}
+                        </Text>
 
-                      {/* Cursor */}
-                      {isActive &&
-                        otp.length <
-                        OTP_LENGTH && (
-                          <View
-                            style={
-                              styles.cursor
-                            }
-                          />
-                        )}
-                    </View>
-                  );
-                })}
+                        {/* Cursor */}
+
+                        {isActive &&
+                          otp.length <
+                          OTP_LENGTH && (
+                            <View
+                              style={styles.cursor}
+                            />
+                          )}
+                      </View>
+                    );
+                  },
+                )}
               </View>
             </TouchableOpacity>
 
-            {/* Resend OTP */}
+            {/* =========================
+                Verify Button
+            ========================== */}
+
+            <Button
+              title="Verify OTP"
+              onPress={handleVerifyOTP}
+              disabled={otp.length !== OTP_LENGTH}
+              style={styles.verifyButton}
+            />
+
+            {/* =========================
+                Resend OTP
+            ========================== */}
+
             <View style={styles.resendContainer}>
               <Text style={styles.resendText}>
                 Didn't receive the OTP?
               </Text>
 
               <TouchableOpacity
-                onPress={
-                  handleResendOTP
-                }
+                onPress={handleResendOTP}
                 activeOpacity={0.7}
               >
-                <Text
-                  style={
-                    styles.resendLink
-                  }
-                >
+                <Text style={styles.resendLink}>
                   Resend OTP
                 </Text>
               </TouchableOpacity>
             </View>
 
-            {/* Change Number */}
+            {/* =========================
+                Change Number
+            ========================== */}
+
             <TouchableOpacity
               style={styles.changeNumberButton}
               activeOpacity={0.7}
               onPress={() => {
-                console.log(
-                  'Change phone number',
-                );
+                Keyboard.dismiss();
+                navigation.goBack();
               }}
             >
-              <Text
-                style={
-                  styles.changeNumberText
-                }
-              >
+              <Text style={styles.changeNumberText}>
                 Change phone number
               </Text>
             </TouchableOpacity>
@@ -210,9 +243,13 @@ const OtpScreen = () => {
 export default OtpScreen;
 
 const styles = StyleSheet.create({
+  // =====================================================
+  // CONTAINER
+  // =====================================================
+
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+     backgroundColor: colors.background,
   },
 
   keyboardView: {
@@ -221,18 +258,18 @@ const styles = StyleSheet.create({
 
   content: {
     flex: 1,
-    paddingHorizontal: 24,
+    paddingHorizontal: spacing.lg,
   },
 
-  /* =========================
-     Back
-  ========================== */
+  // =====================================================
+  // BACK BUTTON
+  // =====================================================
 
   backButton: {
-    width: 44,
-    height: 44,
+    width: dimensions.buttonHeight,
+    height: dimensions.buttonHeight,
 
-    marginTop: 4,
+    marginTop: spacing.xs,
 
     justifyContent: 'center',
     alignItems: 'flex-start',
@@ -241,33 +278,33 @@ const styles = StyleSheet.create({
   backIcon: {
     fontSize: 38,
     lineHeight: 38,
-    color: '#1E293B',
+    color: colors.textPrimary,
     fontWeight: '300',
   },
 
-  /* =========================
-     Main Content
-  ========================== */
+  // =====================================================
+  // MAIN CONTENT
+  // =====================================================
 
   mainContent: {
-    paddingTop: 28,
+    paddingTop: spacing.lg,
   },
 
   title: {
-    fontSize: 28,
+    fontSize: typography.fontSize.xxl,
     fontWeight: '800',
-    color: '#1E293B',
+    color: colors.textPrimary,
 
     letterSpacing: -0.5,
 
-    marginBottom: 8,
+    marginBottom: spacing.sm,
 
     fontFamily: 'GoogleSans-Regular',
   },
 
   subtitle: {
-    fontSize: 14,
-    color: '#64748B',
+    fontSize: typography.fontSize.sm,
+    color: colors.textSecondary,
 
     lineHeight: 21,
 
@@ -277,29 +314,26 @@ const styles = StyleSheet.create({
   },
 
   phoneNumber: {
-    fontSize: 14,
-    color: '#1E293B',
+    fontSize: typography.fontSize.sm,
+    color: colors.textPrimary,
 
     fontWeight: '700',
 
-    marginTop: 2,
+    marginTop: spacing.xs,
 
     fontFamily: 'GoogleSans-Regular',
   },
 
-  /* =========================
-     OTP
-  ========================== */
+  // =====================================================
+  // OTP
+  // =====================================================
 
   otpInputWrapper: {
-    marginTop: 24,
+    marginTop: spacing.lg,
+
     width: '100%',
   },
 
-  /*
-   * The actual TextInput is invisible.
-   * It only receives the native numeric keyboard.
-   */
   hiddenInput: {
     position: 'absolute',
 
@@ -309,7 +343,6 @@ const styles = StyleSheet.create({
     opacity: 0,
 
     color: 'transparent',
-
     backgroundColor: 'transparent',
   },
 
@@ -318,7 +351,7 @@ const styles = StyleSheet.create({
 
     justifyContent: 'space-between',
 
-    paddingHorizontal: 8,
+    paddingHorizontal: spacing.xs,
   },
 
   otpBox: {
@@ -328,40 +361,33 @@ const styles = StyleSheet.create({
     borderRadius: 10,
 
     borderWidth: 1.5,
-    borderColor: '#E2E8F0',
+    borderColor: colors.border,
 
-    backgroundColor: '#FFFFFF',
+     backgroundColor: colors.background,
 
     justifyContent: 'center',
     alignItems: 'center',
 
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 1,
-    },
-    shadowOpacity: 0.04,
-    shadowRadius: 2,
-
-    elevation: 1,
+    ...shadows.card,
   },
 
   otpBoxActive: {
-    borderColor: '#2563EB',
+    borderColor: '#315EFF',
     borderWidth: 2,
   },
 
   otpBoxFilled: {
-    borderColor: '#CBD5E1',
+    borderColor: colors.border,
   },
 
   otpText: {
-    fontSize: 22,
+    fontSize: typography.fontSize.xl,
+
     fontWeight: '700',
 
-    color: '#1E293B',
+    color: colors.textPrimary,
 
-    fontFamily: 'sans-serif',
+    fontFamily: 'GoogleSans-Regular',
   },
 
   cursor: {
@@ -370,12 +396,20 @@ const styles = StyleSheet.create({
     width: 2,
     height: 25,
 
-    backgroundColor: '#2563EB',
+    backgroundColor: '#315EFF',
   },
 
-  /* =========================
-     Resend
-  ========================== */
+  // =====================================================
+  // VERIFY BUTTON
+  // =====================================================
+
+  verifyButton: {
+    marginTop: spacing.lg,
+  },
+
+  // =====================================================
+  // RESEND
+  // =====================================================
 
   resendContainer: {
     flexDirection: 'row',
@@ -383,13 +417,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
 
-    marginTop: 24,
+    marginTop: spacing.lg,
   },
 
   resendText: {
-    fontSize: 13,
+    fontSize: typography.fontSize.xs,
 
-    color: '#64748B',
+    color: colors.textSecondary,
 
     fontWeight: '500',
 
@@ -397,34 +431,34 @@ const styles = StyleSheet.create({
   },
 
   resendLink: {
-    fontSize: 13,
+    fontSize: typography.fontSize.xs,
 
-    color: '#2563EB',
+    color: '#315EFF',
 
     fontWeight: '700',
 
-    marginLeft: 5,
+    marginLeft: spacing.xs,
 
     fontFamily: 'GoogleSans-Regular',
   },
 
-  /* =========================
-     Change Number
-  ========================== */
+  // =====================================================
+  // CHANGE NUMBER
+  // =====================================================
 
   changeNumberButton: {
     alignSelf: 'center',
 
-    marginTop: 20,
+    marginTop: spacing.md,
 
-    paddingVertical: 8,
-    paddingHorizontal: 12,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
   },
 
   changeNumberText: {
-    fontSize: 13,
+    fontSize: typography.fontSize.xs,
 
-    color: '#64748B',
+    color: colors.textSecondary,
 
     fontWeight: '600',
 

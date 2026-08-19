@@ -2,52 +2,75 @@ export const colors = {
     // =========================
     // Brand
     // =========================
-    primary: '#2F5BFF',
-    primaryDark: '#1F46E5',
-    primaryLight: '#EAF0FF',
 
-    secondary: '#4A90FF',
+    primary: '#267583',
+    primaryDark: '#1D626E',
+    primaryLight: '#E6F4F5',
+
+    secondary: '#6BCF9B',
+    secondaryDark: '#52B983',
+    secondaryLight: '#E8F8EF',
+
+    // =========================
+    // Accent
+    // =========================
+
+    accent: '#666666',
+    accentLight: '#F0F0F0',
 
     // =========================
     // Status
     // =========================
-    success: '#22C55E',
-    successDark: '#16A34A',
-    successLight: '#ECFDF3',
 
-    warning: '#F59E0B',
-    warningLight: '#FFF7E6',
+    success: '#6BCF9B',
+    successDark: '#4EAF7D',
+    successLight: '#E8F8EF',
 
-    danger: '#EF4444',
-    dangerLight: '#FEECEC',
+    warning: '#F5A623',
+    warningLight: '#FFF4E3',
 
-    info: '#3B82F6',
-    infoLight: '#EFF6FF',
+    danger: '#E85D5D',
+    dangerLight: '#FDECEC',
+
+    info: '#4A90A4',
+    infoLight: '#EAF5F7',
+
+    // =========================
+    // Button
+    // =========================
+
+    button: '#FF913D',
+    buttonDark: '#E77D2F',
+    buttonLight: '#FFF1E6',
 
     // =========================
     // Background
     // =========================
-    background: '#F7F9FC',
+
+    background: '#F7F7F7',
     card: '#FFFFFF',
     surface: '#FFFFFF',
 
     // =========================
     // Text
     // =========================
-    textPrimary: '#1A1A1A',
-    textSecondary: '#6B7280',
-    textLight: '#9CA3AF',
+
+    textPrimary: '#222222',
+    textSecondary: '#777777',
+    textLight: '#A0A0A0',
     textWhite: '#FFFFFF',
 
     // =========================
     // Border
     // =========================
-    border: '#E5E7EB',
-    divider: '#F1F5F9',
+
+    border: '#E2E2E2',
+    divider: '#EEEEEE',
 
     // =========================
     // Misc
     // =========================
+
     white: '#FFFFFF',
     black: '#000000',
     transparent: 'transparent',

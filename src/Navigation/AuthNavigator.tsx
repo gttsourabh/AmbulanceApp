@@ -4,6 +4,7 @@ import { View, Text, StyleSheet } from 'react-native';
 import SplashScreen from '../screens/auth/SplashScreen';
 import LoginScreen from '../screens/auth/LoginScreen';
 import OtpScreen from '../screens/auth/OtpScreen';
+import MainTabNavigator from './tabs/MainTabNavigator';
 
 const Stack = createNativeStackNavigator();
 
@@ -16,7 +17,7 @@ const AuthNavigator = () => {
             }}>
 
             <Stack.Screen name="Splash">
-            
+
                 {({ navigation }) => (
                     <SplashScreen onFinish={() => navigation.replace('Login')} />
                 )}
@@ -25,8 +26,10 @@ const AuthNavigator = () => {
 
 
             <Stack.Screen name="Login" component={LoginScreen} />
-            
+
             <Stack.Screen name="OTP" component={OtpScreen} />
+
+            <Stack.Screen name='MainTabs' component={MainTabNavigator} />
         </Stack.Navigator>
     );
 };

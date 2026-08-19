@@ -190,7 +190,7 @@ const styles = StyleSheet.create({
 
   container: {
     flex: 1,
-    backgroundColor: colors.white,
+     backgroundColor: colors.background,
   },
 
   scrollContent: {
@@ -261,7 +261,7 @@ const styles = StyleSheet.create({
 
     borderRadius: 14,
 
-    backgroundColor: colors.white,
+     backgroundColor: colors.background,
 
     alignItems: 'center',
     justifyContent: 'center',
@@ -295,7 +295,7 @@ const styles = StyleSheet.create({
   // =====================================================
 
   documentsCard: {
-    backgroundColor: colors.white,
+     backgroundColor: colors.background,
 
     borderRadius: 18,
 

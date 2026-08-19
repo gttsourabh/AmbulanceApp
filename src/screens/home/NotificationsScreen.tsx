@@ -154,7 +154,7 @@ const styles = StyleSheet.create({
 
   container: {
     flex: 1,
-    backgroundColor: colors.white,
+     backgroundColor: colors.background,
   },
 
   // ==========================================
@@ -167,7 +167,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
 
-    backgroundColor: colors.white,
+     backgroundColor: colors.background,
   },
 
   headerTitle: {
@@ -201,7 +201,7 @@ const styles = StyleSheet.create({
     // No border
     borderWidth: 0,
 
-    backgroundColor: colors.white,
+     backgroundColor: colors.background,
   },
 
   // ==========================================

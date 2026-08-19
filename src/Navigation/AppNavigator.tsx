@@ -3,9 +3,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
 import MainTabNavigator from './tabs/MainTabNavigator';
 
-import AvailabilityScreen from '../screens/Availability/AvailabilityScreen';
 
-import IncomingRequestsScreen from "../screens/trips/Ongoingtrip/IncomingRequestScreen"
 import PickupScreen from '../screens/trips/Ongoingtrip/PickupScreen';
 import EnRouteScreen from '../screens/trips/Ongoingtrip/EnRouteScreen';
 import OnTripScreen from '../screens/trips/Ongoingtrip/OnTripScreen';

@@ -164,7 +164,7 @@ const styles = StyleSheet.create({
 
   container: {
     flex: 1,
-    backgroundColor: colors.white,
+     backgroundColor: colors.background,
   },
 
   // =====================================================
@@ -375,7 +375,7 @@ const styles = StyleSheet.create({
     paddingTop: spacing.sm,
     paddingBottom: spacing.sm,
 
-    backgroundColor: colors.white,
+     backgroundColor: colors.background,
 
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: colors.divider,

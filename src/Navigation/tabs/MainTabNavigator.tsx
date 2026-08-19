@@ -43,7 +43,7 @@
 
 //                 tabBarStyle: {
 //                     height: 78,
-//                     backgroundColor: colors.white,
+//                      backgroundColor: colors.background,
 
 //                     // Remove top line
 //                     borderTopWidth: 0,
@@ -183,7 +183,7 @@
 //         flex: 1,
 //         justifyContent: 'center',
 //         alignItems: 'center',
-//         backgroundColor: colors.white,
+//          backgroundColor: colors.background,
 //         padding: 5
 //     },
 
@@ -589,6 +589,8 @@ const MainTabNavigator = () => {
                 component={ProfileStack}
             />
 
+
+
         </Tab.Navigator>
     );
 };
@@ -614,7 +616,7 @@ const styles = StyleSheet.create({
         left: 0,
         right: 0,
 
-        height: 70,
+        height: 65,
 
         justifyContent: 'flex-end',
     },
@@ -634,16 +636,15 @@ const styles = StyleSheet.create({
         bottom: 0,
 
         height: 70,
-        width: '95%',
+        width: '100%',
 
         alignSelf: 'center',
 
-        backgroundColor: 'rgba(6, 164, 203, 0.67)',
+        // backgroundColor: 'rgba(17, 70, 243, 0.8)',
 
-        borderRadius: 15,
+        // borderRadius: 15,
 
-        marginBottom: 14,
-        // paddingBottom:10
+        // borderTopEndRadius: 15
     },
 
     // =================================================
@@ -686,7 +687,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
 
-        minWidth: 55,
+        minWidth: 50,
     },
 
     // =================================================
@@ -711,14 +712,15 @@ const styles = StyleSheet.create({
 
         left: 0,
 
-        bottom: 18,
+        bottom: 14,
 
-        width: 55,
-        height: 55,
+        width: 62,
+        height: 62,
 
         borderRadius: 15,
 
-        backgroundColor: 'rgba(17, 70, 243, 0.9)',
+        // backgroundColor: 'rgba(17, 70, 243, 1)',
+        backgroundColor:colors.primary,
 
         alignItems: 'center',
         justifyContent: 'center',
@@ -739,5 +741,5 @@ const styles = StyleSheet.create({
         zIndex: 20,
     },
 
-    
+
 });

@@ -18,26 +18,42 @@ import {
 
 import { AppIcon } from '../../icons';
 import Header from '../../components/Header/Header';
+import { navigate } from '../../utils/navigationRef';
+import { useNavigation } from '@react-navigation/native';
 
-export type HomeStackParamList = {
-    Home: undefined;
-    Notifications: undefined;
-};
+const HomeScreen = () => {
 
-type HomeScreenProps = NativeStackScreenProps<
-    HomeStackParamList,
-    'Home'
->;
-
-const HomeScreen = ({ navigation }: HomeScreenProps) => {
     const [isOnline, setIsOnline] = useState(true);
+    const [navstring, setnavstring] = useState(null)
+
+    // const handleNotifications = () => {
+    //     navigate('Notifications' as never)
+    // };
+
+    // const handleEmergencyRequest = () => {
+    //     navigate('IncomingRequests');
+    // };
+
+
+    const naviagation = useNavigation<any>();
 
     const handleNotifications = () => {
-        navigation.navigate('Notifications');
+        naviagation.navigate('Notifications');
     };
 
     const handleEmergencyRequest = () => {
-        navigation.navigate('IncomingRequests' as never);
+        const parent1 = naviagation.getParent();
+        const parent2 = parent1?.getParent();
+        const parent3 = parent2?.getParent();
+
+        setnavstring(
+            JSON.stringify({
+                current: naviagation.getState()?.routeNames,
+                parent1: parent1?.getState()?.routeNames,
+                parent2: parent2?.getState()?.routeNames,
+                parent3: parent3?.getState()?.routeNames,
+            }, null, 2)
+        );
     };
 
     return (
@@ -102,6 +118,10 @@ const HomeScreen = ({ navigation }: HomeScreenProps) => {
                         <Text style={styles.userName}>
                             Ramesh Kumar
                         </Text>
+                    </View>
+
+                    <View>
+                        <Text>{navstring}</Text>
                     </View>
 
                     <View style={styles.profileAvatar}>
@@ -300,7 +320,7 @@ const styles = StyleSheet.create({
 
     container: {
         flex: 1,
-        backgroundColor: colors.white,
+        backgroundColor: colors.background,
     },
 
     scrollContent: {
@@ -372,7 +392,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: spacing.lg,
         paddingVertical: spacing.sm,
         borderRadius: 18,
-        backgroundColor: colors.white,
+        backgroundColor: colors.background,
         borderWidth: 1,
         borderColor: colors.border,
         flexDirection: 'row',
@@ -526,5 +546,5 @@ const styles = StyleSheet.create({
         fontSize: typography.fontSize.sm,
         color: colors.danger,
     },
-    
+
 });

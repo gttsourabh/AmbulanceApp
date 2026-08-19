@@ -469,7 +469,7 @@ const styles = StyleSheet.create({
 
     borderRadius: 3,
 
-    backgroundColor: colors.white,
+     backgroundColor: colors.background,
   },
 
   pendingCircle: {
@@ -481,7 +481,7 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: colors.border,
 
-    backgroundColor: colors.white,
+     backgroundColor: colors.background,
   },
 
   progressLine: {
@@ -540,7 +540,7 @@ const styles = StyleSheet.create({
     paddingTop: spacing.sm,
     paddingBottom: spacing.sm,
 
-    backgroundColor: colors.white,
+     backgroundColor: colors.background,
 
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: colors.divider,

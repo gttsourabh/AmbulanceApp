@@ -269,7 +269,7 @@ const styles = StyleSheet.create({
 
     container: {
         flex: 1,
-        backgroundColor: colors.white,
+         backgroundColor: colors.background,
     },
 
     content: {
@@ -362,7 +362,7 @@ const styles = StyleSheet.create({
 
         borderRadius: 18,
 
-        backgroundColor: colors.white,
+         backgroundColor: colors.background,
 
         borderWidth: 1,
         borderColor: colors.border,
@@ -515,7 +515,7 @@ const styles = StyleSheet.create({
 
         borderRadius: 16,
 
-        backgroundColor: colors.white,
+         backgroundColor: colors.background,
 
         borderWidth: 1,
         borderColor: colors.border,

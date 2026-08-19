@@ -293,7 +293,7 @@ const styles = StyleSheet.create({
 
   container: {
     flex: 1,
-    backgroundColor: colors.white,
+     backgroundColor: colors.background,
   },
 
   scrollContent: {
@@ -323,7 +323,7 @@ const styles = StyleSheet.create({
   // =====================================================
 
   settingsCard: {
-    backgroundColor: colors.white,
+     backgroundColor: colors.background,
 
     borderRadius: 18,
 
