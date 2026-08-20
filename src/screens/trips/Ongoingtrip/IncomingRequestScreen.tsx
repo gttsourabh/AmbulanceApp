@@ -18,7 +18,7 @@ const IncomingRequestScreen = () => {
 
   const navigation = useNavigation();
 
-  const [seconds, setSeconds] = useState(30);
+  const [seconds, setSeconds] = useState(10);
 
   // =====================================================
   // COUNTDOWN
@@ -255,7 +255,7 @@ const styles = StyleSheet.create({
 
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(15, 17, 21, 0.32)',
+    // backgroundColor: 'rgba(15, 17, 21, 0.32)',
   },
 
   // =====================================================

@@ -6,7 +6,7 @@ import { navigationRef } from '../utils/navigationRef';
 
 const RootNavigator = () => {
 
-    const [isAuthenticated, setIsAuthenticated] = useState(false);
+    const [isAuthenticated, setIsAuthenticated] = useState(true);
 
     return (
         <NavigationContainer ref={navigationRef}>

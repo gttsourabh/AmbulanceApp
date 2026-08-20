@@ -9,7 +9,6 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-
 import {
     colors,
     typography,
@@ -40,20 +39,11 @@ const HomeScreen = () => {
     const handleNotifications = () => {
         naviagation.navigate('Notifications');
     };
-
     const handleEmergencyRequest = () => {
         const parent1 = naviagation.getParent();
         const parent2 = parent1?.getParent();
-        const parent3 = parent2?.getParent();
 
-        setnavstring(
-            JSON.stringify({
-                current: naviagation.getState()?.routeNames,
-                parent1: parent1?.getState()?.routeNames,
-                parent2: parent2?.getState()?.routeNames,
-                parent3: parent3?.getState()?.routeNames,
-            }, null, 2)
-        );
+        parent2?.navigate('IncomingRequests');
     };
 
     return (
@@ -230,6 +220,7 @@ const HomeScreen = () => {
 
                         <View style={styles.overviewRow}>
                             <View style={styles.rowLeft}>
+
                                 <View
                                     style={[
                                         styles.iconBox,
@@ -250,6 +241,7 @@ const HomeScreen = () => {
                                 <Text style={styles.rowLabel}>
                                     Cancelled
                                 </Text>
+                                
                             </View>
 
                             <Text style={styles.rowValue}>
