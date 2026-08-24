@@ -216,7 +216,6 @@ const LoginScreen = () => {
                                     }
                                     selectionColor="#2563EB"
                                     textAlignVertical="center"
-                                    includeFontPadding={false}
                                     autoCorrect={false}
                                     autoCapitalize="none"
                                 />

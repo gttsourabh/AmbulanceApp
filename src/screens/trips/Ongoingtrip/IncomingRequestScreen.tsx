@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import {
   StyleSheet,
   Text,
@@ -9,33 +9,12 @@ import { useNavigation } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import Header from '../../../components/Header/Header';
-
 import { colors, typography, spacing } from '../../../theme';
 import { AppIcon } from '../../../icons';
 import Button from '../../../components/Button/Button';
 
 const IncomingRequestScreen = () => {
-
   const navigation = useNavigation();
-
-  const [seconds, setSeconds] = useState(10);
-
-  // =====================================================
-  // COUNTDOWN
-  // =====================================================
-
-  useEffect(() => {
-    if (seconds <= 0) {
-      navigation.goBack();
-      return;
-    }
-
-    const timer = setInterval(() => {
-      setSeconds(prev => prev - 1);
-    }, 1000);
-
-    return () => clearInterval(timer);
-  }, [seconds, navigation]);
 
   // =====================================================
   // REJECT
@@ -66,9 +45,7 @@ const IncomingRequestScreen = () => {
   // =====================================================
 
   return (
-
     <View style={styles.overlay}>
-
       {/* =====================================================
           REQUEST CARD
       ===================================================== */}
@@ -79,26 +56,14 @@ const IncomingRequestScreen = () => {
           {/* PATIENT DETAILS */}
 
           <View style={styles.section}>
-
             <Text style={styles.label}>
               PATIENT DETAILS
             </Text>
 
             <View style={styles.patientRow}>
-
               <Text style={styles.value}>
                 John Doe
               </Text>
-
-              <View style={styles.timerContainer}>
-
-                <View style={styles.timerDot} />
-
-                <Text style={styles.timerText}>
-                  {seconds} sec
-                </Text>
-
-              </View>
 
               <Button
                 title=""
@@ -108,9 +73,7 @@ const IncomingRequestScreen = () => {
                 variant="primary"
                 style={styles.callButton}
               />
-
             </View>
-
           </View>
 
           <View style={styles.divider} />
@@ -118,7 +81,6 @@ const IncomingRequestScreen = () => {
           {/* PICKUP LOCATION */}
 
           <View style={styles.section}>
-
             <View style={styles.labelRow}>
               <View
                 style={[
@@ -139,7 +101,6 @@ const IncomingRequestScreen = () => {
             <Text style={styles.secondaryValue}>
               560001
             </Text>
-
           </View>
 
           <View style={styles.divider} />
@@ -147,7 +108,6 @@ const IncomingRequestScreen = () => {
           {/* DESTINATION */}
 
           <View style={styles.section}>
-
             <View style={styles.labelRow}>
               <View
                 style={[
@@ -168,7 +128,6 @@ const IncomingRequestScreen = () => {
             <Text style={styles.secondaryValue}>
               3.2 km away
             </Text>
-
           </View>
 
           <View style={styles.divider} />
@@ -176,9 +135,7 @@ const IncomingRequestScreen = () => {
           {/* EMERGENCY TYPE + EARNINGS */}
 
           <View style={styles.metaRow}>
-
             <View style={styles.metaItem}>
-
               <Text style={styles.label}>
                 EMERGENCY TYPE
               </Text>
@@ -195,13 +152,11 @@ const IncomingRequestScreen = () => {
                   Medical
                 </Text>
               </View>
-
             </View>
 
             <View style={styles.metaDivider} />
 
             <View style={styles.metaItem}>
-
               <Text style={styles.label}>
                 ESTIMATED EARNINGS
               </Text>
@@ -209,9 +164,7 @@ const IncomingRequestScreen = () => {
               <Text style={styles.earningValue}>
                 ₹ 350
               </Text>
-
             </View>
-
           </View>
 
           {/* =====================================================
@@ -219,7 +172,6 @@ const IncomingRequestScreen = () => {
           ===================================================== */}
 
           <View style={styles.actionRow}>
-
             <Button
               title="Reject"
               onPress={handleReject}
@@ -235,14 +187,11 @@ const IncomingRequestScreen = () => {
               variant="primary"
               style={styles.acceptButton}
             />
-
           </View>
 
         </View>
       </View>
-        
     </View>
-
   );
 };
 
@@ -255,71 +204,6 @@ const styles = StyleSheet.create({
 
   overlay: {
     flex: 1,
-    // backgroundColor: 'rgba(15, 17, 21, 0.32)',
-  },
-
-  // =====================================================
-  // HEADER
-  // =====================================================
-
-  header: {
-    backgroundColor: colors.primaryDark,
-  },
-
-  headerContent: {
-    height: 54,
-
-    flexDirection: 'row',
-    alignItems: 'center',
-
-    paddingHorizontal: spacing.sm,
-  },
-
-  backButton: {
-    width: 40,
-    height: 40,
-
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-
-  headerTitle: {
-    flex: 1,
-
-    textAlign: 'center',
-
-    fontFamily: 'GoogleSans-Medium',
-    fontSize: typography.fontSize.sm,
-    letterSpacing: 0.1,
-
-    color: colors.white,
-  },
-
-  timerContainer: {
-    width: 62,
-
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'flex-end',
-  },
-
-  timerDot: {
-    width: 8,
-    height: 8,
-
-    borderRadius: 4,
-
-    backgroundColor: colors.danger,
-
-    marginRight: 5,
-  },
-
-  timerText: {
-    fontFamily: 'GoogleSans-Bold',
-    fontSize: typography.fontSize.xs,
-    letterSpacing: 0.2,
-
-    color: colors.black,
   },
 
   // =====================================================
@@ -328,10 +212,8 @@ const styles = StyleSheet.create({
 
   requestCardShadowWrap: {
     marginTop: 'auto',
-
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
-
     shadowColor: colors.shadow,
     shadowOffset: { width: 0, height: -8 },
     shadowOpacity: 0.14,
@@ -341,14 +223,11 @@ const styles = StyleSheet.create({
 
   requestCard: {
     backgroundColor: colors.card,
-
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
-
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.md,
     paddingBottom: spacing.md,
-
     borderWidth: 1,
     borderColor: colors.border,
     borderBottomWidth: 0,
@@ -365,7 +244,6 @@ const styles = StyleSheet.create({
   labelRow: {
     flexDirection: 'row',
     alignItems: 'center',
-
     marginBottom: 5,
   },
 
@@ -373,7 +251,6 @@ const styles = StyleSheet.create({
     width: 6,
     height: 6,
     borderRadius: 3,
-
     marginRight: 6,
   },
 
@@ -381,9 +258,7 @@ const styles = StyleSheet.create({
     fontFamily: 'GoogleSans-Medium',
     fontSize: 10,
     letterSpacing: 0.5,
-
     color: colors.textLight,
-
     marginBottom: 5,
   },
 
@@ -391,16 +266,13 @@ const styles = StyleSheet.create({
     fontFamily: 'GoogleSans-Medium',
     fontSize: typography.fontSize.sm,
     letterSpacing: 0.1,
-
     color: colors.textPrimary,
   },
 
   secondaryValue: {
     fontFamily: 'GoogleSans-Regular',
     fontSize: typography.fontSize.xs,
-
     color: colors.textSecondary,
-
     marginTop: 3,
   },
 
@@ -417,11 +289,8 @@ const styles = StyleSheet.create({
   callButton: {
     width: 42,
     height: 42,
-
     borderRadius: 21,
-
     paddingHorizontal: 0,
-
     gap: 0,
   },
 
@@ -431,9 +300,7 @@ const styles = StyleSheet.create({
 
   divider: {
     height: StyleSheet.hairlineWidth,
-
     backgroundColor: colors.divider,
-
     marginVertical: spacing.xs,
   },
 
@@ -444,7 +311,6 @@ const styles = StyleSheet.create({
   metaRow: {
     flexDirection: 'row',
     alignItems: 'center',
-
     paddingVertical: spacing.sm,
   },
 
@@ -455,32 +321,24 @@ const styles = StyleSheet.create({
   metaDivider: {
     width: StyleSheet.hairlineWidth,
     height: 40,
-
     backgroundColor: colors.divider,
-
     marginHorizontal: spacing.md,
   },
 
   typePill: {
     flexDirection: 'row',
     alignItems: 'center',
-
     alignSelf: 'flex-start',
-
     gap: 5,
-
     paddingHorizontal: 9,
     paddingVertical: 4,
-
     borderRadius: 8,
-
     backgroundColor: colors.dangerLight,
   },
 
   typeText: {
     fontFamily: 'GoogleSans-Medium',
     fontSize: typography.fontSize.xs,
-
     color: colors.danger,
   },
 
@@ -488,7 +346,6 @@ const styles = StyleSheet.create({
     fontFamily: 'GoogleSans-Bold',
     fontSize: typography.fontSize.lg,
     letterSpacing: 0.2,
-
     color: colors.successDark,
   },
 
@@ -498,9 +355,7 @@ const styles = StyleSheet.create({
 
   actionRow: {
     flexDirection: 'row',
-
     gap: spacing.sm,
-
     marginTop: spacing.sm,
   },
 
