@@ -503,7 +503,7 @@ const CustomTabBar = ({
                                             tab.iconFamily
                                         }
                                         name={tab.icon}
-                                        size={26}
+                                        size={23}
                                         color={
                                             colors.textPrimary
                                         }
@@ -697,8 +697,8 @@ const styles = StyleSheet.create({
     tabLabel: {
         marginTop: 1,
 
-        fontFamily: 'GoogleSans-Medium',
-        fontSize: typography.fontSize.xs,
+        fontFamily: 'GoogleSans-Regular',
+        // fontSize: typography.fontSize.xs,
 
         color: colors.textPrimary,
     },
@@ -720,7 +720,7 @@ const styles = StyleSheet.create({
         borderRadius: 15,
 
         // backgroundColor: 'rgba(17, 70, 243, 1)',
-        backgroundColor:colors.primary,
+        backgroundColor: colors.primary,
 
         alignItems: 'center',
         justifyContent: 'center',

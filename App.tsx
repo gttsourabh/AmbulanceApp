@@ -7,8 +7,9 @@ import RootNavigator from './src/Navigation/RootNavigator';
 const App = () => {
   return (
     <Provider store={store}>
+
       <RootNavigator />
-      
+
     </Provider>
   );
 };

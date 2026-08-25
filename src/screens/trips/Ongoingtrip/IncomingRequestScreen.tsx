@@ -204,6 +204,7 @@ const styles = StyleSheet.create({
 
   overlay: {
     flex: 1,
+    backgroundColor: "rgba(255,255,255,0.1)"
   },
 
   // =====================================================
@@ -370,4 +371,5 @@ const styles = StyleSheet.create({
     height: 52,
     borderRadius: 14,
   },
+
 });
