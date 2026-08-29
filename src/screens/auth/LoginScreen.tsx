@@ -11,9 +11,12 @@ import {
     Image,
     Modal,
     FlatList,
+    ActivityIndicator,
+    Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
+import { sendOtpApi } from '../../api/authApi';
 
 type Country = {
     code: string;
@@ -87,9 +90,10 @@ const COUNTRIES: Country[] = [
 
 const LoginScreen = () => {
     const [phoneNumber, setPhoneNumber] = useState('');
+    const [loading, setLoading] = useState(false);
     const [countryPickerVisible, setCountryPickerVisible] =
         useState(false);
-    const navigation = useNavigation()
+    const navigation = useNavigation<any>();
 
 
     const [selectedCountry, setSelectedCountry] =
@@ -117,23 +121,44 @@ const LoginScreen = () => {
         setCountryPickerVisible(false);
     };
 
-    const handleSendOTP = () => {
-        if (!isPhoneValid) {
+    const handleSendOTP = async () => {
+        if (!isPhoneValid || loading) {
             return;
         }
 
         const fullPhoneNumber = `+${selectedCountry.callingCode}${cleanPhoneNumber}`;
 
-        console.log('Send OTP for:', fullPhoneNumber);
+        console.log('Send OTP for:', {
+            mobile_number: cleanPhoneNumber,
+            fullPhoneNumber,
+        });
 
-        // API call here
-        // Example:
-        // await sendOTP(fullPhoneNumber);
+        try {
+            setLoading(true);
+            const response = await sendOtpApi({
+                mobile_number: cleanPhoneNumber,
+            });
 
+            console.log('Send OTP Success:', response);
 
-
-        navigation.navigate("OTP" as never)
-
+            navigation.navigate('OTP', {
+                mobile_number: cleanPhoneNumber,
+                phoneNumber: fullPhoneNumber,
+                countryCode: selectedCountry.callingCode,
+            });
+        } catch (error: any) {
+            const serverMsg =
+                error?.response?.data?.msg ||
+                error?.response?.data?.message;
+            const errorMessage =
+                serverMsg ||
+                error?.message ||
+                'Failed to send OTP. Please check your network and try again.';
+            console.error('Send OTP Error:', error);
+            Alert.alert('Send OTP Failed', errorMessage);
+        } finally {
+            setLoading(false);
+        }
     };
 
     return (
@@ -228,16 +253,23 @@ const LoginScreen = () => {
                         <TouchableOpacity
                             style={[
                                 styles.sendOTPButton,
-                                !isPhoneValid &&
+                                (!isPhoneValid || loading) &&
                                 styles.sendOTPButtonDisabled,
                             ]}
                             onPress={handleSendOTP}
                             activeOpacity={0.8}
-                            disabled={!isPhoneValid}
+                            disabled={!isPhoneValid || loading}
                         >
-                            <Text style={styles.sendOTPText}>
-                                Send OTP
-                            </Text>
+                            {loading ? (
+                                <ActivityIndicator
+                                    size="small"
+                                    color="#FFFFFF"
+                                />
+                            ) : (
+                                <Text style={styles.sendOTPText}>
+                                    Send OTP
+                                </Text>
+                            )}
                         </TouchableOpacity>
 
                         {/* =========================

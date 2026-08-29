@@ -503,7 +503,7 @@ const CustomTabBar = ({
                                             tab.iconFamily
                                         }
                                         name={tab.icon}
-                                        size={23}
+                                        size={22}
                                         color={
                                             colors.textPrimary
                                         }
@@ -714,8 +714,8 @@ const styles = StyleSheet.create({
 
         bottom: 14,
 
-        width: 62,
-        height: 62,
+        width: 58,
+        height: 58,
 
         borderRadius: 15,
 

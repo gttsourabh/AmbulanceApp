@@ -1,20 +1,24 @@
 // src/redux/slices/authSlice.ts
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 
-export type UserRole = 'PATIENT' | 'DRIVER' | 'ADMIN';
-
-export interface User {
-    id: string;
-    name: string;
-    phone: string;
-    email?: string;
-    role: UserRole;
-    profileImage?: string;
+export interface SubscribedChannel {
+    topic_name: string;
+    channel_id: number;
 }
 
-interface AuthState {
-    user: User | null;
+export interface UserData {
+    id: number | string;
+    role_id?: number;
+    name?: string;
+    phone?: string;
+    email?: string;
+    [key: string]: any;
+}
+
+export interface AuthState {
+    user: UserData | null;
     token: string | null;
+    subscribedChannels: SubscribedChannel[];
     isAuthenticated: boolean;
     loading: boolean;
     error: string | null;
@@ -23,6 +27,7 @@ interface AuthState {
 const initialState: AuthState = {
     user: null,
     token: null,
+    subscribedChannels: [],
     isAuthenticated: false,
     loading: false,
     error: null,
@@ -40,17 +45,19 @@ const authSlice = createSlice({
             state.error = null;
         },
 
-        // Login successful
+        // Login successful — stores token, UserData, and subscribedChannels
         loginSuccess: (
             state,
             action: PayloadAction<{
-                user: User;
+                user: UserData;
                 token: string;
+                subscribedChannels?: SubscribedChannel[];
             }>,
         ) => {
             state.loading = false;
             state.user = action.payload.user;
             state.token = action.payload.token;
+            state.subscribedChannels = action.payload.subscribedChannels || [];
             state.isAuthenticated = true;
             state.error = null;
         },
@@ -60,6 +67,7 @@ const authSlice = createSlice({
             state.loading = false;
             state.user = null;
             state.token = null;
+            state.subscribedChannels = [];
             state.isAuthenticated = false;
             state.error = action.payload;
         },
@@ -68,24 +76,35 @@ const authSlice = createSlice({
         logout: state => {
             state.user = null;
             state.token = null;
+            state.subscribedChannels = [];
             state.isAuthenticated = false;
             state.loading = false;
             state.error = null;
         },
 
-        // Restore login session
+        // Restore login session from storage
         restoreSession: (
             state,
             action: PayloadAction<{
-                user: User;
+                user: UserData;
                 token: string;
+                subscribedChannels?: SubscribedChannel[];
             }>,
         ) => {
             state.user = action.payload.user;
             state.token = action.payload.token;
+            state.subscribedChannels = action.payload.subscribedChannels || [];
             state.isAuthenticated = true;
             state.loading = false;
             state.error = null;
+        },
+
+        // Update subscribed channels
+        setSubscribedChannels: (
+            state,
+            action: PayloadAction<SubscribedChannel[]>,
+        ) => {
+            state.subscribedChannels = action.payload;
         },
 
         // Clear error
@@ -101,6 +120,7 @@ export const {
     loginFailure,
     logout,
     restoreSession,
+    setSubscribedChannels,
     clearAuthError,
 } = authSlice.actions;
 

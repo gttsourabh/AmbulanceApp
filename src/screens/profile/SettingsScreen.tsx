@@ -13,6 +13,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, typography, shadows, spacing } from '../../theme';
 import { AppIcon } from '../../icons';
 import Header from '../../components/Header/Header';
+import { useAppDispatch } from '../../redux/hook';
+import { logout } from '../../redux/slices/authSlice';
+import { storage } from '../../storage/storage';
 
 interface SettingItemProps {
   icon: string;
@@ -27,6 +30,7 @@ interface SettingItemProps {
 }
 
 const SettingsScreen = () => {
+  const dispatch = useAppDispatch();
   const [notificationsEnabled, setNotificationsEnabled] =
     useState(true);
 
@@ -61,8 +65,9 @@ const SettingsScreen = () => {
         {
           text: 'Logout',
           style: 'destructive',
-          onPress: () => {
-            console.log('Logout');
+          onPress: async () => {
+            await storage.clear();
+            dispatch(logout());
           },
         },
       ],

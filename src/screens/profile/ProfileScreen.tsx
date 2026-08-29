@@ -1,5 +1,6 @@
 import React from 'react';
 import {
+    Alert,
     Image,
     ScrollView,
     StyleSheet,
@@ -10,6 +11,9 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { useAppDispatch } from '../../redux/hook';
+import { logout } from '../../redux/slices/authSlice';
+import { storage } from '../../storage/storage';
 
 import {
     colors,
@@ -37,6 +41,25 @@ interface ProfileOption {
 
 const ProfileScreen = () => {
     const navigation = useNavigation<ProfileNavigationProp>();
+    const dispatch = useAppDispatch();
+
+    const handleLogout = () => {
+        Alert.alert(
+            'Logout',
+            'Are you sure you want to log out?',
+            [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                    text: 'Logout',
+                    style: 'destructive',
+                    onPress: async () => {
+                        await storage.clear();
+                        dispatch(logout());
+                    },
+                },
+            ],
+        );
+    };
 
     const profileOptions: ProfileOption[] = [
         {
@@ -202,6 +225,7 @@ const ProfileScreen = () => {
                 <TouchableOpacity
                     activeOpacity={0.75}
                     style={styles.logoutButton}
+                    onPress={handleLogout}
                 >
                     <AppIcon
                         family="material"

@@ -1,11 +1,13 @@
 import axios from 'axios';
+import { store } from '../redux/store';
 
 const axiosInstance = axios.create({
-    baseURL: 'YOUR_API_BASE_URL',
+    baseURL: 'https://6mcr9zjh-8867.inc1.devtunnels.ms',
     timeout: 15000,
     headers: {
         'Content-Type': 'application/json',
         Accept: 'application/json',
+        'apikey': 'JP76Ol1r5lMvzljKmeaTdP9EthTYzKFH',
     },
 });
 
@@ -15,6 +17,16 @@ const axiosInstance = axios.create({
 
 axiosInstance.interceptors.request.use(
     config => {
+        // Automatically inject Bearer token from Redux auth state
+        try {
+            const token = store.getState().auth.token;
+            if (token && !config.headers.Authorization) {
+                config.headers.Authorization = `Bearer ${token}`;
+            }
+        } catch (_) {
+            // Ignore if store is not ready
+        }
+
         if (__DEV__) {
             console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
             console.log('🚀 API REQUEST');
@@ -26,6 +38,7 @@ axiosInstance.interceptors.request.use(
         }
 
         return config;
+
     },
 
     error => {
@@ -61,6 +74,7 @@ axiosInstance.interceptors.response.use(
 
     error => {
         if (__DEV__) {
+
             console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
             console.log('❌ API ERROR');
 
