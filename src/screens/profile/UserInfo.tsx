@@ -10,6 +10,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, typography, shadows, spacing } from '../../theme';
 import { AppIcon } from '../../icons';
 import Header from '../../components/Header/Header';
+import { useAppSelector } from '../../redux/hook';
 
 interface InfoItemProps {
     icon: string;
@@ -22,6 +23,8 @@ interface InfoItemProps {
 }
 
 const UserInfo = () => {
+    const user = useAppSelector(state => state.auth.user);
+
     const handleVehicle = () => {
         console.log('Vehicle Info');
     };
@@ -125,11 +128,11 @@ const UserInfo = () => {
                     </View>
 
                     <Text style={styles.userName}>
-                        Ramesh Kumar
+                        {user?.name || 'Ambulance Driver'}
                     </Text>
 
                     <Text style={styles.phoneNumber}>
-                        +91 98765 43210
+                        {user?.mobile_number ? `+91 ${user.mobile_number}` : (user?.phone ? `+91 ${user.phone}` : '+91 98765 43210')}
                     </Text>
 
                 </View>

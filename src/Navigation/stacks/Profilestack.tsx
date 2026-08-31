@@ -8,7 +8,7 @@ import UserInfo from '../../screens/profile/UserInfo';
 import VehicleDocumentsScreen from '../../screens/profile/VehicleDocumentsScreen';
 
 export type ProfileStackParamList = {
-    Profile: undefined;
+    ProfileScreen: undefined;
     Settings: undefined;
     Help: undefined;
     UserInfo: undefined;
@@ -20,11 +20,11 @@ const Stack = createNativeStackNavigator<ProfileStackParamList>();
 const ProfileStack = () => {
     return (
         <Stack.Navigator
-            initialRouteName="Profile"
+            initialRouteName="ProfileScreen"
             screenOptions={{
                 headerShown: false,
             }}>
-            <Stack.Screen name="Profile" component={ProfileScreen} />
+            <Stack.Screen name="ProfileScreen" component={ProfileScreen} />
             <Stack.Screen name="Settings" component={SettingsScreen} />
             <Stack.Screen name="Help" component={HelpScreen} />
             <Stack.Screen name="UserInfo" component={UserInfo} />

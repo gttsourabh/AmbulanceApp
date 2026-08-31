@@ -11,7 +11,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { useAppDispatch } from '../../redux/hook';
+import { useAppDispatch, useAppSelector } from '../../redux/hook';
 import { logout } from '../../redux/slices/authSlice';
 import { storage } from '../../storage/storage';
 
@@ -42,6 +42,7 @@ interface ProfileOption {
 const ProfileScreen = () => {
     const navigation = useNavigation<ProfileNavigationProp>();
     const dispatch = useAppDispatch();
+    const user = useAppSelector(state => state.auth.user);
 
     const handleLogout = () => {
         Alert.alert(
@@ -140,11 +141,11 @@ const ProfileScreen = () => {
                     </View>
 
                     <Text style={styles.profileName}>
-                        Ramesh Kumar
+                        {user?.name || 'Ambulance Driver'}
                     </Text>
 
                     <Text style={styles.phoneNumber}>
-                        +91 98765 43210
+                        {user?.mobile_number ? `+91 ${user.mobile_number}` : (user?.phone ? `+91 ${user.phone}` : '+91 98765 43210')}
                     </Text>
 
                     <View style={styles.verifiedPill}>

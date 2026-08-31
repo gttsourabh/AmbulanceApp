@@ -14,52 +14,53 @@ import MapView, {
   MapType,
   Region,
 } from 'react-native-maps';
-import { MapViewRoute } from 'react-native-maps-routes';
 import { useNavigation } from '@react-navigation/native';
 
-import { colors, typography, shadows, spacing } from '../../../theme';
+import { colors, typography, spacing } from '../../../theme';
 import { AppIcon } from '../../../icons';
 import Header from '../../../components/Header/Header';
 import Button from '../../../components/Button/Button';
 import {
   AmbulanceMarker,
   LocationMarker,
-  GOOGLE_MAPS_API_KEY,
 } from '../../../components/Map';
+import { getDrivingRoutesWithAlternatives, RouteResult } from '../../../services/directionsService';
 
 const EnRouteScreen = () => {
   const navigation = useNavigation();
   const mapRef = useRef<MapView>(null);
   const hasInitialFit = useRef(false);
 
-  const [distanceText, setDistanceText] = useState('12.4 km');
-  const [etaText, setEtaText] = useState('25 min away');
-  const [routeReady, setRouteReady] = useState(false);
+  const [distanceText, setDistanceText] = useState('Calculating...');
+  const [etaText, setEtaText] = useState('Finding nearest route...');
   const [mapType, setMapType] = useState<MapType>('standard');
+  const [primaryRouteInfo, setPrimaryRouteInfo] = useState<RouteResult | null>(null);
+  const [altRouteInfo, setAltRouteInfo] = useState<RouteResult | null>(null);
   const [activeCoordinates, setActiveCoordinates] = useState<Array<{ latitude: number; longitude: number }>>([]);
+  const [alternativeCoordinates, setAlternativeCoordinates] = useState<Array<{ latitude: number; longitude: number }>>([]);
+  const [selectedRouteType, setSelectedRouteType] = useState<'nearest' | 'alternative'>('nearest');
 
   // =====================================================
-  // SAMPLE LOCATION DATA (Ambulance -> Hospital)
+  // SANGLI CITY LOCATION DATA (Ambulance -> Nearest Hospital)
   // =====================================================
 
+  // Sangli City (ST Stand / Ganapati Mandir Rd)
   const ambulanceLocation = {
-    latitude: 12.9716,
-    longitude: 77.5946,
+    latitude: 16.8524,
+    longitude: 74.5815,
   };
 
+  // Nearest Government Hospital: Government Medical College & Hospital (Civil Hospital), Sangli
   const hospitalLocation = {
-    latitude: 12.9352,
-    longitude: 77.6245,
+    latitude: 16.8543,
+    longitude: 74.5772,
   };
 
   // Fallback road coordinates
   const fallbackRoute = [
-    { latitude: 12.9716, longitude: 77.5946 },
-    { latitude: 12.9650, longitude: 77.6000 },
-    { latitude: 12.9550, longitude: 77.6080 },
-    { latitude: 12.9480, longitude: 77.6150 },
-    { latitude: 12.9400, longitude: 77.6200 },
-    { latitude: 12.9352, longitude: 77.6245 },
+    { latitude: 16.8524, longitude: 74.5815 },
+    { latitude: 16.8535, longitude: 74.5795 },
+    { latitude: 16.8543, longitude: 74.5772 },
   ];
 
   const initialRegion: Region = {
@@ -71,23 +72,71 @@ const EnRouteScreen = () => {
 
   const currentRegionRef = useRef<Region>(initialRegion);
 
-  // Initial mount: fit route only once
+  // Fetch the 2 NEAREST possible roads dynamically from Google Directions API
   useEffect(() => {
-    const timer = setTimeout(() => {
-      if (!hasInitialFit.current) {
-        hasInitialFit.current = true;
-        mapRef.current?.fitToCoordinates(
-          [ambulanceLocation, hospitalLocation],
-          {
+    let isMounted = true;
+    const fetchRoute = async () => {
+      const routes = await getDrivingRoutesWithAlternatives(ambulanceLocation, hospitalLocation);
+      if (!isMounted) return;
+
+      if (routes?.primaryRoute && routes.primaryRoute.coordinates.length > 0) {
+        setPrimaryRouteInfo(routes.primaryRoute);
+        setActiveCoordinates(routes.primaryRoute.coordinates);
+        setDistanceText(routes.primaryRoute.distanceText);
+        if (routes.primaryRoute.durationText) {
+          setEtaText(routes.primaryRoute.durationText);
+        }
+
+        if (routes.alternativeRoute && routes.alternativeRoute.coordinates.length > 0) {
+          setAltRouteInfo(routes.alternativeRoute);
+          setAlternativeCoordinates(routes.alternativeRoute.coordinates);
+        }
+
+        if (!hasInitialFit.current) {
+          hasInitialFit.current = true;
+          mapRef.current?.fitToCoordinates(routes.primaryRoute.coordinates, {
             edgePadding: { top: 90, right: 60, bottom: 140, left: 60 },
             animated: true,
-          }
-        );
+          });
+        }
+      } else {
+        // Fallback
+        setActiveCoordinates(fallbackRoute);
+        if (!hasInitialFit.current) {
+          hasInitialFit.current = true;
+          mapRef.current?.fitToCoordinates([ambulanceLocation, hospitalLocation], {
+            edgePadding: { top: 90, right: 60, bottom: 140, left: 60 },
+            animated: true,
+          });
+        }
       }
-    }, 600);
+    };
 
-    return () => clearTimeout(timer);
+    fetchRoute();
+    return () => {
+      isMounted = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const selectRoute = (type: 'nearest' | 'alternative') => {
+    setSelectedRouteType(type);
+    if (type === 'nearest' && primaryRouteInfo) {
+      setDistanceText(primaryRouteInfo.distanceText);
+      if (primaryRouteInfo.durationText) setEtaText(primaryRouteInfo.durationText);
+      mapRef.current?.fitToCoordinates(primaryRouteInfo.coordinates, {
+        edgePadding: { top: 90, right: 60, bottom: 140, left: 60 },
+        animated: true,
+      });
+    } else if (type === 'alternative' && altRouteInfo) {
+      setDistanceText(altRouteInfo.distanceText);
+      if (altRouteInfo.durationText) setEtaText(altRouteInfo.durationText);
+      mapRef.current?.fitToCoordinates(altRouteInfo.coordinates, {
+        edgePadding: { top: 90, right: 60, bottom: 140, left: 60 },
+        animated: true,
+      });
+    }
+  };
 
   // =====================================================
   // MAP ACTIONS (ZOOM, RECENTER, LAYER TOGGLE)
@@ -154,7 +203,7 @@ const EnRouteScreen = () => {
       edges={['top', 'bottom']}
     >
       {/* HEADER */}
-      <Header backEnabled title="En-Route To Hospital" />
+      <Header backEnabled onLeftPress={handleBack} title="En-Route To Hospital" />
 
       {/* MAP AREA */}
       <View style={styles.mapContainer}>
@@ -176,43 +225,33 @@ const EnRouteScreen = () => {
             currentRegionRef.current = region;
           }}
         >
-          {/* Live Google Routes driving route */}
-          <MapViewRoute
-            origin={ambulanceLocation}
-            destination={hospitalLocation}
-            apiKey={GOOGLE_MAPS_API_KEY}
-            strokeColor={colors.danger}
-            strokeWidth={6}
-            lineJoin="round"
-            lineCap="round"
-            enableDistance={true}
-            enableEstimatedTime={true}
-            onDistance={(distMeters) => {
-              const km = (distMeters / 1000).toFixed(1);
-              setDistanceText(`${km} km`);
-            }}
-            onEstimatedTime={(seconds) => {
-              const mins = Math.max(1, Math.round(seconds / 60));
-              setEtaText(`${mins} min away`);
-            }}
-            onReady={(coords) => {
-              setRouteReady(true);
-              setActiveCoordinates(coords);
-              if (!hasInitialFit.current) {
-                hasInitialFit.current = true;
-                mapRef.current?.fitToCoordinates(coords, {
-                  edgePadding: { top: 90, right: 60, bottom: 140, left: 60 },
-                  animated: true,
-                });
-              }
-            }}
-            onError={(error) => {
-              console.log('Google Routes error, using fallback route:', error?.message);
-            }}
-          />
+          {/* Alternative Road Polyline (grey/dashed or secondary when inactive) */}
+          {alternativeCoordinates.length > 0 && (
+            <Polyline
+              coordinates={alternativeCoordinates}
+              strokeColor={selectedRouteType === 'alternative' ? colors.danger : '#94A3B8'}
+              strokeWidth={selectedRouteType === 'alternative' ? 6 : 4}
+              lineDashPattern={selectedRouteType === 'alternative' ? undefined : [8, 6]}
+              lineCap="round"
+              lineJoin="round"
+              tappable={true}
+              onPress={() => selectRoute('alternative')}
+            />
+          )}
 
-          {/* Fallback solid route until Google Routes renders */}
-          {!routeReady && (
+          {/* Nearest / Primary Road Polyline */}
+          {activeCoordinates.length > 0 ? (
+            <Polyline
+              coordinates={activeCoordinates}
+              strokeColor={selectedRouteType === 'nearest' ? colors.danger : '#94A3B8'}
+              strokeWidth={selectedRouteType === 'nearest' ? 6 : 4}
+              lineDashPattern={selectedRouteType === 'nearest' ? undefined : [8, 6]}
+              lineCap="round"
+              lineJoin="round"
+              tappable={true}
+              onPress={() => selectRoute('nearest')}
+            />
+          ) : (
             <Polyline
               coordinates={fallbackRoute}
               strokeColor={colors.danger}
@@ -234,32 +273,75 @@ const EnRouteScreen = () => {
           <LocationMarker
             coordinate={hospitalLocation}
             type="hospital"
-            title="Secure Hospital"
-            description="Emergency Ward: Gate 2"
-            label="Secure Hospital"
+            title="Civil Hospital Sangli"
+            description="Govt. Medical College & Hospital, Sangli"
+            label="Civil Hospital"
           />
         </MapView>
 
-        {/* DISTANCE CARD */}
+        {/* DISTANCE / ROUTE SELECTOR CARD */}
         <View style={styles.distanceCard}>
-          <View style={styles.distanceIcon}>
-            <AppIcon
-              family="material"
-              name="navigation"
-              size={16}
-              color={colors.white}
-            />
+          <View style={styles.distanceCardHeader}>
+            <View style={styles.distanceIcon}>
+              <AppIcon
+                family="material"
+                name="navigation"
+                size={16}
+                color={colors.white}
+              />
+            </View>
+
+            <View>
+              <Text style={styles.distanceText}>
+                {distanceText}
+              </Text>
+
+              <Text style={styles.etaText}>
+                {etaText}
+              </Text>
+            </View>
           </View>
 
-          <View>
-            <Text style={styles.distanceText}>
-              {distanceText}
-            </Text>
+          {/* 2 ROADS SELECTOR PILLS */}
+          {alternativeCoordinates.length > 0 && (
+            <View style={styles.routePillsRow}>
+              <TouchableOpacity
+                style={[
+                  styles.routePill,
+                  selectedRouteType === 'nearest' && styles.routePillActive,
+                ]}
+                onPress={() => selectRoute('nearest')}
+                activeOpacity={0.8}
+              >
+                <Text
+                  style={[
+                    styles.routePillText,
+                    selectedRouteType === 'nearest' && styles.routePillTextActive,
+                  ]}
+                >
+                  ⭐ Fastest ({primaryRouteInfo?.distanceText || 'Road 1'})
+                </Text>
+              </TouchableOpacity>
 
-            <Text style={styles.etaText}>
-              {etaText}
-            </Text>
-          </View>
+              <TouchableOpacity
+                style={[
+                  styles.routePill,
+                  selectedRouteType === 'alternative' && styles.routePillActive,
+                ]}
+                onPress={() => selectRoute('alternative')}
+                activeOpacity={0.8}
+              >
+                <Text
+                  style={[
+                    styles.routePillText,
+                    selectedRouteType === 'alternative' && styles.routePillTextActive,
+                  ]}
+                >
+                  Road 2 ({altRouteInfo?.distanceText || 'Alt'})
+                </Text>
+              </TouchableOpacity>
+            </View>
+          )}
         </View>
 
         {/* FLOATING MAP CONTROLS (SATELLITE, BACK TO ROUTE, ZOOM) */}
@@ -411,21 +493,55 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: spacing.md,
     left: spacing.md,
-    minWidth: 118,
-    paddingHorizontal: spacing.sm,
+    minWidth: 140,
+    paddingHorizontal: spacing.sm + 2,
     paddingVertical: spacing.sm,
     borderRadius: 14,
     backgroundColor: colors.card,
     borderWidth: 1,
     borderColor: colors.border,
-    flexDirection: 'row',
-    alignItems: 'center',
     shadowColor: colors.shadow,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.08,
     shadowRadius: 10,
     elevation: 3,
     zIndex: 5,
+  },
+
+  distanceCardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+
+  routePillsRow: {
+    flexDirection: 'row',
+    gap: 6,
+    marginTop: spacing.xs + 2,
+  },
+
+  routePill: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+
+  routePillActive: {
+    backgroundColor: colors.dangerLight || '#FEE2E2',
+    borderColor: colors.danger,
+  },
+
+  routePillText: {
+    fontFamily: 'GoogleSans-Medium',
+    fontSize: 10,
+    color: colors.textSecondary,
+  },
+
+  routePillTextActive: {
+    color: colors.danger,
+    fontFamily: 'GoogleSans-Bold',
   },
 
   distanceIcon: {

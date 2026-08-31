@@ -17,6 +17,7 @@ import { sendOtpApi, verifyOtpAmbDriverApi, STATIC_CLOUD_ID, UserData, Subscribe
 import { useAppDispatch } from '../../redux/hook';
 import { loginSuccess } from '../../redux/slices/authSlice';
 import { storage } from '../../storage/storage';
+import { STORAGE_KEYS } from '../../storage/storageKeys';
 
 import Button from '../../components/Button/Button';
 import {
@@ -144,25 +145,63 @@ const OtpScreen = () => {
 
       // Successful verification
       if (response && (response.token || response.code === 200 || response.success !== false)) {
-        // 1. Extract important auth fields from backend response
+        // 1. Extract all important auth fields from backend response
         const token: string = response.token || '';
-        const userData: UserData = response.UserData || response.user || { id: 0, role_id: 10 };
+        const rawUserData = response.UserData || response.user || {};
         const subscribedChannels: SubscribedChannel[] = response.SUBSCRIBED_CHANNELS || [];
 
-        // 2. Store in Redux (token, user profile, and subscribed channels)
+        // Extract specific channel topics (e.g. USER_4_CHANNEL, AMBULANCE_DRIVER_CHANNEL)
+        const userTopic =
+          subscribedChannels.find(c => c.topic_name?.startsWith('USER_'))?.topic_name || null;
+        const driverTopic =
+          subscribedChannels.find(c => c.topic_name?.includes('DRIVER'))?.topic_name || null;
+
+        // Normalize UserData ensuring mobile_number and phone are present
+        const mobileNum =
+          rawUserData.mobile_number ||
+          rawUserData.phone ||
+          mobileNumber ||
+          '';
+
+        const userData: UserData = {
+          id: rawUserData.id ?? 0,
+          role_id: rawUserData.role_id ?? 10,
+          name: rawUserData.name || '',
+          mobile_number: mobileNum,
+          phone: mobileNum,
+          ...rawUserData,
+        };
+
+        console.log('Driver Authenticated:', {
+          token,
+          userData,
+          subscribedChannels,
+          userTopic,
+          driverTopic,
+        });
+
+        // 2. Store in Redux (token, user profile, subscribed channels, userChannel, driverChannel)
         dispatch(
           loginSuccess({
             token,
             user: userData,
             subscribedChannels,
+            userChannel: userTopic,
+            driverChannel: driverTopic,
           }),
         );
 
         // 3. Persist to AsyncStorage for auto-login / session restore
         if (token) {
-          storage.set('AUTH_TOKEN', token);
-          storage.set('USER_DATA', userData);
-          storage.set('SUBSCRIBED_CHANNELS', subscribedChannels);
+          await storage.set(STORAGE_KEYS.AUTH_TOKEN, token);
+          await storage.set(STORAGE_KEYS.USER_DATA, userData);
+          await storage.set(STORAGE_KEYS.SUBSCRIBED_CHANNELS, subscribedChannels);
+          if (userTopic) {
+            await storage.set(STORAGE_KEYS.USER_CHANNEL, userTopic);
+          }
+          if (driverTopic) {
+            await storage.set(STORAGE_KEYS.DRIVER_CHANNEL, driverTopic);
+          }
         }
 
         navigation.replace('MainTabs');

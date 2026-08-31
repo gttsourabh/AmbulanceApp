@@ -9,25 +9,48 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 
-import { colors, shadows, spacing, typography } from '../../theme';
+import { colors, spacing, typography } from '../../theme';
 import { AppIcon } from '../../icons';
+import { useAppSelector } from '../../redux/hook';
+import { requestLocationPermission, checkLocationPermission } from '../../utils/locationPermission';
 
 const AvailabilityScreen = () => {
     const navigation = useNavigation();
+    const user = useAppSelector(state => state.auth.user);
 
-    const [isOnline, setIsOnline] = useState(true);
+    const [isOnline, setIsOnline] = useState(false);
+
+    React.useEffect(() => {
+        const initPermission = async () => {
+            const hasPermission = await checkLocationPermission();
+            if (hasPermission) {
+                setIsOnline(true);
+            } else {
+                const granted = await requestLocationPermission();
+                if (granted) {
+                    setIsOnline(true);
+                }
+            }
+        };
+        initPermission();
+    }, []);
+
+    const handleToggleOnline = async (nextValue: boolean) => {
+        if (nextValue) {
+            const granted = await requestLocationPermission();
+            if (granted) {
+                setIsOnline(true);
+            } else {
+                setIsOnline(false);
+            }
+        } else {
+            setIsOnline(false);
+        }
+    };
 
     // =====================================================
     // HANDLERS
     // =====================================================
-
-    const handleMenu = () => {
-        console.log('Menu');
-    };
-
-    const handleNotifications = () => {
-        console.log('Notifications');
-    };
 
     const handleGoToHome = () => {
         navigation.navigate('MainTabs' as never);
@@ -64,7 +87,7 @@ const AvailabilityScreen = () => {
                         </Text>
 
                         <Text style={styles.userName}>
-                            Ramesh Kumar
+                            {user?.name || 'Driver'}
                         </Text>
 
                     </View>
@@ -137,7 +160,7 @@ const AvailabilityScreen = () => {
 
                     <Switch
                         value={isOnline}
-                        onValueChange={setIsOnline}
+                        onValueChange={handleToggleOnline}
                         trackColor={{
                             false: colors.divider,
                             true: colors.success,

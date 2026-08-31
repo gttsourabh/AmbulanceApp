@@ -8,7 +8,6 @@ import {
     View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import {
     colors,
     typography,
@@ -17,30 +16,51 @@ import {
 
 import { AppIcon } from '../../icons';
 import Header from '../../components/Header/Header';
-import { navigate } from '../../utils/navigationRef';
 import { useNavigation } from '@react-navigation/native';
+import { useAppSelector } from '../../redux/hook';
+import { requestLocationPermission, checkLocationPermission } from '../../utils/locationPermission';
 
 const HomeScreen = () => {
+    const user = useAppSelector(state => state.auth.user);
+    const navigation = useNavigation<any>();
+    const [isOnline, setIsOnline] = useState(false);
 
-    const [isOnline, setIsOnline] = useState(true);
-    const [navstring, setnavstring] = useState(null)
+    // Check location permission on screen mount
+    React.useEffect(() => {
+        const initPermission = async () => {
+            const hasPermission = await checkLocationPermission();
+            if (hasPermission) {
+                setIsOnline(true);
+            } else {
+                // Prompt user for location permission on first launch
+                const granted = await requestLocationPermission();
+                if (granted) {
+                    setIsOnline(true);
+                }
+            }
+        };
+        initPermission();
+    }, []);
 
-    // const handleNotifications = () => {
-    //     navigate('Notifications' as never)
-    // };
-
-    // const handleEmergencyRequest = () => {
-    //     navigate('IncomingRequests');
-    // };
-
-
-    const naviagation = useNavigation<any>();
+    const handleToggleOnline = async (nextValue: boolean) => {
+        if (nextValue) {
+            // Turning status to AVAILABLE - ask for location permission
+            const granted = await requestLocationPermission();
+            if (granted) {
+                setIsOnline(true);
+            } else {
+                setIsOnline(false);
+            }
+        } else {
+            setIsOnline(false);
+        }
+    };
 
     const handleNotifications = () => {
-        naviagation.navigate('Notifications');
+        navigation.navigate('Notifications');
     };
     const handleEmergencyRequest = () => {
-        const parent1 = naviagation.getParent();
+        const parent1 = navigation.getParent();
         const parent2 = parent1?.getParent();
 
         parent2?.navigate('IncomingRequests');
@@ -106,12 +126,8 @@ const HomeScreen = () => {
                         </Text>
 
                         <Text style={styles.userName}>
-                            Ramesh Kumar
+                            {user?.name || 'Driver'}
                         </Text>
-                    </View>
-
-                    <View>
-                        <Text>{navstring}</Text>
                     </View>
 
                     <View style={styles.profileAvatar}>
@@ -172,7 +188,7 @@ const HomeScreen = () => {
 
                     <Switch
                         value={isOnline}
-                        onValueChange={setIsOnline}
+                        onValueChange={handleToggleOnline}
                         trackColor={{
                             false: colors.divider,
                             true: colors.success,

@@ -48,6 +48,7 @@ export interface UserData {
     id: number | string;
     role_id?: number;
     name?: string;
+    mobile_number?: string;
     phone?: string;
     email?: string;
     [key: string]: any;
@@ -82,6 +83,7 @@ export const STATIC_CLOUD_ID = 'AMB_CLOUD_001';
  * POST /user/sendOtp
  * @param payload - Object containing `mobile_number` or string mobile number
  */
+
 export const sendOtpApi = async (
     payload: SendOtpRequest | string,
 ): Promise<SendOtpResponse> => {
@@ -102,6 +104,7 @@ export const sendOtpApi = async (
  * Verify OTP API (generic)
  * POST /user/verifyOtp
  */
+
 export const verifyOtpApi = async (
     data: VerifyOtpRequest,
 ): Promise<VerifyOtpResponse> => {
@@ -109,7 +112,7 @@ export const verifyOtpApi = async (
         '/user/verifyOtp',
         data,
     );
-    console.log('Verify OTP Response', JSON.stringify(response.data, null, 2));
+    console.log('Verify OTP Response', JSON.stringify(response, null, 2));
     return response.data;
 };
 

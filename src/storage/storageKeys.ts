@@ -1,4 +1,8 @@
 export const STORAGE_KEYS = {
-    ACCESS_TOKEN: 'access_token',
-    USER_DATA: 'user_data',
-};
+    AUTH_TOKEN: 'AUTH_TOKEN',
+    ACCESS_TOKEN: 'AUTH_TOKEN', // alias for consistency
+    USER_DATA: 'USER_DATA',
+    SUBSCRIBED_CHANNELS: 'SUBSCRIBED_CHANNELS',
+    USER_CHANNEL: 'USER_CHANNEL',
+    DRIVER_CHANNEL: 'DRIVER_CHANNEL',
+} as const;

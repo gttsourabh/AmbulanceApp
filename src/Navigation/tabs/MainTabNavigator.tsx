@@ -708,6 +708,7 @@ const styles = StyleSheet.create({
     // =================================================
 
     floatingButton: {
+
         position: 'absolute',
 
         left: 0,
@@ -715,6 +716,7 @@ const styles = StyleSheet.create({
         bottom: 14,
 
         width: 58,
+
         height: 58,
 
         borderRadius: 15,
@@ -728,15 +730,15 @@ const styles = StyleSheet.create({
         borderWidth: 3,
         borderColor: colors.white,
 
-        elevation: 10,
+        // elevation: 10,
 
-        shadowColor: colors.shadow,
-        shadowOffset: {
-            width: 0,
-            height: 3,
-        },
-        shadowOpacity: 1,
-        shadowRadius: 10,
+        // shadowColor: colors.shadow,
+        // shadowOffset: {
+        //     width: 0,
+        //     height: 3,
+        // },
+        // shadowOpacity: 1,
+        // shadowRadius: 10,
 
         zIndex: 20,
     },

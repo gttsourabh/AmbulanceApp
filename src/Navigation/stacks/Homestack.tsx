@@ -5,7 +5,7 @@ import HomeScreen from '../../screens/home/HomeScreen';
 import NotificationsScreen from '../../screens/home/NotificationsScreen';
 
 export type HomeStackParamList = {
-    Home: undefined;
+    HomeScreen: undefined;
     Notifications: undefined;
 };
 
@@ -14,13 +14,13 @@ const Stack = createNativeStackNavigator<HomeStackParamList>();
 const HomeStack = () => {
     return (
         <Stack.Navigator
-            initialRouteName="Home"
+            initialRouteName="HomeScreen"
             screenOptions={{
                 headerShown: false,
             }}>
 
             <Stack.Screen
-                name="Home"
+                name="HomeScreen"
                 component={HomeScreen}
             />
 
