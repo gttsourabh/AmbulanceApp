@@ -2,9 +2,10 @@ import React, { useEffect, useState } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import AuthNavigator from './AuthNavigator';
 import AppNavigator from './AppNavigator';
-import { navigationRef } from '../utils/navigationRef';
+import { navigationRef, navigate } from '../utils/navigationRef';
 import { useAppDispatch, useAppSelector } from '../redux/hook';
 import { restoreSession, UserData, SubscribedChannel } from '../redux/slices/authSlice';
+import { subscribeToTopic } from '../services/notificationService';
 import { storage } from '../storage/storage';
 import { STORAGE_KEYS } from '../storage/storageKeys';
 
@@ -40,6 +41,12 @@ const RootNavigator = () => {
                             driverChannel,
                         }),
                     );
+                    if (driverChannel) {
+                        subscribeToTopic(driverChannel);
+                    }
+                    if (userChannel) {
+                        subscribeToTopic(userChannel);
+                    }
                     setHasSeenSplash(true);
                 }
             } catch (err) {
@@ -51,6 +58,22 @@ const RootNavigator = () => {
 
         restoreAuthSession();
     }, [dispatch]);
+
+    // Check for pending emergency trip requests when authenticated and app is loaded
+    useEffect(() => {
+        if (isAuthenticated && !isRestoring) {
+            storage.get<any>(STORAGE_KEYS.PENDING_EMERGENCY_REQUEST).then(pending => {
+                if (pending) {
+                    console.log('🚨 [ROOT] Restoring pending emergency request on launch:', pending);
+                    setTimeout(() => {
+                        navigate('IncomingRequests', {
+                            requestData: pending,
+                        });
+                    }, 600);
+                }
+            });
+        }
+    }, [isAuthenticated, isRestoring]);
 
     if (isRestoring) {
         return null;

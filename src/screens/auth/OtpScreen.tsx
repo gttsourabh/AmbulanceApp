@@ -14,6 +14,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { sendOtpApi, verifyOtpAmbDriverApi, STATIC_CLOUD_ID, UserData, SubscribedChannel } from '../../api/authApi';
+import { getFcmToken, subscribeToTopic } from '../../services/notificationService';
 import { useAppDispatch } from '../../redux/hook';
 import { loginSuccess } from '../../redux/slices/authSlice';
 import { storage } from '../../storage/storage';
@@ -124,10 +125,13 @@ const OtpScreen = () => {
       return;
     }
 
+    const fcmToken = await getFcmToken();
+    const cloudIdToSend = fcmToken || STATIC_CLOUD_ID;
+
     console.log('Verifying OTP:', {
       mobile_number: mobileNumber,
       otp,
-      cloud_id: STATIC_CLOUD_ID,
+      cloud_id: cloudIdToSend,
     });
 
     try {
@@ -138,7 +142,7 @@ const OtpScreen = () => {
       const response = await verifyOtpAmbDriverApi({
         mobile_number: mobileNumber || '',
         otp,
-        cloud_id: STATIC_CLOUD_ID,
+        cloud_id: cloudIdToSend,
       });
 
       console.log('Verify OTP AmbDriver Success:', response);
@@ -191,7 +195,20 @@ const OtpScreen = () => {
           }),
         );
 
-        // 3. Persist to AsyncStorage for auto-login / session restore
+        // 3. Subscribe to FCM topics for live dispatch notifications
+        if (driverTopic) {
+          subscribeToTopic(driverTopic);
+        }
+        if (userTopic) {
+          subscribeToTopic(userTopic);
+        }
+        for (const ch of subscribedChannels) {
+          if (ch.topic_name) {
+            subscribeToTopic(ch.topic_name);
+          }
+        }
+
+        // 4. Persist to AsyncStorage for auto-login / session restore
         if (token) {
           await storage.set(STORAGE_KEYS.AUTH_TOKEN, token);
           await storage.set(STORAGE_KEYS.USER_DATA, userData);

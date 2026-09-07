@@ -61,68 +61,162 @@ export interface MultiRouteResult {
     alternativeRoute?: RouteResult;
 }
 
+function formatDistance(meters: number): string {
+    if (meters < 1000) return `${Math.round(meters)} m`;
+    return `${(meters / 1000).toFixed(1)} km`;
+}
+
+function formatDuration(seconds: number): string {
+    const mins = Math.round(seconds / 60);
+    if (mins < 1) return '1 min away';
+    if (mins < 60) return `${mins} mins away`;
+    const hrs = Math.floor(mins / 60);
+    const remMins = mins % 60;
+    return remMins > 0 ? `${hrs} hr ${remMins} min away` : `${hrs} hr away`;
+}
+
+async function fetchGoogleRoutes(
+    origin: LatLng,
+    destination: LatLng,
+    apiKey: string
+): Promise<MultiRouteResult | null> {
+    try {
+        const url = 'https://routes.googleapis.com/directions/v2:computeRoutes';
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Goog-Api-Key': apiKey,
+                'X-Goog-FieldMask': 'routes.duration,routes.distanceMeters,routes.polyline.encodedPolyline,routes.description',
+            },
+            body: JSON.stringify({
+                origin: { location: { latLng: { latitude: origin.latitude, longitude: origin.longitude } } },
+                destination: { location: { latLng: { latitude: destination.latitude, longitude: destination.longitude } } },
+                travelMode: 'DRIVE',
+                computeAlternativeRoutes: true,
+            }),
+        });
+
+        const json = await response.json();
+        if (!json.routes || json.routes.length === 0) {
+            console.warn('Google Routes API returned no routes:', json.error?.message || json);
+            return null;
+        }
+
+        const formatRoute = (r: any): RouteResult | null => {
+            const encoded = r.polyline?.encodedPolyline;
+            if (!encoded) return null;
+            const distM = r.distanceMeters || 0;
+            const durSec = typeof r.duration === 'string'
+                ? parseInt(r.duration.replace('s', ''), 10)
+                : (r.duration || 0);
+
+            return {
+                coordinates: decodePolyline(encoded),
+                distanceText: formatDistance(distM),
+                durationText: formatDuration(durSec),
+                distanceMeters: distM,
+                durationSeconds: durSec,
+                summary: r.description || '',
+            };
+        };
+
+        const primary = formatRoute(json.routes[0]);
+        if (!primary) return null;
+
+        const alternative = json.routes.length > 1 ? formatRoute(json.routes[1]) || undefined : undefined;
+
+        return {
+            primaryRoute: primary,
+            alternativeRoute: alternative,
+        };
+    } catch (err) {
+        console.warn('Google Routes API fetch error:', err);
+        return null;
+    }
+}
+
+async function fetchOSRMRoute(
+    origin: LatLng,
+    destination: LatLng
+): Promise<MultiRouteResult | null> {
+    try {
+        const url = `https://router.project-osrm.org/route/v1/driving/${origin.longitude},${origin.latitude};${destination.longitude},${destination.latitude}?overview=full&geometries=geojson&alternatives=true`;
+        const response = await fetch(url);
+        const json = await response.json();
+
+        if (json.code !== 'Ok' || !json.routes || json.routes.length === 0) {
+            console.warn('OSRM routing error:', json.code, json.message);
+            return null;
+        }
+
+        const formatRoute = (r: any): RouteResult | null => {
+            const coordsRaw = r.geometry?.coordinates;
+            if (!coordsRaw || !Array.isArray(coordsRaw)) return null;
+
+            const coords: LatLng[] = coordsRaw.map(([lng, lat]: [number, number]) => ({
+                latitude: lat,
+                longitude: lng,
+            }));
+
+            const distM = Math.round(r.distance || 0);
+            const durSec = Math.round(r.duration || 0);
+
+            return {
+                coordinates: coords,
+                distanceText: formatDistance(distM),
+                durationText: formatDuration(durSec),
+                distanceMeters: distM,
+                durationSeconds: durSec,
+                summary: r.legs?.[0]?.summary || '',
+            };
+        };
+
+        const primary = formatRoute(json.routes[0]);
+        if (!primary) return null;
+
+        const alternative = json.routes.length > 1 ? formatRoute(json.routes[1]) || undefined : undefined;
+
+        return {
+            primaryRoute: primary,
+            alternativeRoute: alternative,
+        };
+    } catch (err) {
+        console.warn('OSRM routing fetch error:', err);
+        return null;
+    }
+}
+
 /**
- * Fetches driving directions from Google Directions API with alternative routes.
- * Returns the NEAREST route as primaryRoute (highlighted) and the second nearest as alternativeRoute (subtle/dashed).
+ * Fetches driving directions with alternative routes.
+ * First uses Google Routes API (v2).
+ * If Google API is unavailable or errors, automatically falls back to high-quality OSRM driving directions.
  */
 export async function getDrivingRoutesWithAlternatives(
     origin: LatLng,
     destination: LatLng,
     apiKey: string = GOOGLE_MAPS_API_KEY
 ): Promise<MultiRouteResult | null> {
-    try {
-        const originStr = `${origin.latitude},${origin.longitude}`;
-        const destStr = `${destination.latitude},${destination.longitude}`;
-        const url = `https://maps.googleapis.com/maps/api/directions/json?origin=${originStr}&destination=${destStr}&alternatives=true&mode=driving&key=${apiKey}`;
-
-        const response = await fetch(url);
-        const json = await response.json();
-
-        if (json.status !== 'OK' || !json.routes || json.routes.length === 0) {
-            console.warn('Google Directions API error or no routes:', json.status, json.error_message);
-            return null;
+    // 1. Attempt Google Routes API (v2)
+    if (apiKey) {
+        const googleRes = await fetchGoogleRoutes(origin, destination, apiKey);
+        if (googleRes && googleRes.primaryRoute.coordinates.length > 0) {
+            return googleRes;
         }
-
-        // Sort all routes by distance (ascending) to rank by shortest/nearest distance
-        const sortedRoutes = [...json.routes].sort((a, b) => {
-            const distA = a.legs?.[0]?.distance?.value ?? Infinity;
-            const distB = b.legs?.[0]?.distance?.value ?? Infinity;
-            return distA - distB;
-        });
-
-        const formatRoute = (routeItem: any): RouteResult | null => {
-            const leg = routeItem.legs?.[0];
-            const encodedPolyline = routeItem.overview_polyline?.points;
-            if (!encodedPolyline) return null;
-
-            return {
-                coordinates: decodePolyline(encodedPolyline),
-                distanceText: leg?.distance?.text || `${((leg?.distance?.value || 0) / 1000).toFixed(1)} km`,
-                durationText: leg?.duration?.text ? `${leg.duration.text} away` : '',
-                distanceMeters: leg?.distance?.value || 0,
-                durationSeconds: leg?.duration?.value || 0,
-                summary: routeItem.summary || '',
-            };
-        };
-
-        const primary = formatRoute(sortedRoutes[0]);
-        if (!primary) return null;
-
-        const alternative = sortedRoutes.length > 1 ? formatRoute(sortedRoutes[1]) || undefined : undefined;
-
-        return {
-            primaryRoute: primary,
-            alternativeRoute: alternative,
-        };
-    } catch (error) {
-        console.error('Failed to fetch driving routes:', error);
-        return null;
     }
+
+    // 2. Fallback to OSRM driving routing
+    console.log('Falling back to OSRM driving directions...');
+    const osrmRes = await fetchOSRMRoute(origin, destination);
+    if (osrmRes && osrmRes.primaryRoute.coordinates.length > 0) {
+        return osrmRes;
+    }
+
+    return null;
 }
 
 /**
- * Fetches driving directions from Google Directions API with alternative routes,
- * and picks the NEAREST (shortest distance) route to display on the map.
+ * Fetches driving directions and picks the primary route.
  */
 export async function getNearestDrivingRoute(
     origin: LatLng,

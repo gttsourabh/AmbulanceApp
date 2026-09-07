@@ -5,6 +5,9 @@ import {
     TouchableOpacity,
     View,
     Platform,
+    ActivityIndicator,
+    Modal,
+    Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import MapView, {
@@ -14,7 +17,7 @@ import MapView, {
     MapType,
     Region,
 } from 'react-native-maps';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 
 import { colors, typography, spacing } from '../../../theme';
 import { AppIcon } from '../../../icons';
@@ -24,12 +27,26 @@ import {
     AmbulanceMarker,
     LocationMarker,
 } from '../../../components/Map';
-import { getDrivingRoutesWithAlternatives, RouteResult } from '../../../services/directionsService';
+import { getDrivingRoutesWithAlternatives, RouteResult, LatLng } from '../../../services/directionsService';
+import Geolocation from '@react-native-community/geolocation';
+import { requestLocationPermission } from '../../../utils/locationPermission';
+import { snapToRoutePolyline, getDistanceMeters } from '../../../utils/geoUtils';
+import { updateDriverLocation } from '../../../api';
+import {
+    startBackgroundLocationTracking,
+    stopBackgroundLocationTracking,
+} from '../../../services/backgroundLocationService';
 
 const NavigationToPickup = () => {
     const navigation = useNavigation();
+    const route = useRoute<any>();
     const mapRef = useRef<MapView>(null);
     const hasInitialFit = useRef(false);
+
+    // Static IDs for location tracking API (override with route params if present)
+    const STATIC_AMBULANCE_REQUEST_ID = 5;
+    const STATIC_DRIVER_ID = 4;
+    const ambulanceRequestId = Number(route?.params?.requestId) || STATIC_AMBULANCE_REQUEST_ID;
 
     const [distanceText, setDistanceText] = useState('Calculating...');
     const [etaText, setEtaText] = useState('Finding nearest route...');
@@ -39,28 +56,60 @@ const NavigationToPickup = () => {
     const [activeCoordinates, setActiveCoordinates] = useState<Array<{ latitude: number; longitude: number }>>([]);
     const [alternativeCoordinates, setAlternativeCoordinates] = useState<Array<{ latitude: number; longitude: number }>>([]);
     const [selectedRouteType, setSelectedRouteType] = useState<'nearest' | 'alternative'>('nearest');
+    const [isNavigating, setIsNavigating] = useState(false);
+    const isNavigatingRef = useRef(isNavigating);
+
+    useEffect(() => {
+        isNavigatingRef.current = isNavigating;
+    }, [isNavigating]);
 
     // =====================================================
-    // SANGLI CITY LOCATION DATA (Current Location -> Nearest Hospital)
+    // LIVE DRIVER GPS LOCATION & PATIENT PICKUP LOCATION
     // =====================================================
 
-    // Sangli City Center (ST Stand / Ganapati Mandir Rd)
-    const driverLocation = {
+    // Default to Sangli City center as initial fallback until GPS responds
+    const [driverLocation, setDriverLocation] = useState<LatLng>({
         latitude: 16.8524,
         longitude: 74.5815,
+    });
+    const [driverHeading, setDriverHeading] = useState<number>(45);
+    const driverLocationRef = useRef<LatLng>(driverLocation);
+
+    // Keep ref in sync for 10s interval logging & API updates
+    useEffect(() => {
+        driverLocationRef.current = driverLocation;
+    }, [driverLocation]);
+
+    // 10-second background location tracking and API update when Start Navigation is active
+    useEffect(() => {
+        if (isNavigating) {
+            console.log(
+                `🚀 [NAVIGATION STARTED] Driver Current Location -> Lat: ${driverLocationRef.current.latitude.toFixed(6)}, Lng: ${driverLocationRef.current.longitude.toFixed(6)} | Request ID: ${ambulanceRequestId}`
+            );
+            startBackgroundLocationTracking({
+                ambulanceRequestId: ambulanceRequestId,
+                driverId: STATIC_DRIVER_ID,
+                getCoordinates: () => driverLocationRef.current,
+            });
+        } else {
+            stopBackgroundLocationTracking();
+        }
+
+        return () => {
+            stopBackgroundLocationTracking();
+        };
+    }, [isNavigating, ambulanceRequestId]);
+
+    // Patient Pickup Location: from navigation params or fallback to Vishrambag, Sangli
+    const pickupLocation: LatLng = route?.params?.pickupLocation || {
+        latitude: 16.8455,
+        longitude: 74.6010,
     };
 
-    // Nearest Government Hospital: Government Medical College & Hospital (Civil Hospital), Sangli
-    const pickupLocation = {
-        latitude: 16.8543,
-        longitude: 74.5772,
-    };
-
-    // Fallback road polyline if offline/loading
+    // Fallback direct road polyline if offline/loading
     const fallbackRoute = [
-        { latitude: 16.8524, longitude: 74.5815 },
-        { latitude: 16.8535, longitude: 74.5795 },
-        { latitude: 16.8543, longitude: 74.5772 },
+        driverLocation,
+        pickupLocation,
     ];
 
     const initialRegion: Region = {
@@ -71,14 +120,21 @@ const NavigationToPickup = () => {
     };
 
     const currentRegionRef = useRef<Region>(initialRegion);
+    const lastRouteFetchLoc = useRef<LatLng | null>(null);
+    const initialRouteFetchedRef = useRef(false);
 
-    // Fetch the 2 NEAREST possible roads dynamically from Google Directions API
-    useEffect(() => {
-        let isMounted = true;
-        const fetchRoute = async () => {
-            const routes = await getDrivingRoutesWithAlternatives(driverLocation, pickupLocation);
-            if (!isMounted) return;
+    const [isInitialRouteLoading, setIsInitialRouteLoading] = useState(true);
+    const [isUpdatingRoute, setIsUpdatingRoute] = useState(false);
 
+    // Route fetcher from current driver position to pickup destination
+    const updateDrivingRoute = async (currentDriverPos: LatLng, isInitial: boolean = false) => {
+        if (isInitial) {
+            setIsInitialRouteLoading(true);
+        } else {
+            setIsUpdatingRoute(true);
+        }
+        try {
+            const routes = await getDrivingRoutesWithAlternatives(currentDriverPos, pickupLocation);
             if (routes?.primaryRoute && routes.primaryRoute.coordinates.length > 0) {
                 setPrimaryRouteInfo(routes.primaryRoute);
                 setActiveCoordinates(routes.primaryRoute.coordinates);
@@ -95,26 +151,194 @@ const NavigationToPickup = () => {
                 if (!hasInitialFit.current) {
                     hasInitialFit.current = true;
                     mapRef.current?.fitToCoordinates(routes.primaryRoute.coordinates, {
-                        edgePadding: { top: 90, right: 60, bottom: 140, left: 60 },
+                        edgePadding: { top: 70, right: 40, bottom: 210, left: 40 },
                         animated: true,
                     });
                 }
             } else {
-                // Fallback to coordinates
-                setActiveCoordinates(fallbackRoute);
+                const directLine = [currentDriverPos, pickupLocation];
+                setActiveCoordinates(directLine);
                 if (!hasInitialFit.current) {
                     hasInitialFit.current = true;
-                    mapRef.current?.fitToCoordinates([driverLocation, pickupLocation], {
-                        edgePadding: { top: 90, right: 60, bottom: 140, left: 60 },
+                    mapRef.current?.fitToCoordinates(directLine, {
+                        edgePadding: { top: 70, right: 40, bottom: 210, left: 40 },
                         animated: true,
                     });
                 }
             }
+        } finally {
+            if (isInitial) {
+                setIsInitialRouteLoading(false);
+            } else {
+                setIsUpdatingRoute(false);
+            }
+        }
+    };
+
+    // WATCH POSITION: High-precision real-time GPS tracking
+    useEffect(() => {
+        let watchId: number | null = null;
+        let isMounted = true;
+        let fallbackTimer: ReturnType<typeof setTimeout> | null = null;
+
+        const startLocationTracking = async () => {
+            const hasPermission = await requestLocationPermission();
+            if (!hasPermission || !isMounted) {
+                // If permission denied, use fallback coordinates once so user is not blocked
+                if (!initialRouteFetchedRef.current) {
+                    initialRouteFetchedRef.current = true;
+                    updateDrivingRoute(driverLocation, true);
+                }
+                return;
+            }
+
+            // Configure Geolocation to use playServices / high accuracy hardware GPS
+            try {
+                Geolocation.setRNConfiguration({
+                    skipPermissionRequests: false,
+                    authorizationLevel: 'whenInUse',
+                    locationProvider: 'auto',
+                    enableBackgroundLocationUpdates: false,
+                });
+            } catch (cfgErr) {
+                console.warn('Geolocation config warning:', cfgErr);
+            }
+
+            const onLocationSuccess = (position: any) => {
+                if (!isMounted) return;
+                const rawCoords: LatLng = {
+                    latitude: position.coords.latitude,
+                    longitude: position.coords.longitude,
+                };
+
+                // Clear safety fallback timer once GPS fixes
+                if (fallbackTimer) {
+                    clearTimeout(fallbackTimer);
+                    fallbackTimer = null;
+                }
+
+                // 1. First GPS fix: calculate initial route ONCE with real driver coordinates!
+                if (!initialRouteFetchedRef.current) {
+                    initialRouteFetchedRef.current = true;
+                    lastRouteFetchLoc.current = rawCoords;
+                    setDriverLocation(rawCoords);
+                    if (position.coords.heading && position.coords.heading >= 0) {
+                        setDriverHeading(position.coords.heading);
+                    }
+                    updateDrivingRoute(rawCoords, true);
+                    return;
+                }
+
+                // 2. Ignore small GPS jitter/drift when stationary (< 2.5 meters)
+                if (
+                    lastRouteFetchLoc.current &&
+                    getDistanceMeters(lastRouteFetchLoc.current, rawCoords) < 2.5
+                ) {
+                    return;
+                }
+
+                // Snap to active driving route polyline (within 35 meters)
+                const currentPolyline = activeCoordinates.length > 0 ? activeCoordinates : fallbackRoute;
+                const snapResult = snapToRoutePolyline(rawCoords, currentPolyline, 35);
+                const finalCoords = snapResult.point;
+
+                setDriverLocation(finalCoords);
+
+                // If road bearing is available from snapping, use it; otherwise use GPS heading
+                const currentBearing = snapResult.roadBearing !== undefined
+                    ? snapResult.roadBearing
+                    : (position.coords.heading && position.coords.heading >= 0 ? position.coords.heading : undefined);
+
+                if (currentBearing !== undefined) {
+                    setDriverHeading(currentBearing);
+                }
+
+                // If navigation mode is active, smoothly follow driver with camera
+                if (isNavigatingRef.current) {
+                    mapRef.current?.animateCamera({
+                        center: finalCoords,
+                        pitch: 45,
+                        heading: currentBearing ?? driverHeading,
+                        zoom: 17,
+                    }, { duration: 600 });
+                }
+
+                // Check distance from last route calculation (> 40 meters)
+                if (
+                    !lastRouteFetchLoc.current ||
+                    getDistanceMeters(lastRouteFetchLoc.current, rawCoords) > 40
+                ) {
+                    lastRouteFetchLoc.current = rawCoords;
+                    updateDrivingRoute(rawCoords, false);
+                }
+            };
+
+            const onLocationError = (error: any) => {
+                console.warn('Geolocation error:', error?.code, error?.message);
+                if (!initialRouteFetchedRef.current) {
+                    // If high accuracy fails/times out, try low accuracy once
+                    Geolocation.getCurrentPosition(
+                        (pos) => onLocationSuccess(pos),
+                        (err2) => {
+                            console.warn('Fallback low-accuracy location error:', err2?.message);
+                            if (isMounted && !initialRouteFetchedRef.current) {
+                                initialRouteFetchedRef.current = true;
+                                lastRouteFetchLoc.current = driverLocation;
+                                updateDrivingRoute(driverLocation, true);
+                            }
+                        },
+                        { enableHighAccuracy: false, timeout: 5000, maximumAge: 30000 }
+                    );
+                }
+            };
+
+            // Set safety timer: if GPS fix takes > 6.5s, calculate with fallback so UI doesn't hang
+            fallbackTimer = setTimeout(() => {
+                if (isMounted && !initialRouteFetchedRef.current) {
+                    console.warn('GPS fix timed out, computing initial route with fallback location');
+                    initialRouteFetchedRef.current = true;
+                    lastRouteFetchLoc.current = driverLocation;
+                    updateDrivingRoute(driverLocation, true);
+                }
+            }, 6500);
+
+            // Fetch high-accuracy GPS fix first (with 30s cache so recent GPS is returned immediately)
+            Geolocation.getCurrentPosition(
+                onLocationSuccess,
+                onLocationError,
+                {
+                    enableHighAccuracy: true,
+                    timeout: 6000,
+                    maximumAge: 30000,
+                }
+            );
+
+            // Real-time watchPosition for continuous tracking as driver moves
+            watchId = Geolocation.watchPosition(
+                onLocationSuccess,
+                (watchErr) => {
+                    console.warn('Geolocation watchPosition error:', watchErr?.message);
+                },
+                {
+                    enableHighAccuracy: true,
+                    distanceFilter: 3, // update every 3 meters
+                    interval: 2000, // 2 seconds
+                    fastestInterval: 1000,
+                    useSignificantChanges: false,
+                }
+            );
         };
 
-        fetchRoute();
+        startLocationTracking();
+
         return () => {
             isMounted = false;
+            if (fallbackTimer) {
+                clearTimeout(fallbackTimer);
+            }
+            if (watchId !== null) {
+                Geolocation.clearWatch(watchId);
+            }
         };
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
@@ -125,14 +349,14 @@ const NavigationToPickup = () => {
             setDistanceText(primaryRouteInfo.distanceText);
             if (primaryRouteInfo.durationText) setEtaText(primaryRouteInfo.durationText);
             mapRef.current?.fitToCoordinates(primaryRouteInfo.coordinates, {
-                edgePadding: { top: 90, right: 60, bottom: 140, left: 60 },
+                edgePadding: { top: 70, right: 40, bottom: 210, left: 40 },
                 animated: true,
             });
         } else if (type === 'alternative' && altRouteInfo) {
             setDistanceText(altRouteInfo.distanceText);
             if (altRouteInfo.durationText) setEtaText(altRouteInfo.durationText);
             mapRef.current?.fitToCoordinates(altRouteInfo.coordinates, {
-                edgePadding: { top: 90, right: 60, bottom: 140, left: 60 },
+                edgePadding: { top: 70, right: 40, bottom: 210, left: 40 },
                 animated: true,
             });
         }
@@ -148,7 +372,7 @@ const NavigationToPickup = () => {
             : [driverLocation, pickupLocation];
 
         mapRef.current?.fitToCoordinates(coordsToFit, {
-            edgePadding: { top: 90, right: 60, bottom: 140, left: 60 },
+            edgePadding: { top: 70, right: 40, bottom: 210, left: 40 },
             animated: true,
         });
     };
@@ -186,10 +410,14 @@ const NavigationToPickup = () => {
     // =====================================================
 
     const handleCall = () => {
-        console.log('Call patient');
+        const phone = route?.params?.contactNo || '9373962355';
+        if (phone) {
+            Linking.openURL(`tel:${phone}`);
+        }
     };
 
     const handleArrived = () => {
+        stopBackgroundLocationTracking();
         navigation.navigate('Pickup' as never);
     };
 
@@ -221,13 +449,13 @@ const NavigationToPickup = () => {
                         currentRegionRef.current = region;
                     }}
                 >
-                    {/* Alternative Road Polyline (grey/dashed or secondary when inactive) */}
+                    {/* Alternative Road Polyline (Blue when active, Gray dotted when secondary) */}
                     {alternativeCoordinates.length > 0 && (
                         <Polyline
                             coordinates={alternativeCoordinates}
-                            strokeColor={selectedRouteType === 'alternative' ? colors.primary : '#94A3B8'}
+                            strokeColor={selectedRouteType === 'alternative' ? '#2563EB' : '#94A3B8'}
                             strokeWidth={selectedRouteType === 'alternative' ? 6 : 4}
-                            lineDashPattern={selectedRouteType === 'alternative' ? undefined : [8, 6]}
+                            lineDashPattern={selectedRouteType === 'alternative' ? undefined : [6, 6]}
                             lineCap="round"
                             lineJoin="round"
                             tappable={true}
@@ -235,13 +463,13 @@ const NavigationToPickup = () => {
                         />
                     )}
 
-                    {/* Nearest / Primary Road Polyline (active primary color) */}
+                    {/* Nearest / Primary Road Polyline (Blue when active, Gray dotted when secondary) */}
                     {activeCoordinates.length > 0 ? (
                         <Polyline
                             coordinates={activeCoordinates}
-                            strokeColor={selectedRouteType === 'nearest' ? colors.primary : '#94A3B8'}
+                            strokeColor={selectedRouteType === 'nearest' ? '#2563EB' : '#94A3B8'}
                             strokeWidth={selectedRouteType === 'nearest' ? 6 : 4}
-                            lineDashPattern={selectedRouteType === 'nearest' ? undefined : [8, 6]}
+                            lineDashPattern={selectedRouteType === 'nearest' ? undefined : [6, 6]}
                             lineCap="round"
                             lineJoin="round"
                             tappable={true}
@@ -250,8 +478,8 @@ const NavigationToPickup = () => {
                     ) : (
                         <Polyline
                             coordinates={fallbackRoute}
-                            strokeColor={colors.primary}
-                            strokeWidth={5}
+                            strokeColor="#2563EB"
+                            strokeWidth={6}
                             lineCap="round"
                             lineJoin="round"
                         />
@@ -262,83 +490,18 @@ const NavigationToPickup = () => {
                         coordinate={driverLocation}
                         title="Ambulance"
                         description="Your current location"
-                        heading={45}
+                        heading={driverHeading}
                     />
 
-                    {/* Pickup / Hospital Destination Marker */}
+                    {/* Patient Pickup Destination Marker */}
                     <LocationMarker
                         coordinate={pickupLocation}
-                        type="hospital"
-                        title="Civil Hospital Sangli"
-                        description="Govt. Medical College & Hospital, Sangli"
-                        label="Civil Hospital"
+                        type="pickup"
+                        title={route?.params?.patientName ? `${route.params.patientName} (Patient)` : 'Omkar Bhosale (Patient)'}
+                        description={route?.params?.address || 'Near Ganapati Temple, Vishrambag, Sangli'}
+                        label="Patient Pickup"
                     />
                 </MapView>
-
-                {/* DISTANCE / ROUTE SELECTOR CARD */}
-                <View style={styles.distanceCard}>
-                    <View style={styles.distanceCardHeader}>
-                        <View style={styles.distanceIcon}>
-                            <AppIcon
-                                family="material"
-                                name="navigation"
-                                size={16}
-                                color={colors.white}
-                            />
-                        </View>
-
-                        <View>
-                            <Text style={styles.distanceText}>
-                                {distanceText}
-                            </Text>
-
-                            <Text style={styles.etaText}>
-                                {etaText}
-                            </Text>
-                        </View>
-                    </View>
-
-                    {/* 2 ROADS SELECTOR PILLS */}
-                    {alternativeCoordinates.length > 0 && (
-                        <View style={styles.routePillsRow}>
-                            <TouchableOpacity
-                                style={[
-                                    styles.routePill,
-                                    selectedRouteType === 'nearest' && styles.routePillActive,
-                                ]}
-                                onPress={() => selectRoute('nearest')}
-                                activeOpacity={0.8}
-                            >
-                                <Text
-                                    style={[
-                                        styles.routePillText,
-                                        selectedRouteType === 'nearest' && styles.routePillTextActive,
-                                    ]}
-                                >
-                                    ⭐ Fastest ({primaryRouteInfo?.distanceText || 'Road 1'})
-                                </Text>
-                            </TouchableOpacity>
-
-                            <TouchableOpacity
-                                style={[
-                                    styles.routePill,
-                                    selectedRouteType === 'alternative' && styles.routePillActive,
-                                ]}
-                                onPress={() => selectRoute('alternative')}
-                                activeOpacity={0.8}
-                            >
-                                <Text
-                                    style={[
-                                        styles.routePillText,
-                                        selectedRouteType === 'alternative' && styles.routePillTextActive,
-                                    ]}
-                                >
-                                    Road 2 ({altRouteInfo?.distanceText || 'Alt'})
-                                </Text>
-                            </TouchableOpacity>
-                        </View>
-                    )}
-                </View>
 
                 {/* FLOATING MAP CONTROLS (SATELLITE, BACK TO ROUTE, ZOOM) */}
                 <View style={styles.controlsContainer}>
@@ -402,62 +565,205 @@ const NavigationToPickup = () => {
                     </TouchableOpacity>
                 </View>
 
-                {/* PATIENT CARD */}
-                <View style={styles.patientCardShadowWrap}>
-                    <View style={styles.patientCard}>
-                        <View style={styles.patientIcon}>
-                            <AppIcon
-                                family="ionicons"
-                                name="person-outline"
-                                size={19}
-                                color={colors.primary}
+                {/* UNIFIED NAVIGATION & PATIENT DISPATCH CARD */}
+                <View style={styles.navigationCardShadowWrap}>
+                    <View style={styles.navigationCard}>
+                        {/* ROUTE STATS / ETA ROW */}
+                        <View style={styles.routeStatsRow}>
+                            <View style={styles.etaContainer}>
+                                <View style={styles.etaIconBadge}>
+                                    <AppIcon
+                                        family="material"
+                                        name="clock-time-four-outline"
+                                        size={17}
+                                        color="#2563EB"
+                                    />
+                                </View>
+                                <View>
+                                    <Text style={styles.etaLabel}>ESTIMATED TIME</Text>
+                                    <Text style={styles.etaValue}>
+                                        {isInitialRouteLoading ? 'Calculating...' : etaText}
+                                    </Text>
+                                </View>
+                            </View>
+
+                            <View style={styles.statsSeparator} />
+
+                            <View style={styles.distanceContainer}>
+                                <View style={styles.distanceIconBadge}>
+                                    <AppIcon
+                                        family="material"
+                                        name="navigation-variant"
+                                        size={15}
+                                        color="#059669"
+                                    />
+                                </View>
+                                <View>
+                                    <Text style={styles.distanceLabel}>DISTANCE</Text>
+                                    <Text style={styles.distanceValue}>
+                                        {isInitialRouteLoading ? '--' : distanceText}
+                                    </Text>
+                                </View>
+                            </View>
+
+                            {isUpdatingRoute && (
+                                <ActivityIndicator size="small" color="#2563EB" style={styles.updatingSpinner} />
+                            )}
+                        </View>
+
+                        {/* 2 ROADS SELECTOR PILLS (IF ALTERNATIVE AVAILABLE) */}
+                        {alternativeCoordinates.length > 0 && (
+                            <View style={styles.routePillsRow}>
+                                <TouchableOpacity
+                                    style={[
+                                        styles.routePill,
+                                        selectedRouteType === 'nearest' && styles.routePillActive,
+                                    ]}
+                                    onPress={() => selectRoute('nearest')}
+                                    activeOpacity={0.8}
+                                >
+                                    <Text
+                                        style={[
+                                            styles.routePillText,
+                                            selectedRouteType === 'nearest' && styles.routePillTextActive,
+                                        ]}
+                                    >
+                                        ⭐ Fastest ({primaryRouteInfo?.distanceText || 'Road 1'})
+                                    </Text>
+                                </TouchableOpacity>
+
+                                <TouchableOpacity
+                                    style={[
+                                        styles.routePill,
+                                        selectedRouteType === 'alternative' && styles.routePillActive,
+                                    ]}
+                                    onPress={() => selectRoute('alternative')}
+                                    activeOpacity={0.8}
+                                >
+                                    <Text
+                                        style={[
+                                            styles.routePillText,
+                                            selectedRouteType === 'alternative' && styles.routePillTextActive,
+                                        ]}
+                                    >
+                                        Road 2 ({altRouteInfo?.distanceText || 'Alt'})
+                                    </Text>
+                                </TouchableOpacity>
+                            </View>
+                        )}
+
+                        <View style={styles.cardDivider} />
+
+                        {/* PATIENT INFO ROW */}
+                        <View style={styles.patientRow}>
+                            <View style={styles.patientIcon}>
+                                <AppIcon
+                                    family="ionicons"
+                                    name="person-outline"
+                                    size={19}
+                                    color={colors.primary}
+                                />
+                            </View>
+
+                            <View style={styles.patientInfo}>
+                                <Text style={styles.patientName}>
+                                    {route?.params?.patientName || 'Omkar Bhosale'}
+                                </Text>
+
+                                <View style={styles.patientAddressRow}>
+                                    <AppIcon
+                                        family="material"
+                                        name="map-marker-outline"
+                                        size={12}
+                                        color={colors.textLight}
+                                    />
+
+                                    <Text
+                                        style={styles.patientAddress}
+                                        numberOfLines={1}
+                                    >
+                                        {route?.params?.address || 'Near Ganapati Temple, Vishrambag, Sangli'}
+                                    </Text>
+                                </View>
+                            </View>
+
+                            <Button
+                                title=""
+                                onPress={handleCall}
+                                icon="phone"
+                                iconSize={17}
+                                variant="primary"
+                                style={styles.callButton}
                             />
                         </View>
-
-                        <View style={styles.patientInfo}>
-                            <Text style={styles.patientName}>
-                                John Doe
-                            </Text>
-
-                            <View style={styles.patientAddressRow}>
-                                <AppIcon
-                                    family="material"
-                                    name="map-marker-outline"
-                                    size={12}
-                                    color={colors.textLight}
-                                />
-
-                                <Text
-                                    style={styles.patientAddress}
-                                    numberOfLines={1}
-                                >
-                                    123, MG Road, Bengaluru
-                                </Text>
-                            </View>
-                        </View>
-
-                        <Button
-                            title=""
-                            onPress={handleCall}
-                            icon="phone"
-                            iconSize={17}
-                            variant="primary"
-                            style={styles.callButton}
-                        />
                     </View>
                 </View>
             </View>
 
-            {/* ARRIVED BUTTON */}
+            {/* ACTION BUTTONS (START NAVIGATION & ARRIVED) */}
             <View style={styles.bottomContainer}>
-                <Button
-                    title="Arrived at Location"
-                    onPress={handleArrived}
-                    icon="map-marker-check"
-                    variant="primary"
-                    style={styles.arrivedButton}
-                />
+                <View style={styles.bottomButtonsRow}>
+                    <Button
+                        title={isNavigating ? "Navigating..." : "Start Navigation"}
+                        onPress={() => {
+                            const nextState = !isNavigating;
+                            setIsNavigating(nextState);
+                            if (nextState) {
+                                // Fit to current driver pos & heading
+                                mapRef.current?.animateCamera({
+                                    center: driverLocation,
+                                    pitch: 45,
+                                    heading: driverHeading,
+                                    zoom: 17,
+                                });
+                            }
+                        }}
+                        icon={isNavigating ? "navigation" : "navigation-variant"}
+                        variant={isNavigating ? "secondary" : "primary"}
+                        style={styles.startButton}
+                    />
+
+                    <Button
+                        title="Arrived"
+                        onPress={handleArrived}
+                        icon="map-marker-check"
+                        variant="primary"
+                        style={styles.arrivedButton}
+                    />
+                </View>
             </View>
+
+            {/* ROUTE FINDING MODAL (CENTERED WITH BLURRED/TRANSLUCENT BACKDROP) */}
+            <Modal
+                visible={isInitialRouteLoading}
+                transparent={true}
+                animationType="fade"
+                statusBarTranslucent={true}
+            >
+                <View style={styles.modalOverlay}>
+                    <View style={styles.modalContentCard}>
+                        <View style={styles.modalIconWrap}>
+                            <AppIcon
+                                family="material"
+                                name="navigation-variant"
+                                size={28}
+                                color="#2563EB"
+                            />
+                        </View>
+                        <ActivityIndicator
+                            size="large"
+                            color="#2563EB"
+                            style={styles.modalSpinner}
+                        />
+                        <Text style={styles.modalTitle}>
+                            Finding Best Route
+                        </Text>
+                        <Text style={styles.modalSubtitle}>
+                            Calculating fastest roads & live traffic...
+                        </Text>
+                    </View>
+                </View>
+            </Modal>
         </SafeAreaView>
     );
 };
@@ -484,40 +790,119 @@ const styles = StyleSheet.create({
         ...StyleSheet.absoluteFillObject,
     },
 
-    // DISTANCE CARD
-    distanceCard: {
+    // UNIFIED NAVIGATION & PATIENT CARD
+    navigationCardShadowWrap: {
         position: 'absolute',
-        top: spacing.md,
         left: spacing.md,
-        minWidth: 140,
-        paddingHorizontal: spacing.sm + 2,
-        paddingVertical: spacing.sm,
-        borderRadius: 14,
-        backgroundColor: colors.card,
-        borderWidth: 1,
-        borderColor: colors.border,
+        right: spacing.md,
+        bottom: spacing.md,
+        borderRadius: 20,
         shadowColor: colors.shadow,
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.08,
-        shadowRadius: 10,
-        elevation: 3,
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.12,
+        shadowRadius: 20,
+        elevation: 8,
         zIndex: 5,
     },
 
-    distanceCardHeader: {
-        flexDirection: 'row',
-        alignItems: 'center',
+    navigationCard: {
+        borderRadius: 20,
+        backgroundColor: colors.card,
+        borderWidth: 1,
+        borderColor: colors.border,
+        paddingHorizontal: spacing.md,
+        paddingVertical: spacing.sm + 2,
     },
 
+    // ROUTE STATS / ETA ROW
+    routeStatsRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingBottom: spacing.xs + 2,
+    },
+
+    etaContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+        flex: 1,
+    },
+
+    etaIconBadge: {
+        width: 32,
+        height: 32,
+        borderRadius: 10,
+        backgroundColor: 'rgba(37, 99, 235, 0.1)',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+
+    etaLabel: {
+        fontFamily: 'GoogleSans-Medium',
+        fontSize: 9,
+        color: colors.textSecondary,
+        letterSpacing: 0.5,
+    },
+
+    etaValue: {
+        fontFamily: 'GoogleSans-Bold',
+        fontSize: 14,
+        color: colors.textPrimary,
+        marginTop: 1,
+    },
+
+    statsSeparator: {
+        width: 1,
+        height: 24,
+        backgroundColor: colors.border,
+        marginHorizontal: spacing.xs,
+    },
+
+    distanceContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+        flex: 1,
+    },
+
+    distanceIconBadge: {
+        width: 32,
+        height: 32,
+        borderRadius: 10,
+        backgroundColor: 'rgba(5, 150, 105, 0.1)',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+
+    distanceLabel: {
+        fontFamily: 'GoogleSans-Medium',
+        fontSize: 9,
+        color: colors.textSecondary,
+        letterSpacing: 0.5,
+    },
+
+    distanceValue: {
+        fontFamily: 'GoogleSans-Bold',
+        fontSize: 14,
+        color: colors.textPrimary,
+        marginTop: 1,
+    },
+
+    updatingSpinner: {
+        marginLeft: spacing.xs,
+    },
+
+    // ROUTE PILLS
     routePillsRow: {
         flexDirection: 'row',
         gap: 6,
-        marginTop: spacing.xs + 2,
+        paddingTop: spacing.xs,
+        paddingBottom: spacing.xs,
     },
 
     routePill: {
-        paddingHorizontal: 8,
-        paddingVertical: 4,
+        paddingHorizontal: 10,
+        paddingVertical: 5,
         borderRadius: 8,
         backgroundColor: colors.surface,
         borderWidth: 1,
@@ -531,7 +916,7 @@ const styles = StyleSheet.create({
 
     routePillText: {
         fontFamily: 'GoogleSans-Medium',
-        fontSize: 10,
+        fontSize: 11,
         color: colors.textSecondary,
     },
 
@@ -540,28 +925,17 @@ const styles = StyleSheet.create({
         fontFamily: 'GoogleSans-Bold',
     },
 
-    distanceIcon: {
-        width: 32,
-        height: 32,
-        borderRadius: 10,
-        backgroundColor: colors.primary,
+    cardDivider: {
+        height: StyleSheet.hairlineWidth,
+        backgroundColor: colors.divider,
+        marginVertical: spacing.xs + 2,
+    },
+
+    // PATIENT ROW
+    patientRow: {
+        flexDirection: 'row',
         alignItems: 'center',
-        justifyContent: 'center',
-        marginRight: spacing.sm,
-    },
-
-    distanceText: {
-        fontFamily: 'GoogleSans-Bold',
-        fontSize: typography.fontSize.sm,
-        letterSpacing: 0.1,
-        color: colors.textPrimary,
-    },
-
-    etaText: {
-        fontFamily: 'GoogleSans-Regular',
-        fontSize: typography.fontSize.xs,
-        color: colors.textSecondary,
-        marginTop: 1,
+        paddingTop: 2,
     },
 
     // FLOATING CONTROLS (TOP RIGHT)
@@ -592,32 +966,6 @@ const styles = StyleSheet.create({
     controlButtonActive: {
         backgroundColor: colors.primary,
         borderColor: colors.primaryDark,
-    },
-
-    // PATIENT CARD
-    patientCardShadowWrap: {
-        position: 'absolute',
-        left: spacing.md,
-        right: spacing.md,
-        bottom: spacing.md,
-        borderRadius: 18,
-        shadowColor: colors.shadow,
-        shadowOffset: { width: 0, height: 8 },
-        shadowOpacity: 0.1,
-        shadowRadius: 20,
-        elevation: 6,
-        zIndex: 5,
-    },
-
-    patientCard: {
-        minHeight: 72,
-        paddingHorizontal: spacing.sm,
-        borderRadius: 18,
-        backgroundColor: colors.card,
-        borderWidth: 1,
-        borderColor: colors.border,
-        flexDirection: 'row',
-        alignItems: 'center',
     },
 
     patientIcon: {
@@ -674,8 +1022,77 @@ const styles = StyleSheet.create({
         borderTopColor: colors.divider,
     },
 
-    arrivedButton: {
-        height: 54,
+    bottomButtonsRow: {
+        flexDirection: 'row',
+        gap: spacing.sm,
+    },
+
+    startButton: {
+        flex: 1.2,
+        height: 52,
         borderRadius: 14,
+        backgroundColor: '#2563EB',
+    },
+
+    arrivedButton: {
+        flex: 0.9,
+        height: 52,
+        borderRadius: 14,
+    },
+
+    // CENTER ROUTE FINDING MODAL
+    modalOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(15, 23, 42, 0.55)', // blurred dark blue backdrop
+        justifyContent: 'center',
+        alignItems: 'center',
+        paddingHorizontal: spacing.xl,
+    },
+
+    modalContentCard: {
+        width: '84%',
+        maxWidth: 320,
+        backgroundColor: colors.card,
+        borderRadius: 20,
+        paddingVertical: spacing.xl,
+        paddingHorizontal: spacing.lg,
+        alignItems: 'center',
+        borderWidth: 1,
+        borderColor: colors.border,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 10 },
+        shadowOpacity: 0.25,
+        shadowRadius: 20,
+        elevation: 12,
+    },
+
+    modalIconWrap: {
+        width: 58,
+        height: 58,
+        borderRadius: 29,
+        backgroundColor: 'rgba(37, 99, 235, 0.12)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: spacing.sm,
+    },
+
+    modalSpinner: {
+        marginVertical: spacing.xs,
+    },
+
+    modalTitle: {
+        fontFamily: 'GoogleSans-Bold',
+        fontSize: typography.fontSize.md,
+        color: colors.textPrimary,
+        marginTop: spacing.xs,
+        textAlign: 'center',
+    },
+
+    modalSubtitle: {
+        fontFamily: 'GoogleSans-Regular',
+        fontSize: typography.fontSize.xs,
+        color: colors.textSecondary,
+        marginTop: 4,
+        textAlign: 'center',
     },
 });

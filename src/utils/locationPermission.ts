@@ -83,3 +83,29 @@ export async function checkLocationPermission(): Promise<boolean> {
     }
     return true;
 }
+
+/**
+ * Requests Notification permission on Android 13+ (API 33+) for foreground service.
+ */
+export async function requestNotificationPermission(): Promise<boolean> {
+    if (Platform.OS === 'android') {
+        const v = typeof Platform.Version === 'string' ? parseInt(Platform.Version, 10) : Platform.Version;
+        if (v >= 33) {
+            try {
+                const check = await PermissionsAndroid.check(
+                    PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS
+                );
+                if (check) return true;
+
+                const res = await PermissionsAndroid.request(
+                    PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS
+                );
+                return res === PermissionsAndroid.RESULTS.GRANTED;
+            } catch (err) {
+                console.warn('Notification permission error:', err);
+                return false;
+            }
+        }
+    }
+    return true;
+}

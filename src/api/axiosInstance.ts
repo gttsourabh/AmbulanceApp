@@ -21,7 +21,7 @@ axiosInstance.interceptors.request.use(
         try {
             const token = store.getState().auth.token;
             if (token && !config.headers.Authorization) {
-                config.headers.Authorization = `Bearer ${token}`;
+                config.headers.token = token;
             }
         } catch (_) {
             // Ignore if store is not ready

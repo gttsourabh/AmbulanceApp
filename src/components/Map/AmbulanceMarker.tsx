@@ -30,16 +30,23 @@ export const AmbulanceMarker: React.FC<AmbulanceMarkerProps> = ({
       description={description}
     >
       <View style={styles.container}>
+        {/* Forward Direction Arrow Pointer (Rotates with heading) */}
+        <View style={styles.directionArrowContainer}>
+          <View style={styles.directionArrowHead} />
+        </View>
+
+        {/* Pulse Effect */}
         <View style={styles.outerPulse} />
+
+        {/* Vehicle Icon Circle */}
         <View style={styles.innerCircle}>
           <AppIcon
             family="material"
             name="ambulance"
-            size={20}
+            size={19}
             color={colors.white}
           />
         </View>
-        <View style={styles.headingPointer} />
       </View>
     </Marker>
   );
@@ -49,42 +56,52 @@ const styles = StyleSheet.create({
   container: {
     alignItems: 'center',
     justifyContent: 'center',
-    width: 52,
-    height: 52,
+    width: 60,
+    height: 60,
+  },
+  directionArrowContainer: {
+    position: 'absolute',
+    top: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 10,
+  },
+  directionArrowHead: {
+    width: 0,
+    height: 0,
+    borderLeftWidth: 8,
+    borderRightWidth: 8,
+    borderBottomWidth: 14,
+    borderLeftColor: 'transparent',
+    borderRightColor: 'transparent',
+    borderBottomColor: '#2563EB', // vibrant navigation blue
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.35,
+    shadowRadius: 3,
+    elevation: 6,
   },
   outerPulse: {
     position: 'absolute',
-    width: 46,
-    height: 46,
-    borderRadius: 23,
-    backgroundColor: 'rgba(38, 117, 131, 0.25)',
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: 'rgba(37, 99, 235, 0.22)',
   },
   innerCircle: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: colors.primary,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: '#2563EB',
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: colors.shadow,
     shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.3,
     shadowRadius: 4,
-    elevation: 5,
-    borderWidth: 2,
+    elevation: 6,
+    borderWidth: 2.5,
     borderColor: colors.white,
-  },
-  headingPointer: {
-    position: 'absolute',
-    top: 2,
-    width: 0,
-    height: 0,
-    borderLeftWidth: 5,
-    borderRightWidth: 5,
-    borderBottomWidth: 7,
-    borderLeftColor: 'transparent',
-    borderRightColor: 'transparent',
-    borderBottomColor: colors.primaryDark,
   },
 });
 

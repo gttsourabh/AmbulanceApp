@@ -1,26 +1,47 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
+  Linking,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import Header from '../../../components/Header/Header';
 import { colors, typography, spacing } from '../../../theme';
 import { AppIcon } from '../../../icons';
 import Button from '../../../components/Button/Button';
+import { EmergencyTripData } from '../../../utils/emergencyNotificationHandler';
+import { storage } from '../../../storage/storage';
+import { STORAGE_KEYS } from '../../../storage/storageKeys';
 
 const IncomingRequestScreen = () => {
   const navigation = useNavigation();
+  const route = useRoute<any>();
+
+  const [emergencyData, setEmergencyData] = useState<EmergencyTripData | null>(
+    route?.params?.requestData || null
+  );
+
+  // If requestData wasn't in route params, restore from storage fallback
+  useEffect(() => {
+    if (!emergencyData) {
+      storage.get<EmergencyTripData>(STORAGE_KEYS.PENDING_EMERGENCY_REQUEST).then(savedData => {
+        if (savedData) {
+          setEmergencyData(savedData);
+        }
+      });
+    }
+  }, [emergencyData]);
 
   // =====================================================
   // REJECT
   // =====================================================
 
-  const handleReject = () => {
+  const handleReject = async () => {
+    await storage.remove(STORAGE_KEYS.PENDING_EMERGENCY_REQUEST);
     navigation.goBack();
   };
 
@@ -28,8 +49,19 @@ const IncomingRequestScreen = () => {
   // ACCEPT
   // =====================================================
 
-  const handleAccept = () => {
-    navigation.navigate('NavigationToPickup' as never);
+  const handleAccept = async () => {
+    await storage.remove(STORAGE_KEYS.PENDING_EMERGENCY_REQUEST);
+    (navigation.navigate as any)('NavigationToPickup', {
+      pickupLocation: {
+        latitude: emergencyData?.latitude || 21.1458,
+        longitude: emergencyData?.longitude || 79.088155,
+      },
+      patientName: emergencyData?.patientName || 'Omkar Bhosale',
+      contactNo: emergencyData?.contactNo || '9373962355',
+      address: emergencyData?.address || '2496, Baba Farid Nagar, 4783Chitnis NagarNagpur, Sitabuldi, Nagpur, Maharashtra 440001, India',
+      requestId: emergencyData?.requestId || 38,
+      emergencyType: emergencyData?.emergencyType || 'cardiac',
+    });
   };
 
   // =====================================================
@@ -37,7 +69,10 @@ const IncomingRequestScreen = () => {
   // =====================================================
 
   const handleCall = () => {
-    console.log('Call patient');
+    const phone = emergencyData?.contactNo || '9373962355';
+    if (phone) {
+      Linking.openURL(`tel:${phone}`);
+    }
   };
 
   // =====================================================
@@ -56,14 +91,30 @@ const IncomingRequestScreen = () => {
           {/* PATIENT DETAILS */}
 
           <View style={styles.section}>
-            <Text style={styles.label}>
-              PATIENT DETAILS
-            </Text>
+            <View style={styles.labelRowBetween}>
+              <Text style={styles.label}>
+                PATIENT DETAILS
+              </Text>
+              {emergencyData?.requestId ? (
+                <View style={styles.requestIdBadge}>
+                  <Text style={styles.requestIdText}>
+                    REQ #{emergencyData.requestId}
+                  </Text>
+                </View>
+              ) : null}
+            </View>
 
             <View style={styles.patientRow}>
-              <Text style={styles.value}>
-                John Doe
-              </Text>
+              <View>
+                <Text style={styles.value}>
+                  {emergencyData?.patientName || 'Omkar Bhosale'}
+                </Text>
+                {emergencyData?.contactNo ? (
+                  <Text style={styles.secondaryValue}>
+                    {emergencyData.contactNo}
+                  </Text>
+                ) : null}
+              </View>
 
               <Button
                 title=""
@@ -94,13 +145,15 @@ const IncomingRequestScreen = () => {
               </Text>
             </View>
 
-            <Text style={styles.value}>
-              123, MG Road, Bengaluru
+            <Text style={styles.value} numberOfLines={2}>
+              {emergencyData?.address || '2496, Baba Farid Nagar, 4783Chitnis NagarNagpur, Sitabuldi, Nagpur, Maharashtra 440001, India'}
             </Text>
 
-            <Text style={styles.secondaryValue}>
-              560001
-            </Text>
+            {emergencyData?.latitude && emergencyData?.longitude ? (
+              <Text style={styles.secondaryValue}>
+                GPS: {emergencyData.latitude.toFixed(6)}, {emergencyData.longitude.toFixed(6)}
+              </Text>
+            ) : null}
           </View>
 
           <View style={styles.divider} />
@@ -122,11 +175,11 @@ const IncomingRequestScreen = () => {
             </View>
 
             <Text style={styles.value}>
-              Secure Hospital
+              Nearest Emergency Hospital
             </Text>
 
             <Text style={styles.secondaryValue}>
-              3.2 km away
+              Ready for immediate dispatch
             </Text>
           </View>
 
@@ -143,13 +196,19 @@ const IncomingRequestScreen = () => {
               <View style={styles.typePill}>
                 <AppIcon
                   family="material"
-                  name="medical-bag"
+                  name={
+                    emergencyData?.emergencyType?.toLowerCase().includes('cardiac')
+                      ? 'heart-pulse'
+                      : 'medical-bag'
+                  }
                   size={13}
                   color={colors.danger}
                 />
 
                 <Text style={styles.typeText}>
-                  Medical
+                  {emergencyData?.emergencyType
+                    ? emergencyData.emergencyType.toUpperCase()
+                    : 'CARDIAC'}
                 </Text>
               </View>
             </View>
@@ -162,7 +221,7 @@ const IncomingRequestScreen = () => {
               </Text>
 
               <Text style={styles.earningValue}>
-                ₹ 350
+                ₹ 450
               </Text>
             </View>
           </View>
@@ -246,6 +305,27 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 5,
+  },
+
+  labelRowBetween: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 5,
+  },
+
+  requestIdBadge: {
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: 6,
+    backgroundColor: colors.primaryLight,
+  },
+
+  requestIdText: {
+    fontFamily: 'GoogleSans-Bold',
+    fontSize: 9,
+    letterSpacing: 0.5,
+    color: colors.primary,
   },
 
   dot: {
