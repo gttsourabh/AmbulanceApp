@@ -640,7 +640,7 @@ const styles = StyleSheet.create({
 
         alignSelf: 'center',
 
-        // backgroundColor: 'rgba(17, 70, 243, 0.8)',
+        // backgroundColor: colors.primary,
 
         // borderRadius: 15,
 

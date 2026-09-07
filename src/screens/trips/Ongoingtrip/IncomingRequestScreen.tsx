@@ -1,11 +1,15 @@
+
 import React, { useEffect, useState } from 'react';
+
 import {
+  Alert,
   Linking,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from 'react-native';
+
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -16,6 +20,7 @@ import Button from '../../../components/Button/Button';
 import { EmergencyTripData } from '../../../utils/emergencyNotificationHandler';
 import { storage } from '../../../storage/storage';
 import { STORAGE_KEYS } from '../../../storage/storageKeys';
+import { respondToEmergencyRequest } from '../../../api';
 
 const IncomingRequestScreen = () => {
   const navigation = useNavigation();
@@ -24,6 +29,7 @@ const IncomingRequestScreen = () => {
   const [emergencyData, setEmergencyData] = useState<EmergencyTripData | null>(
     route?.params?.requestData || null
   );
+  const [isSubmitting, setIsSubmitting] = useState<'accept' | 'reject' | null>(null);
 
   // If requestData wasn't in route params, restore from storage fallback
   useEffect(() => {
@@ -41,8 +47,39 @@ const IncomingRequestScreen = () => {
   // =====================================================
 
   const handleReject = async () => {
-    await storage.remove(STORAGE_KEYS.PENDING_EMERGENCY_REQUEST);
-    navigation.goBack();
+    if (isSubmitting) return;
+    setIsSubmitting('reject');
+    try {
+      const requestId = Number(emergencyData?.requestId) || 38;
+      console.log(`📡 [EMERGENCY RESPONSE] Sending reject for request_id: ${requestId}`);
+      const response = await respondToEmergencyRequest({
+        action: 'reject',
+        request_id: requestId,
+      });
+
+      console.log('✅ [REJECT RESPONSE SUCCESS]:', response?.data);
+
+      if (response?.data && response.data.success === false) {
+        Alert.alert(
+          'Failed to Reject',
+          response.data.message || 'Unable to reject request.'
+        );
+        return;
+      }
+
+      await storage.remove(STORAGE_KEYS.PENDING_EMERGENCY_REQUEST);
+      navigation.goBack();
+    } catch (err: any) {
+      console.warn('⚠️ Failed to send reject response to server:', err);
+      const serverMessage =
+        err?.response?.data?.message ||
+        err?.response?.data?.error ||
+        err?.message ||
+        'Failed to reject ambulance request. Please try again.';
+      Alert.alert('Error', serverMessage);
+    } finally {
+      setIsSubmitting(null);
+    }
   };
 
   // =====================================================
@@ -50,18 +87,50 @@ const IncomingRequestScreen = () => {
   // =====================================================
 
   const handleAccept = async () => {
-    await storage.remove(STORAGE_KEYS.PENDING_EMERGENCY_REQUEST);
-    (navigation.navigate as any)('NavigationToPickup', {
-      pickupLocation: {
-        latitude: emergencyData?.latitude || 21.1458,
-        longitude: emergencyData?.longitude || 79.088155,
-      },
-      patientName: emergencyData?.patientName || 'Omkar Bhosale',
-      contactNo: emergencyData?.contactNo || '9373962355',
-      address: emergencyData?.address || '2496, Baba Farid Nagar, 4783Chitnis NagarNagpur, Sitabuldi, Nagpur, Maharashtra 440001, India',
-      requestId: emergencyData?.requestId || 38,
-      emergencyType: emergencyData?.emergencyType || 'cardiac',
-    });
+    if (isSubmitting) return;
+    setIsSubmitting('accept');
+    try {
+      const requestId = Number(emergencyData?.requestId) || 38;
+      console.log(`📡 [EMERGENCY RESPONSE] Sending accept for request_id: ${requestId}`);
+      const response = await respondToEmergencyRequest({
+        action: 'accept',
+        request_id: requestId,
+      });
+
+      console.log('✅ [ACCEPT RESPONSE SUCCESS]:', response?.data);
+
+      if (response?.data && response.data.success === false) {
+        Alert.alert(
+          'Failed to Accept',
+          response.data.message || 'Unable to accept request.'
+        );
+        return;
+      }
+
+      // ONLY navigate to next page if backend succeeds!
+      await storage.remove(STORAGE_KEYS.PENDING_EMERGENCY_REQUEST);
+      (navigation.navigate as any)('NavigationToPickup', {
+        pickupLocation: {
+          latitude: emergencyData?.latitude || 21.1458,
+          longitude: emergencyData?.longitude || 79.088155,
+        },
+        patientName: emergencyData?.patientName || 'Omkar Bhosale',
+        contactNo: emergencyData?.contactNo || '9373962355',
+        address: emergencyData?.address || '2496, Baba Farid Nagar, 4783Chitnis NagarNagpur, Sitabuldi, Nagpur, Maharashtra 440001, India',
+        requestId: emergencyData?.requestId || 38,
+        emergencyType: emergencyData?.emergencyType || 'cardiac',
+      });
+    } catch (err: any) {
+      console.warn('⚠️ Failed to send accept response to server:', err);
+      const serverMessage =
+        err?.response?.data?.message ||
+        err?.response?.data?.error ||
+        err?.message ||
+        'Failed to accept ambulance request. Please try again.';
+      Alert.alert('Error', serverMessage);
+    } finally {
+      setIsSubmitting(null);
+    }
   };
 
   // =====================================================
@@ -236,6 +305,8 @@ const IncomingRequestScreen = () => {
               onPress={handleReject}
               variant="danger"
               style={styles.rejectButton}
+              loading={isSubmitting === 'reject'}
+              disabled={isSubmitting !== null}
             />
 
             <Button
@@ -245,6 +316,8 @@ const IncomingRequestScreen = () => {
               iconSize={17}
               variant="primary"
               style={styles.acceptButton}
+              loading={isSubmitting === 'accept'}
+              disabled={isSubmitting !== null}
             />
           </View>
 
@@ -453,3 +526,6 @@ const styles = StyleSheet.create({
   },
 
 });
+
+
+

@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import {
+    Image,
+    ImageBackground,
     ScrollView,
     StyleSheet,
     Switch,
@@ -78,39 +80,57 @@ const HomeScreen = () => {
                     console.log('Menu');
                 }}
                 centerContent={
-                    <View
-                        style={[
-                            styles.statusContainer,
-                            {
-                                backgroundColor: isOnline
-                                    ? colors.successLight
-                                    : colors.divider,
-                            },
-                        ]}
-                    >
-                        <View
+                    <View style={styles.headerToggleContainer}>
+                        <TouchableOpacity
+                            activeOpacity={0.7}
+                            onPress={() => handleToggleOnline(!isOnline)}
                             style={[
-                                styles.headerOnlineDot,
+                                styles.headerStatusPill,
                                 {
                                     backgroundColor: isOnline
-                                        ? colors.success
-                                        : colors.textLight,
-                                },
-                            ]}
-                        />
-
-                        <Text
-                            style={[
-                                styles.onlineText,
-                                {
-                                    color: isOnline
-                                        ? colors.successDark
-                                        : colors.textSecondary,
+                                        ? '#DCFCE7'
+                                        : '#F1F5F9',
+                                    borderColor: isOnline
+                                        ? '#86EFAC'
+                                        : '#CBD5E1',
                                 },
                             ]}
                         >
-                            {isOnline ? 'ONLINE' : 'OFFLINE'}
-                        </Text>
+                            <View
+                                style={[
+                                    styles.headerOnlineDot,
+                                    {
+                                        backgroundColor: isOnline
+                                            ? colors.success
+                                            : colors.textLight,
+                                    },
+                                ]}
+                            />
+                            <Text
+                                style={[
+                                    styles.headerOnlineText,
+                                    {
+                                        color: isOnline
+                                            ? colors.successDark
+                                            : colors.textSecondary,
+                                    },
+                                ]}
+                            >
+                                {isOnline ? 'ONLINE' : 'OFFLINE'}
+                            </Text>
+                        </TouchableOpacity>
+
+                        <Switch
+                            value={isOnline}
+                            onValueChange={handleToggleOnline}
+                            trackColor={{
+                                false: '#CBD5E1',
+                                true: '#86EFAC',
+                            }}
+                            thumbColor={isOnline ? colors.success : colors.white}
+                            ios_backgroundColor="#CBD5E1"
+                            style={styles.headerSwitch}
+                        />
                     </View>
                 }
             />
@@ -140,62 +160,63 @@ const HomeScreen = () => {
                     </View>
                 </View>
 
-                <View style={styles.availabilityCard}>
-                    <View style={styles.availabilityContent}>
-                        <Text style={styles.youAreText}>
-                            YOUR STATUS
-                        </Text>
-
-                        <View style={styles.statusRow}>
-                            <View
-                                style={[
-                                    styles.statusPill,
-                                    {
-                                        backgroundColor: isOnline
-                                            ? colors.successLight
-                                            : colors.divider,
-                                    },
-                                ]}
-                            >
-                                <View
-                                    style={[
-                                        styles.onlineDot,
-                                        {
-                                            backgroundColor: isOnline
-                                                ? colors.success
-                                                : colors.textLight,
-                                        },
-                                    ]}
-                                />
-
-                                <Text
-                                    style={[
-                                        styles.statusText,
-                                        {
-                                            color: isOnline
-                                                ? colors.success
-                                                : colors.textSecondary,
-                                        },
-                                    ]}
-                                >
-                                    {isOnline
-                                        ? 'AVAILABLE'
-                                        : 'OFFLINE'}
-                                </Text>
-                            </View>
-                        </View>
-                    </View>
-
-                    <Switch
-                        value={isOnline}
-                        onValueChange={handleToggleOnline}
-                        trackColor={{
-                            false: colors.divider,
-                            true: colors.success,
+                <View style={styles.emergencyCardOuterWrapper}>
+                    <TouchableOpacity
+                        activeOpacity={0.9}
+                        onPress={() => {
+                            if (!isOnline) {
+                                handleToggleOnline(true);
+                            }
                         }}
-                        thumbColor={colors.white}
-                        ios_backgroundColor={colors.divider}
-                        style={styles.switch}
+                        style={styles.emergencyCardContainer}
+                    >
+                        <ImageBackground
+                            source={require('../../assets/images/waiting_for_bg.jpg')}
+                            style={styles.emergencyCardBg}
+                            imageStyle={styles.emergencyCardBgImage}
+                            resizeMode="cover"
+                        >
+                            <View style={styles.cardContentRow}>
+                                <View style={styles.statusTextContainer}>
+                                    <Text style={styles.statusSubtitleText}>
+                                        {isOnline ? 'Waiting for new' : 'You are currently'}
+                                    </Text>
+                                    <Text style={styles.statusTitleText}>
+                                        {isOnline ? 'Emergency Request' : 'Offline'}
+                                    </Text>
+                                    {!isOnline && (
+                                        <Text style={styles.statusTapHint}>
+                                            Tap to go Online
+                                        </Text>
+                                    )}
+                                </View>
+
+                                <View style={styles.ambulancePlaceholder} />
+                            </View>
+
+                            {!isOnline && (
+                                <View style={styles.offlineOverlay}>
+                                    <View style={styles.offlinePill}>
+                                        <View style={styles.offlineDot} />
+                                        <Text style={styles.offlinePillText}>
+                                            OFFLINE
+                                        </Text>
+                                    </View>
+                                    <Text style={styles.offlinePrompt}>
+                                        Tap to Go Online
+                                    </Text>
+                                </View>
+                            )}
+                        </ImageBackground>
+                    </TouchableOpacity>
+
+                    <Image
+                        source={require('../../assets/images/ambulnace3d-removebg-preview.png')}
+                        style={[
+                            styles.statusCardAmbulancePopOut,
+                            !isOnline && styles.statusCardAmbulanceOffline,
+                        ]}
+                        resizeMode="contain"
                     />
                 </View>
 
@@ -257,7 +278,7 @@ const HomeScreen = () => {
                                 <Text style={styles.rowLabel}>
                                     Cancelled
                                 </Text>
-                                
+
                             </View>
 
                             <Text style={styles.rowValue}>
@@ -336,25 +357,43 @@ const styles = StyleSheet.create({
         paddingBottom: spacing.xxxl,
     },
 
-    statusContainer: {
+    headerToggleContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        paddingVertical: 5,
+        gap: 6,
+    },
+
+    headerStatusPill: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingVertical: 4,
         paddingHorizontal: 10,
-        borderRadius: 20,
+        borderRadius: 16,
+        borderWidth: 1,
     },
 
     headerOnlineDot: {
-        width: 6,
-        height: 6,
-        borderRadius: 3,
+        width: 7,
+        height: 7,
+        borderRadius: 3.5,
         marginRight: 6,
     },
 
-    onlineText: {
+    headerOnlineText: {
         fontFamily: 'GoogleSans-Bold',
         fontSize: typography.fontSize.xs,
         letterSpacing: 0.4,
+    },
+
+    headerSwitch: {
+        transform: [
+            {
+                scaleX: 0.8,
+            },
+            {
+                scaleY: 0.8,
+            },
+        ],
     },
 
     greetingSection: {
@@ -395,74 +434,140 @@ const styles = StyleSheet.create({
         borderColor: colors.border,
     },
 
-    availabilityCard: {
-        minHeight: 84,
-        paddingHorizontal: spacing.lg,
-        paddingVertical: spacing.sm,
-        borderRadius: 18,
-        backgroundColor: colors.background,
-        borderWidth: 1,
-        borderColor: colors.border,
+    emergencyCardOuterWrapper: {
+        position: 'relative',
+        marginTop: 10,
+        marginBottom: spacing.xs,
+        overflow: 'visible',
+    },
+
+    emergencyCardContainer: {
+        height: 124,
+        borderRadius: 20,
+        backgroundColor: '#F0F5F8',
+        overflow: 'hidden',
+        borderWidth: 1.2,
+        borderColor: '#E1EBF2',
+        shadowColor: '#1E3A8A',
+        shadowOffset: {
+            width: 0,
+            height: 4,
+        },
+        shadowOpacity: 0.06,
+        shadowRadius: 14,
+        // elevation: 2,
+    },
+
+    emergencyCardBg: {
+        flex: 1,
+        width: '100%',
+        height: '100%',
+    },
+
+    emergencyCardBgImage: {
+        borderRadius: 20,
+        opacity: 0.35,
+    },
+
+    cardContentRow: {
+        flex: 1,
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        shadowColor: colors.shadow,
-        shadowOffset: {
-            width: 0,
-            height: 6,
-        },
-        shadowOpacity: 0.06,
-        shadowRadius: 16,
-        elevation: 3,
+        paddingLeft: spacing.lg,
+        paddingRight: spacing.sm,
     },
 
-    availabilityContent: {
+    statusTextContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        paddingVertical: spacing.xs,
+    },
+
+    statusSubtitleText: {
+        fontFamily: 'GoogleSans-Medium',
+        fontSize: 14,
+        color: '#0A2027',
+        letterSpacing: 0.2,
+        marginBottom: 4,
+        textShadowColor: 'rgba(255, 255, 255, 0.75)',
+        textShadowOffset: { width: 0, height: 1 },
+        textShadowRadius: 3,
+    },
+
+    statusTitleText: {
+        fontFamily: 'GoogleSans-Bold',
+        fontSize: 20,
+        fontWeight: 'bold',
+        color: '#05161A',
+        letterSpacing: -0.2,
+        textShadowColor: 'rgba(255, 255, 255, 0.75)',
+        textShadowOffset: { width: 0, height: 1 },
+        textShadowRadius: 4,
+    },
+
+    statusTapHint: {
+        fontFamily: 'GoogleSans-Bold',
+        fontSize: 12,
+        color: colors.primaryDark,
+        marginTop: 4,
+    },
+
+    ambulancePlaceholder: {
+        width: 120,
+        height: 80,
+    },
+
+    statusCardAmbulancePopOut: {
+        position: 'absolute',
+        right: 25,
+        top: 10,
+        width: 135,
+        height: 105,
+        zIndex: 10,
+        // elevation: 5,
+    },
+
+    statusCardAmbulanceOffline: {
+        opacity: 0.4,
+    },
+
+    offlineOverlay: {
+        ...StyleSheet.absoluteFillObject,
+        backgroundColor: 'rgba(15, 38, 43, 0.65)',
+        alignItems: 'center',
         justifyContent: 'center',
     },
 
-    youAreText: {
-        fontFamily: 'GoogleSans-Medium',
-        fontSize: 10,
-        color: colors.textLight,
-        letterSpacing: 0.8,
-        marginBottom: spacing.xs,
-    },
-
-    statusRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-    },
-
-    statusPill: {
+    offlinePill: {
         flexDirection: 'row',
         alignItems: 'center',
         paddingVertical: 5,
-        paddingHorizontal: 10,
-        borderRadius: 20,
+        paddingHorizontal: 14,
+        borderRadius: 16,
+        backgroundColor: '#FFFFFF',
+        marginBottom: 4,
     },
 
-    onlineDot: {
+    offlineDot: {
         width: 7,
         height: 7,
         borderRadius: 3.5,
+        backgroundColor: '#94A3B8',
         marginRight: 6,
     },
 
-    statusText: {
-        fontFamily: 'GoogleSans-Medium',
-        fontSize: typography.fontSize.sm,
+    offlinePillText: {
+        fontFamily: 'GoogleSans-Bold',
+        fontSize: typography.fontSize.xs,
+        color: '#3d4b5eff',
         letterSpacing: 0.4,
     },
 
-    switch: {
-        transform: [
-            {
-                scaleX: 0.92,
-            },
-            {
-                scaleY: 0.92,
-            },
-        ],
+    offlinePrompt: {
+        fontFamily: 'GoogleSans-Medium',
+        fontSize: typography.fontSize.xs,
+        color: '#FFFFFF',
     },
 
     overviewSection: {
@@ -490,7 +595,7 @@ const styles = StyleSheet.create({
         },
         shadowOpacity: 0.04,
         shadowRadius: 12,
-        elevation: 2,
+        // elevation: 2,
     },
 
     overviewRow: {

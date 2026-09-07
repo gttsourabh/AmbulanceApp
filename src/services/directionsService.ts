@@ -14,6 +14,11 @@ export interface RouteResult {
     summary: string;
 }
 
+export interface MultiRouteResult {
+    primaryRoute: RouteResult;
+    alternativeRoute?: RouteResult;
+}
+
 /**
  * Decodes Google's encoded polyline string into an array of {latitude, longitude}
  */
@@ -56,11 +61,6 @@ export function decodePolyline(encoded: string): LatLng[] {
     return points;
 }
 
-export interface MultiRouteResult {
-    primaryRoute: RouteResult;
-    alternativeRoute?: RouteResult;
-}
-
 function formatDistance(meters: number): string {
     if (meters < 1000) return `${Math.round(meters)} m`;
     return `${(meters / 1000).toFixed(1)} km`;
@@ -75,10 +75,13 @@ function formatDuration(seconds: number): string {
     return remMins > 0 ? `${hrs} hr ${remMins} min away` : `${hrs} hr away`;
 }
 
-async function fetchGoogleRoutes(
+/**
+ * Fetches driving directions with alternative routes using Google Routes API (v2).
+ */
+export async function fetchGoogleRoutes(
     origin: LatLng,
     destination: LatLng,
-    apiKey: string
+    apiKey: string = GOOGLE_MAPS_API_KEY
 ): Promise<MultiRouteResult | null> {
     try {
         const url = 'https://routes.googleapis.com/directions/v2:computeRoutes';
@@ -126,6 +129,8 @@ async function fetchGoogleRoutes(
 
         const alternative = json.routes.length > 1 ? formatRoute(json.routes[1]) || undefined : undefined;
 
+        console.log(`🗺️ [GOOGLE ROUTE SUCCESS] Primary: ${primary.distanceText} (${primary.durationText}) | Points: ${primary.coordinates.length}`);
+
         return {
             primaryRoute: primary,
             alternativeRoute: alternative,
@@ -136,87 +141,24 @@ async function fetchGoogleRoutes(
     }
 }
 
-async function fetchOSRMRoute(
-    origin: LatLng,
-    destination: LatLng
-): Promise<MultiRouteResult | null> {
-    try {
-        const url = `https://router.project-osrm.org/route/v1/driving/${origin.longitude},${origin.latitude};${destination.longitude},${destination.latitude}?overview=full&geometries=geojson&alternatives=true`;
-        const response = await fetch(url);
-        const json = await response.json();
-
-        if (json.code !== 'Ok' || !json.routes || json.routes.length === 0) {
-            console.warn('OSRM routing error:', json.code, json.message);
-            return null;
-        }
-
-        const formatRoute = (r: any): RouteResult | null => {
-            const coordsRaw = r.geometry?.coordinates;
-            if (!coordsRaw || !Array.isArray(coordsRaw)) return null;
-
-            const coords: LatLng[] = coordsRaw.map(([lng, lat]: [number, number]) => ({
-                latitude: lat,
-                longitude: lng,
-            }));
-
-            const distM = Math.round(r.distance || 0);
-            const durSec = Math.round(r.duration || 0);
-
-            return {
-                coordinates: coords,
-                distanceText: formatDistance(distM),
-                durationText: formatDuration(durSec),
-                distanceMeters: distM,
-                durationSeconds: durSec,
-                summary: r.legs?.[0]?.summary || '',
-            };
-        };
-
-        const primary = formatRoute(json.routes[0]);
-        if (!primary) return null;
-
-        const alternative = json.routes.length > 1 ? formatRoute(json.routes[1]) || undefined : undefined;
-
-        return {
-            primaryRoute: primary,
-            alternativeRoute: alternative,
-        };
-    } catch (err) {
-        console.warn('OSRM routing fetch error:', err);
-        return null;
-    }
-}
-
 /**
- * Fetches driving directions with alternative routes.
- * First uses Google Routes API (v2).
- * If Google API is unavailable or errors, automatically falls back to high-quality OSRM driving directions.
+ * Fetches driving directions with alternative routes using Google Routes API.
  */
 export async function getDrivingRoutesWithAlternatives(
     origin: LatLng,
     destination: LatLng,
     apiKey: string = GOOGLE_MAPS_API_KEY
 ): Promise<MultiRouteResult | null> {
-    // 1. Attempt Google Routes API (v2)
-    if (apiKey) {
-        const googleRes = await fetchGoogleRoutes(origin, destination, apiKey);
-        if (googleRes && googleRes.primaryRoute.coordinates.length > 0) {
-            return googleRes;
-        }
+    if (!apiKey) {
+        console.warn('Google Maps API key is missing.');
+        return null;
     }
 
-    // 2. Fallback to OSRM driving routing
-    console.log('Falling back to OSRM driving directions...');
-    const osrmRes = await fetchOSRMRoute(origin, destination);
-    if (osrmRes && osrmRes.primaryRoute.coordinates.length > 0) {
-        return osrmRes;
-    }
-
-    return null;
+    return await fetchGoogleRoutes(origin, destination, apiKey);
 }
 
 /**
- * Fetches driving directions and picks the primary route.
+ * Fetches driving directions and picks the primary route using Google Routes API.
  */
 export async function getNearestDrivingRoute(
     origin: LatLng,

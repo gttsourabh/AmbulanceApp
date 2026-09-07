@@ -26,3 +26,28 @@ export const updateDriverLocation = async (
         payload
     );
 };
+
+export interface RespondToEmergencyPayload {
+    action: 'accept' | 'reject';
+    request_id: number;
+}
+
+export interface RespondToEmergencyResponse {
+    success?: boolean;
+    message?: string;
+    data?: any;
+    [key: string]: any;
+}
+
+/**
+ * POST /api/ambulance/driver/response
+ * Responds to incoming emergency trip request ('accept' | 'reject').
+ */
+export const respondToEmergencyRequest = async (
+    payload: RespondToEmergencyPayload
+) => {
+    return await axiosInstance.post<RespondToEmergencyResponse>(
+        '/api/ambulance/driver/response',
+        payload
+    );
+};
