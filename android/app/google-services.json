@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "577574167930",
+    "project_id": "arvaya-d841e",
+    "storage_bucket": "arvaya-d841e.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:577574167930:android:1a2aa199b289262676a2c3",
+        "android_client_info": {
+          "package_name": "com.ambulanceapp"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBp7sKOD1lgbJit24OtjqgxiEICvb--I08"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:577574167930:android:1a2aa199b289262676a2c3",
+        "android_client_info": {
+          "package_name": "com.arvaya"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBp7sKOD1lgbJit24OtjqgxiEICvb--I08"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
