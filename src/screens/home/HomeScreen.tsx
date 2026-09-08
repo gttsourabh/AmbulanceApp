@@ -74,11 +74,10 @@ const HomeScreen = () => {
             edges={['top']}
         >
             <Header
+                leftImage={require('../../assets/images/app_logo_tra.png')}
+                leftImageStyle={styles.headerLogo}
                 rightIcon="bell-outline"
                 onRightPress={handleNotifications}
-                onLeftPress={() => {
-                    console.log('Menu');
-                }}
                 centerContent={
                     <View style={styles.headerToggleContainer}>
                         <TouchableOpacity
@@ -355,6 +354,12 @@ const styles = StyleSheet.create({
     scrollContent: {
         paddingHorizontal: spacing.lg,
         paddingBottom: spacing.xxxl,
+    },
+
+    headerLogo: {
+        width: 55,
+        height: 55,
+        // borderRadius: 10,
     },
 
     headerToggleContainer: {

@@ -1,5 +1,9 @@
 import React from 'react';
 import {
+    Image,
+    ImageSourcePropType,
+    ImageStyle,
+    StyleProp,
     StyleSheet,
     Text,
     TouchableOpacity,
@@ -25,6 +29,9 @@ interface HeaderProps {
     leftIconFamily?: 'material' | 'ionicons' | 'feather' | 'fontawesome';
     leftIconSize?: number;
     leftIconColor?: string;
+    leftImage?: ImageSourcePropType;
+    leftImageStyle?: StyleProp<ImageStyle>;
+    leftContent?: React.ReactNode;
     onLeftPress?: () => void;
     showLeftIcon?: boolean;
 
@@ -54,6 +61,9 @@ const Header: React.FC<HeaderProps> = ({
     leftIconFamily = 'material',
     leftIconSize = 24,
     leftIconColor = colors.textPrimary,
+    leftImage,
+    leftImageStyle,
+    leftContent,
     onLeftPress,
     showLeftIcon = true,
 
@@ -90,7 +100,9 @@ const Header: React.FC<HeaderProps> = ({
             {/* LEFT */}
             <View style={styles.side}>
 
-                {backEnabled ? (
+                {leftContent ? (
+                    leftContent
+                ) : backEnabled ? (
                     <TouchableOpacity
                         activeOpacity={0.7}
                         style={styles.iconButton}
@@ -101,6 +113,19 @@ const Header: React.FC<HeaderProps> = ({
                             name="chevron-back"
                             size={24}
                             color={colors.textPrimary}
+                        />
+                    </TouchableOpacity>
+                ) : leftImage ? (
+                    <TouchableOpacity
+                        activeOpacity={onLeftPress ? 0.7 : 1}
+                        style={styles.iconButton}
+                        onPress={onLeftPress}
+                        disabled={!onLeftPress}
+                    >
+                        <Image
+                            source={leftImage}
+                            style={[styles.leftImage, leftImageStyle]}
+                            resizeMode="contain"
                         />
                     </TouchableOpacity>
                 ) : showLeftIcon && leftIcon ? (
@@ -199,5 +224,10 @@ const styles = StyleSheet.create({
         height: 42,
         alignItems: 'center',
         justifyContent: 'center',
+    },
+
+    leftImage: {
+        width: 36,
+        height: 36,
     },
 });

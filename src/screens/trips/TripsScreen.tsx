@@ -11,7 +11,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { AppIcon } from '../../icons';
 import { colors, typography, shadows, spacing } from '../../theme';
 
-type FilterType = 'All' | 'Completed' | 'Cancelled';
+type FilterType = 'All' | 'Accepted' | 'Rejected';
 
 interface Trip {
     id: number;
@@ -20,7 +20,7 @@ interface Trip {
     pickupTime: string;
     distance: string;
     amount: string;
-    status: 'Completed' | 'Cancelled';
+    status: 'Accepted' | 'Rejected';
     icon: string;
 }
 
@@ -32,7 +32,7 @@ const trips: Trip[] = [
         pickupTime: '2:30 PM',
         distance: '12.4 km',
         amount: '₹350',
-        status: 'Completed',
+        status: 'Accepted',
         icon: 'account',
     },
     {
@@ -42,7 +42,7 @@ const trips: Trip[] = [
         pickupTime: '2:20 PM',
         distance: '8.6 km',
         amount: '₹280',
-        status: 'Completed',
+        status: 'Accepted',
         icon: 'account',
     },
     {
@@ -52,17 +52,17 @@ const trips: Trip[] = [
         pickupTime: '6:45 PM',
         distance: '10.2 km',
         amount: '₹310',
-        status: 'Completed',
+        status: 'Accepted',
         icon: 'account',
     },
     {
         id: 4,
-        name: 'Cancelled Trip',
+        name: 'Rejected Trip',
         time: '11:30 AM',
         pickupTime: '3:20 PM',
         distance: '',
         amount: '₹0',
-        status: 'Cancelled',
+        status: 'Rejected',
         icon: 'close-circle',
     },
 ];
@@ -83,7 +83,7 @@ const TripsScreen = () => {
     const yesterdayTrips = filteredTrips.slice(2);
 
     const renderTrip = (trip: Trip) => {
-        const isCancelled = trip.status === 'Cancelled';
+        const isRejected = trip.status === 'Rejected';
 
         return (
             <View
@@ -97,9 +97,9 @@ const TripsScreen = () => {
                 <View
                     style={[
                         styles.tripIcon,
-                        isCancelled
-                            ? styles.cancelledIcon
-                            : styles.completedIcon,
+                        isRejected
+                            ? styles.rejectedIcon
+                            : styles.acceptedIcon,
                     ]}
                 >
                     <AppIcon
@@ -107,7 +107,7 @@ const TripsScreen = () => {
                         name={trip.icon}
                         size={20}
                         color={
-                            isCancelled
+                            isRejected
                                 ? colors.danger
                                 : colors.primary
                         }
@@ -171,17 +171,17 @@ const TripsScreen = () => {
                     <View
                         style={[
                             styles.statusPill,
-                            isCancelled
-                                ? styles.cancelledPill
-                                : styles.completedPill,
+                            isRejected
+                                ? styles.rejectedPill
+                                : styles.acceptedPill,
                         ]}
                     >
                         <Text
                             style={[
                                 styles.status,
-                                isCancelled
-                                    ? styles.cancelledStatus
-                                    : styles.completedStatus,
+                                isRejected
+                                    ? styles.rejectedStatus
+                                    : styles.acceptedStatus,
                             ]}
                         >
                             {trip.status}
@@ -229,7 +229,7 @@ const TripsScreen = () => {
             <View style={styles.filterContainer}>
 
                 {(
-                    ['All', 'Completed', 'Cancelled'] as FilterType[]
+                    ['All', 'Accepted', 'Rejected'] as FilterType[]
                 ).map(filter => {
 
                     const isActive =
@@ -321,7 +321,7 @@ const TripsScreen = () => {
                         </Text>
 
                         <Text style={styles.emptySubtext}>
-                            Trips you complete will show up here
+                            Your accepted and rejected trips will show up here
                         </Text>
 
                     </View>
@@ -502,11 +502,11 @@ const styles = StyleSheet.create({
         marginRight: spacing.sm,
     },
 
-    completedIcon: {
+    acceptedIcon: {
         backgroundColor: colors.infoLight,
     },
 
-    cancelledIcon: {
+    rejectedIcon: {
         backgroundColor: colors.dangerLight,
     },
 
@@ -593,11 +593,11 @@ const styles = StyleSheet.create({
         borderRadius: 8,
     },
 
-    completedPill: {
+    acceptedPill: {
         backgroundColor: colors.successLight,
     },
 
-    cancelledPill: {
+    rejectedPill: {
         backgroundColor: colors.dangerLight,
     },
 
@@ -607,11 +607,11 @@ const styles = StyleSheet.create({
         letterSpacing: 0.2,
     },
 
-    completedStatus: {
+    acceptedStatus: {
         color: colors.successDark,
     },
 
-    cancelledStatus: {
+    rejectedStatus: {
         color: colors.danger,
     },
 
