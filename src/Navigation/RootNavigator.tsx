@@ -59,6 +59,22 @@ const RootNavigator = () => {
         restoreAuthSession();
     }, [dispatch]);
 
+    // Handle logout or auth state loss: immediately reset navigation to Login
+    useEffect(() => {
+        if (!isAuthenticated && !isRestoring) {
+            setHasSeenSplash(true);
+            const timer = setTimeout(() => {
+                if (navigationRef.isReady()) {
+                    navigationRef.resetRoot({
+                        index: 0,
+                        routes: [{ name: 'Login' as never }],
+                    });
+                }
+            }, 50);
+            return () => clearTimeout(timer);
+        }
+    }, [isAuthenticated, isRestoring]);
+
     // Check for pending emergency trip requests when authenticated and app is loaded
     useEffect(() => {
         if (isAuthenticated && !isRestoring) {

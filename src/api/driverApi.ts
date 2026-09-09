@@ -51,3 +51,29 @@ export const respondToEmergencyRequest = async (
         payload
     );
 };
+
+export interface UpdateDriverOnlineStatusPayload {
+    user_id: number | string;
+    is_online: boolean;
+}
+
+export interface UpdateDriverOnlineStatusResponse {
+    success?: boolean;
+    message?: string;
+    data?: any;
+    [key: string]: any;
+}
+
+/**
+ * PUT /api/ambulance/driver/status
+ * Updates driver online/offline availability status.
+ * Payload: { user_id, is_online }
+ */
+export const updateDriverOnlineStatus = async (
+    payload: UpdateDriverOnlineStatusPayload
+) => {
+    return await axiosInstance.put<UpdateDriverOnlineStatusResponse>(
+        '/api/ambulance/driver/status',
+        payload
+    );
+};

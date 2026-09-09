@@ -14,6 +14,9 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useAppDispatch, useAppSelector } from '../../redux/hook';
 import { logout } from '../../redux/slices/authSlice';
 import { storage } from '../../storage/storage';
+import { resetToLogin } from '../../utils/navigationRef';
+import { updateDriverOnlineStatus } from '../../api';
+import { unsubscribeFromTopic } from '../../services/notificationService';
 
 import {
     colors,
@@ -43,6 +46,8 @@ const ProfileScreen = () => {
     const navigation = useNavigation<ProfileNavigationProp>();
     const dispatch = useAppDispatch();
     const user = useAppSelector(state => state.auth.user);
+    const driverChannel = useAppSelector(state => state.auth.driverChannel);
+    const userChannel = useAppSelector(state => state.auth.userChannel);
 
     const handleLogout = () => {
         Alert.alert(
@@ -54,8 +59,27 @@ const ProfileScreen = () => {
                     text: 'Logout',
                     style: 'destructive',
                     onPress: async () => {
+                        try {
+                            if (user?.id !== undefined && user?.id !== null) {
+                                await updateDriverOnlineStatus({
+                                    user_id: user.id,
+                                    is_online: false,
+                                });
+                            }
+                        } catch (err) {
+                            console.log('Failed to update offline status on logout:', err);
+                        }
+
+                        if (driverChannel) {
+                            unsubscribeFromTopic(driverChannel);
+                        }
+                        if (userChannel) {
+                            unsubscribeFromTopic(userChannel);
+                        }
+
                         await storage.clear();
                         dispatch(logout());
+                        resetToLogin();
                     },
                 },
             ],

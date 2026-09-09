@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
     Image,
     ImageBackground,
@@ -21,40 +21,85 @@ import Header from '../../components/Header/Header';
 import { useNavigation } from '@react-navigation/native';
 import { useAppSelector } from '../../redux/hook';
 import { requestLocationPermission, checkLocationPermission } from '../../utils/locationPermission';
+import { updateDriverOnlineStatus } from '../../api';
+import { storage } from '../../storage/storage';
+import { STORAGE_KEYS } from '../../storage/storageKeys';
 
 const HomeScreen = () => {
     const user = useAppSelector(state => state.auth.user);
     const navigation = useNavigation<any>();
-    const [isOnline, setIsOnline] = useState(false);
+    // By default, header status is ONLINE after login
+    const [isOnline, setIsOnline] = useState(true);
+    const initialStatusSentRef = useRef(false);
 
-    // Check location permission on screen mount
-    React.useEffect(() => {
-        const initPermission = async () => {
-            const hasPermission = await checkLocationPermission();
-            if (hasPermission) {
-                setIsOnline(true);
-            } else {
-                // Prompt user for location permission on first launch
-                const granted = await requestLocationPermission();
-                if (granted) {
-                    setIsOnline(true);
+    // Helper to get userId from Redux or storage fallback
+    const getEffectiveUserId = async (): Promise<number | string | null> => {
+        if (user?.id !== undefined && user?.id !== null) return user.id;
+        if (user?.driver_id !== undefined && user?.driver_id !== null) return user.driver_id;
+        if (user?.userId !== undefined && user?.userId !== null) return user.userId;
+        try {
+            const storedUser = await storage.get<any>(STORAGE_KEYS.USER_DATA);
+            if (storedUser?.id !== undefined && storedUser?.id !== null) return storedUser.id;
+            if (storedUser?.driver_id !== undefined && storedUser?.driver_id !== null) return storedUser.driver_id;
+            if (storedUser?.userId !== undefined && storedUser?.userId !== null) return storedUser.userId;
+        } catch (_) {}
+        return null;
+    };
+
+    const sendStatusUpdate = async (online: boolean) => {
+        const userId = await getEffectiveUserId();
+        if (!userId && userId !== 0) {
+            console.log('⚠️ [HomeScreen] user_id not available, skipping status update');
+            return;
+        }
+        try {
+            console.log(`📡 [HomeScreen] Sending PUT driver status: user_id=${userId}, is_online=${online}`);
+            const res = await updateDriverOnlineStatus({
+                user_id: userId,
+                is_online: online,
+            });
+            console.log('✅ [HomeScreen] Driver online status updated:', res.data);
+        } catch (error) {
+            console.error('❌ [HomeScreen] Failed to update driver status:', error);
+        }
+    };
+
+    // By default after login when user arrives on homescreen:
+    // 1. Set header status to ONLINE (isOnline = true)
+    // 2. Send PUT API call with is_online: true
+    // 3. Ensure location permission is requested/checked
+    useEffect(() => {
+        const initOnlineStatus = async () => {
+            // Check / request location permission
+            checkLocationPermission().then(hasPermission => {
+                if (!hasPermission) {
+                    requestLocationPermission();
                 }
+            });
+
+            // Ensure header reflects ONLINE
+            setIsOnline(true);
+
+            // Send API call with is_online: true once userId is available
+            const userId = await getEffectiveUserId();
+            if ((userId || userId === 0) && !initialStatusSentRef.current) {
+                initialStatusSentRef.current = true;
+                await sendStatusUpdate(true);
             }
         };
-        initPermission();
-    }, []);
+
+        initOnlineStatus();
+    }, [user?.id]);
 
     const handleToggleOnline = async (nextValue: boolean) => {
+        setIsOnline(nextValue);
+        await sendStatusUpdate(nextValue);
+
         if (nextValue) {
-            // Turning status to AVAILABLE - ask for location permission
-            const granted = await requestLocationPermission();
-            if (granted) {
-                setIsOnline(true);
-            } else {
-                setIsOnline(false);
+            const hasPermission = await checkLocationPermission();
+            if (!hasPermission) {
+                await requestLocationPermission();
             }
-        } else {
-            setIsOnline(false);
         }
     };
 

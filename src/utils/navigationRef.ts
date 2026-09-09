@@ -13,3 +13,21 @@ export const navigate = (
         (navigationRef.navigate as any)(name, params);
     }
 };
+
+export const resetToLogin = () => {
+    if (navigationRef.isReady()) {
+        navigationRef.resetRoot({
+            index: 0,
+            routes: [{ name: 'Login' as never }],
+        });
+    }
+};
+
+export const resetToHome = () => {
+    if (navigationRef.isReady()) {
+        navigationRef.resetRoot({
+            index: 0,
+            routes: [{ name: 'MainTabs' as never }],
+        });
+    }
+};

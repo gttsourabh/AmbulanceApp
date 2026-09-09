@@ -19,6 +19,7 @@ import { useAppDispatch } from '../../redux/hook';
 import { loginSuccess } from '../../redux/slices/authSlice';
 import { storage } from '../../storage/storage';
 import { STORAGE_KEYS } from '../../storage/storageKeys';
+import { resetToHome } from '../../utils/navigationRef';
 
 import Button from '../../components/Button/Button';
 import {
@@ -221,7 +222,7 @@ const OtpScreen = () => {
           }
         }
 
-        navigation.replace('MainTabs');
+        resetToHome();
       } else {
         const errorMsg =
           response?.msg ||

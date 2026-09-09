@@ -16,6 +16,7 @@ import Header from '../../components/Header/Header';
 import { useAppDispatch } from '../../redux/hook';
 import { logout } from '../../redux/slices/authSlice';
 import { storage } from '../../storage/storage';
+import { resetToLogin } from '../../utils/navigationRef';
 
 interface SettingItemProps {
   icon: string;
@@ -68,6 +69,7 @@ const SettingsScreen = () => {
           onPress: async () => {
             await storage.clear();
             dispatch(logout());
+            resetToLogin();
           },
         },
       ],
