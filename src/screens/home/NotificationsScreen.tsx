@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   FlatList,
+  RefreshControl,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -14,7 +15,8 @@ import {
   typography,
   spacing,
 } from '../../theme';
-
+import Header from '../../components/Header/Header';
+import { NotificationCardSkeleton } from '../../components/Skeleton';
 interface NotificationItem {
   id: string;
   title: string;
@@ -25,7 +27,6 @@ interface NotificationItem {
   backgroundColor: string;
   iconColor: string;
 }
-import Header from '../../components/Header/Header';
 
 const notifications: NotificationItem[] = [
   {
@@ -71,6 +72,25 @@ const notifications: NotificationItem[] = [
 ];
 
 const NotificationsScreen = () => {
+  const [isLoading, setIsLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsLoading(false);
+    }, 700);
+    return () => clearTimeout(timer);
+  }, []);
+
+  const handleRefresh = () => {
+    setRefreshing(true);
+    setIsLoading(true);
+    setTimeout(() => {
+      setRefreshing(false);
+      setIsLoading(false);
+    }, 1000);
+  };
+
   const renderNotification = ({
     item,
   }: {
@@ -132,14 +152,27 @@ const NotificationsScreen = () => {
 
       <Header title='Notification' backEnabled />
 
-
-      {/* Full Screen Notification List */}
+      {/* Notification List or Skeleton */}
       <FlatList
-        data={notifications}
-        keyExtractor={item => item.id}
-        renderItem={renderNotification}
+        data={isLoading ? ([1, 2, 3, 4, 5, 6] as any[]) : notifications}
+        extraData={isLoading}
+        keyExtractor={item => (isLoading ? `skeleton-${item}` : (item as NotificationItem).id)}
+        renderItem={({ item }) => {
+          if (isLoading) {
+            return <NotificationCardSkeleton />;
+          }
+          return renderNotification({ item: item as NotificationItem });
+        }}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.listContent}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+            colors={[colors.primary]}
+            tintColor={colors.primary}
+          />
+        }
       />
     </SafeAreaView>
   );

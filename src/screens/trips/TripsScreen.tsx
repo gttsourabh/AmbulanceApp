@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import {
+    RefreshControl,
     ScrollView,
     StyleSheet,
     Text,
@@ -9,7 +10,8 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AppIcon } from '../../icons';
-import { colors, typography, shadows, spacing } from '../../theme';
+import { colors, typography, spacing } from '../../theme';
+import { TripCardSkeleton } from '../../components/Skeleton';
 
 type FilterType = 'All' | 'Accepted' | 'Rejected';
 
@@ -70,6 +72,26 @@ const trips: Trip[] = [
 const TripsScreen = () => {
     const [selectedFilter, setSelectedFilter] =
         useState<FilterType>('All');
+    const [isLoading, setIsLoading] = useState(false);
+    const [refreshing, setRefreshing] = useState(false);
+
+    const handleRefresh = () => {
+        setRefreshing(true);
+        setIsLoading(true);
+        setTimeout(() => {
+            setRefreshing(false);
+            setIsLoading(false);
+        }, 1000);
+    };
+
+    const handleFilterChange = (filter: FilterType) => {
+        if (filter === selectedFilter) return;
+        setSelectedFilter(filter);
+        setIsLoading(true);
+        setTimeout(() => {
+            setIsLoading(false);
+        }, 450);
+    };
 
     const filteredTrips = trips.filter(trip => {
         if (selectedFilter === 'All') {
@@ -240,7 +262,7 @@ const TripsScreen = () => {
                             key={filter}
                             activeOpacity={0.8}
                             onPress={() =>
-                                setSelectedFilter(filter)
+                                handleFilterChange(filter)
                             }
                             style={[
                                 styles.filterButton,
@@ -272,59 +294,77 @@ const TripsScreen = () => {
                 contentContainerStyle={
                     styles.scrollContent
                 }
+                refreshControl={
+                    <RefreshControl
+                        refreshing={refreshing}
+                        onRefresh={handleRefresh}
+                        colors={[colors.primary]}
+                        tintColor={colors.primary}
+                    />
+                }
             >
-
-                {/* TODAY */}
-
-                {todayTrips.length > 0 && (
+                {isLoading ? (
                     <View style={styles.section}>
-
-                        <Text style={styles.sectionTitle}>
-                            Today
-                        </Text>
-
-                        {todayTrips.map(renderTrip)}
-
+                        <TripCardSkeleton />
+                        <TripCardSkeleton />
+                        <TripCardSkeleton />
+                        <TripCardSkeleton />
                     </View>
-                )}
+                ) : (
+                    <>
+                        {/* TODAY */}
 
-                {/* YESTERDAY */}
+                        {todayTrips.length > 0 && (
+                            <View style={styles.section}>
 
-                {yesterdayTrips.length > 0 && (
-                    <View style={styles.section}>
+                                <Text style={styles.sectionTitle}>
+                                    Today
+                                </Text>
 
-                        <Text style={styles.sectionTitle}>
-                            Yesterday
-                        </Text>
+                                {todayTrips.map(renderTrip)}
 
-                        {yesterdayTrips.map(renderTrip)}
+                            </View>
+                        )}
 
-                    </View>
-                )}
+                        {/* YESTERDAY */}
 
-                {/* EMPTY */}
+                        {yesterdayTrips.length > 0 && (
+                            <View style={styles.section}>
 
-                {filteredTrips.length === 0 && (
-                    <View style={styles.emptyContainer}>
+                                <Text style={styles.sectionTitle}>
+                                    Yesterday
+                                </Text>
 
-                        <View style={styles.emptyIconCircle}>
-                            <AppIcon
-                                family="material"
-                                name="clipboard-text-outline"
-                                size={40}
-                                color={colors.textLight}
-                            />
-                        </View>
+                                {yesterdayTrips.map(renderTrip)}
 
-                        <Text style={styles.emptyText}>
-                            No trips found
-                        </Text>
+                            </View>
+                        )}
 
-                        <Text style={styles.emptySubtext}>
-                            Your accepted and rejected trips will show up here
-                        </Text>
+                        {/* EMPTY */}
 
-                    </View>
+                        {filteredTrips.length === 0 && (
+                            <View style={styles.emptyContainer}>
+
+                                <View style={styles.emptyIconCircle}>
+                                    <AppIcon
+                                        family="material"
+                                        name="clipboard-text-outline"
+                                        size={40}
+                                        color={colors.textLight}
+                                    />
+                                </View>
+
+                                <Text style={styles.emptyText}>
+                                    No trips found
+                                </Text>
+
+                                <Text style={styles.emptySubtext}>
+                                    Your accepted and rejected trips will show up here
+                                </Text>
+
+                            </View>
+                        )}
+                    </>
                 )}
 
             </ScrollView>

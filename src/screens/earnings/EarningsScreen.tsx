@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import {
+    RefreshControl,
     ScrollView,
     StyleSheet,
     Text,
@@ -10,6 +11,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AppIcon } from '../../icons';
 import { colors } from '../../theme';
+import { EarningsCardSkeleton } from '../../components/Skeleton';
 
 type Period = 'Daily' | 'Weekly' | 'Monthly';
 
@@ -38,6 +40,26 @@ const transactions: Transaction[] = [
 const EarningsScreen = () => {
     const [selectedPeriod, setSelectedPeriod] =
         useState<Period>('Daily');
+    const [isLoading, setIsLoading] = useState(false);
+    const [refreshing, setRefreshing] = useState(false);
+
+    const handleRefresh = () => {
+        setRefreshing(true);
+        setIsLoading(true);
+        setTimeout(() => {
+            setRefreshing(false);
+            setIsLoading(false);
+        }, 1000);
+    };
+
+    const handlePeriodChange = (period: Period) => {
+        if (period === selectedPeriod) return;
+        setSelectedPeriod(period);
+        setIsLoading(true);
+        setTimeout(() => {
+            setIsLoading(false);
+        }, 450);
+    };
 
     return (
         <SafeAreaView
@@ -65,7 +87,7 @@ const EarningsScreen = () => {
                                 key={period}
                                 activeOpacity={0.8}
                                 onPress={() =>
-                                    setSelectedPeriod(period)
+                                    handlePeriodChange(period)
                                 }
                                 style={[
                                     styles.periodButton,
@@ -88,118 +110,131 @@ const EarningsScreen = () => {
 
             <ScrollView
                 showsVerticalScrollIndicator={false}
-                contentContainerStyle={styles.scrollContent}>
+                contentContainerStyle={styles.scrollContent}
+                refreshControl={
+                    <RefreshControl
+                        refreshing={refreshing}
+                        onRefresh={handleRefresh}
+                        colors={[colors.primary]}
+                        tintColor={colors.primary}
+                    />
+                }
+            >
+                {isLoading ? (
+                    <EarningsCardSkeleton />
+                ) : (
+                    <>
+                        {/* ================= EARNINGS SUMMARY ================= */}
 
-                {/* ================= EARNINGS SUMMARY ================= */}
+                        <View style={styles.summaryCard}>
 
-                <View style={styles.summaryCard}>
+                            <View style={styles.summaryTopRow}>
 
-                    <View style={styles.summaryTopRow}>
+                                <View>
+                                    <Text style={styles.summaryLabel}>
+                                        Today's Earnings
+                                    </Text>
 
-                        <View>
-                            <Text style={styles.summaryLabel}>
-                                Today's Earnings
-                            </Text>
+                                    <Text style={styles.totalAmount}>
+                                        ₹ 1,250
+                                    </Text>
+                                </View>
 
-                            <Text style={styles.totalAmount}>
-                                ₹ 1,250
-                            </Text>
-                        </View>
+                                <View style={styles.summaryIconCircle}>
+                                    <AppIcon
+                                        family="material"
+                                        name="wallet"
+                                        size={22}
+                                        color={colors.primary}
+                                    />
+                                </View>
 
-                        <View style={styles.summaryIconCircle}>
-                            <AppIcon
-                                family="material"
-                                name="cash-multiple"
-                                size={22}
-                                color={colors.primary}
-                            />
-                        </View>
-
-                    </View>
-
-                    <View style={styles.statsContainer}>
-
-                        {/* Trips */}
-
-                        <View style={styles.statItem}>
-                            <Text style={styles.statLabel}>
-                                Trips
-                            </Text>
-
-                            <Text style={styles.statValue}>
-                                04
-                            </Text>
-                        </View>
-
-                        <View style={styles.statDivider} />
-
-                        {/* Cash Collected */}
-
-                        <View style={styles.statItem}>
-                            <Text style={styles.statLabel}>
-                                Cash Collected
-                            </Text>
-
-                            <Text style={styles.statValue}>
-                                ₹ 1,250
-                            </Text>
-                        </View>
-
-                    </View>
-                </View>
-
-                {/* ================= RECENT TRANSACTIONS ================= */}
-
-                <Text style={styles.sectionTitle}>
-                    Recent Transactions
-                </Text>
-
-                <View style={styles.transactionCard}>
-
-                    {transactions.map((transaction, index) => (
-                        <View
-                            key={transaction.id}
-                            style={[
-                                styles.transactionRow,
-                                index === transactions.length - 1 &&
-                                styles.lastTransaction,
-                            ]}>
-
-                            {/* User Icon */}
-
-                            <View style={styles.transactionIcon}>
-                                <AppIcon
-                                    family="material"
-                                    name="account"
-                                    size={18}
-                                    color={colors.primary}
-                                />
                             </View>
 
-                            {/* User Details */}
+                            {/* ================= STATS ================= */}
 
-                            <View style={styles.transactionInfo}>
-                                <Text style={styles.transactionName}>
-                                    {transaction.name}
-                                </Text>
+                            <View style={styles.statsContainer}>
 
-                                <Text style={styles.transactionTime}>
-                                    {transaction.time}
-                                </Text>
-                            </View>
+                                <View style={styles.statItem}>
+                                    <Text style={styles.statLabel}>
+                                        Total Trips
+                                    </Text>
 
-                            {/* Amount */}
+                                    <Text style={styles.statValue}>
+                                        04
+                                    </Text>
+                                </View>
 
-                            <View style={styles.amountPill}>
-                                <Text style={styles.transactionAmount}>
-                                    {transaction.amount}
-                                </Text>
+                                <View style={styles.statDivider} />
+
+                                <View style={styles.statItem}>
+                                    <Text style={styles.statLabel}>
+                                        Online Hours
+                                    </Text>
+
+                                    <Text style={styles.statValue}>
+                                        6.5 hrs
+                                    </Text>
+                                </View>
+
                             </View>
 
                         </View>
-                    ))}
 
-                </View>
+                        {/* ================= RECENT TRANSACTIONS ================= */}
+
+                        <Text style={styles.sectionTitle}>
+                            Recent Transactions
+                        </Text>
+
+                        <View style={styles.transactionCard}>
+
+                            {transactions.map((transaction, index) => (
+                                <View
+                                    key={transaction.id}
+                                    style={[
+                                        styles.transactionRow,
+                                        index === transactions.length - 1 &&
+                                        styles.lastTransaction,
+                                    ]}>
+
+                                    {/* Icon */}
+
+                                    <View style={styles.transactionIcon}>
+                                        <AppIcon
+                                            family="material"
+                                            name="arrow-bottom-left"
+                                            size={18}
+                                            color={colors.success}
+                                        />
+                                    </View>
+
+                                    {/* User + Time */}
+
+                                    <View style={styles.transactionInfo}>
+                                        <Text style={styles.transactionName}>
+                                            {transaction.name}
+                                        </Text>
+
+                                        <Text style={styles.transactionTime}>
+                                            {transaction.time}
+                                        </Text>
+                                    </View>
+
+                                    {/* Amount */}
+
+                                    <View style={styles.amountPill}>
+                                        <Text style={styles.transactionAmount}>
+                                            {transaction.amount}
+                                        </Text>
+                                    </View>
+
+                                </View>
+                            ))}
+
+                        </View>
+                    </>
+                )}
 
             </ScrollView>
         </SafeAreaView>

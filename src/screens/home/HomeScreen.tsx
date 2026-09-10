@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import {
     Image,
     ImageBackground,
+    RefreshControl,
     ScrollView,
     StyleSheet,
     Switch,
@@ -18,6 +19,7 @@ import {
 
 import { AppIcon } from '../../icons';
 import Header from '../../components/Header/Header';
+import { HomeScreenSkeleton } from '../../components/Skeleton';
 import { useNavigation } from '@react-navigation/native';
 import { useAppSelector } from '../../redux/hook';
 import { requestLocationPermission, checkLocationPermission } from '../../utils/locationPermission';
@@ -30,7 +32,22 @@ const HomeScreen = () => {
     const navigation = useNavigation<any>();
     // By default, header status is ONLINE after login
     const [isOnline, setIsOnline] = useState(true);
+    const [isLoading, setIsLoading] = useState(false);
+    const [refreshing, setRefreshing] = useState(false);
     const initialStatusSentRef = useRef(false);
+
+    const handleRefresh = async () => {
+        setRefreshing(true);
+        setIsLoading(true);
+        const userId = await getEffectiveUserId();
+        if (userId || userId === 0) {
+            await sendStatusUpdate(isOnline);
+        }
+        setTimeout(() => {
+            setRefreshing(false);
+            setIsLoading(false);
+        }, 1000);
+    };
 
     // Helper to get userId from Redux or storage fallback
     const getEffectiveUserId = async (): Promise<number | string | null> => {
@@ -42,7 +59,9 @@ const HomeScreen = () => {
             if (storedUser?.id !== undefined && storedUser?.id !== null) return storedUser.id;
             if (storedUser?.driver_id !== undefined && storedUser?.driver_id !== null) return storedUser.driver_id;
             if (storedUser?.userId !== undefined && storedUser?.userId !== null) return storedUser.userId;
-        } catch (_) {}
+        } catch {
+            // ignore
+        }
         return null;
     };
 
@@ -89,6 +108,7 @@ const HomeScreen = () => {
         };
 
         initOnlineStatus();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [user?.id]);
 
     const handleToggleOnline = async (nextValue: boolean) => {
@@ -182,8 +202,20 @@ const HomeScreen = () => {
             <ScrollView
                 showsVerticalScrollIndicator={false}
                 contentContainerStyle={styles.scrollContent}
+                refreshControl={
+                    <RefreshControl
+                        refreshing={refreshing}
+                        onRefresh={handleRefresh}
+                        colors={[colors.primary]}
+                        tintColor={colors.primary}
+                    />
+                }
             >
-                <View style={styles.greetingSection}>
+                {isLoading ? (
+                    <HomeScreenSkeleton />
+                ) : (
+                    <>
+                        <View style={styles.greetingSection}>
                     <View style={styles.greetingContent}>
                         <Text style={styles.greeting}>
                             Good Morning,
@@ -382,6 +414,8 @@ const HomeScreen = () => {
                         Emergency Request
                     </Text>
                 </TouchableOpacity>
+                    </>
+                )}
             </ScrollView>
         </SafeAreaView>
     );
