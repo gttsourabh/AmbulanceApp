@@ -251,7 +251,7 @@ const styles = StyleSheet.create({
 
     container: {
         flex: 1,
-         backgroundColor: colors.background,
+        backgroundColor: colors.background,
     },
 
     // =====================================================
@@ -339,7 +339,7 @@ const styles = StyleSheet.create({
 
     scrollContent: {
         paddingHorizontal: 16,
-        paddingBottom: 80,
+        paddingBottom: 96,
 
         backgroundColor: colors.background,
     },

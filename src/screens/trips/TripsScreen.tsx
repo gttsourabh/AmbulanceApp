@@ -387,7 +387,7 @@ const styles = StyleSheet.create({
 
     container: {
         flex: 1,
-         backgroundColor: colors.background,
+        backgroundColor: colors.background,
     },
 
     // =====================================================
@@ -491,7 +491,7 @@ const styles = StyleSheet.create({
 
     scrollContent: {
         paddingHorizontal: 16,
-        paddingBottom: 24,
+        paddingBottom: 96,
     },
 
     section: {
