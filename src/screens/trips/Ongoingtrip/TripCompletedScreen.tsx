@@ -6,7 +6,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { colors, typography, shadows, spacing } from '../../../theme';
+import { colors, typography, shadows } from '../../../theme';
 import { AppIcon } from '../../../icons';
 import Button from '../../../components/Button/Button';
 import { useNavigation } from '@react-navigation/native';
@@ -238,7 +238,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
 
-        paddingTop: spacing.md,
+        paddingTop: 12,
     },
 
     successIconRing: {
@@ -252,7 +252,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
 
-        marginBottom: spacing.sm,
+        marginBottom: 8,
     },
 
     successIcon: {
@@ -289,7 +289,7 @@ const styles = StyleSheet.create({
     // =====================================================
 
     contentCardShadowWrap: {
-        marginHorizontal: spacing.md,
+        marginHorizontal: 14,
         marginTop: -28,
 
         borderRadius: 20,
@@ -302,7 +302,7 @@ const styles = StyleSheet.create({
     },
 
     contentCard: {
-        padding: spacing.md,
+        padding: 14,
 
          backgroundColor: colors.background,
 
@@ -320,10 +320,10 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
 
-        paddingHorizontal: spacing.xs,
-        paddingVertical: spacing.xs,
+        paddingHorizontal: 4,
+        paddingVertical: 4,
 
-        marginBottom: spacing.sm,
+        marginBottom: 8,
     },
 
     avatar: {
@@ -340,7 +340,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
 
-        marginRight: spacing.sm,
+        marginRight: 8,
 
         overflow: 'hidden',
     },
@@ -377,7 +377,7 @@ const styles = StyleSheet.create({
 
         color: colors.textSecondary,
 
-        marginLeft: spacing.xs,
+        marginLeft: 4,
     },
 
     earnedBadge: {
@@ -413,7 +413,7 @@ const styles = StyleSheet.create({
     // =====================================================
 
     detailsCard: {
-        padding: spacing.md,
+        padding: 12,
 
         borderRadius: 14,
 
@@ -422,7 +422,7 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: colors.border,
 
-        marginBottom: spacing.md,
+        marginBottom: 12,
     },
 
     detailsTitle: {
@@ -432,7 +432,7 @@ const styles = StyleSheet.create({
 
         color: colors.textLight,
 
-        marginBottom: spacing.sm,
+        marginBottom: 8,
     },
 
     detailRow: {

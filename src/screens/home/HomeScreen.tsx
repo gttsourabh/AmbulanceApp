@@ -14,7 +14,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import {
     colors,
     typography,
-    spacing,
 } from '../../theme';
 
 import { AppIcon } from '../../icons';
@@ -431,8 +430,8 @@ const styles = StyleSheet.create({
     },
 
     scrollContent: {
-        paddingHorizontal: spacing.lg,
-        paddingBottom: spacing.xxxl,
+        paddingHorizontal: 16,
+        paddingBottom: 24,
     },
 
     headerLogo: {
@@ -483,8 +482,8 @@ const styles = StyleSheet.create({
     greetingSection: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginTop: spacing.md,
-        marginBottom: spacing.xl,
+        marginTop: 8,
+        marginBottom: 12,
     },
 
     greetingContent: {
@@ -493,23 +492,27 @@ const styles = StyleSheet.create({
 
     greeting: {
         fontFamily: 'GoogleSans-Regular',
-        fontSize: typography.fontSize.xs,
+        fontSize: 12,
+        lineHeight: 15,
+        includeFontPadding: false,
         color: colors.textSecondary,
         letterSpacing: 0.2,
         marginBottom: 4,
     },
 
     userName: {
-        fontFamily: 'GoogleSans-Medium',
-        fontSize: typography.fontSize.xl,
+        fontFamily: 'GoogleSans-Bold',
+        fontSize: 18,
+        lineHeight: 22,
+        includeFontPadding: false,
         color: colors.textPrimary,
         letterSpacing: 0.1,
     },
 
     profileAvatar: {
-        width: 50,
-        height: 50,
-        borderRadius: 25,
+        width: 44,
+        height: 44,
+        borderRadius: 22,
         backgroundColor: colors.primaryLight,
         alignItems: 'center',
         justifyContent: 'center',
@@ -520,14 +523,14 @@ const styles = StyleSheet.create({
 
     emergencyCardOuterWrapper: {
         position: 'relative',
-        marginTop: 10,
-        marginBottom: spacing.xs,
+        marginTop: 0,
+        marginBottom: 14,
         overflow: 'visible',
     },
 
     emergencyCardContainer: {
-        height: 124,
-        borderRadius: 20,
+        height: 114,
+        borderRadius: 16,
         backgroundColor: '#F0F5F8',
         overflow: 'hidden',
         borderWidth: 1.2,
@@ -535,11 +538,10 @@ const styles = StyleSheet.create({
         shadowColor: '#1E3A8A',
         shadowOffset: {
             width: 0,
-            height: 4,
+            height: 3,
         },
-        shadowOpacity: 0.06,
-        shadowRadius: 14,
-        // elevation: 2,
+        shadowOpacity: 0.05,
+        shadowRadius: 10,
     },
 
     emergencyCardBg: {
@@ -549,7 +551,7 @@ const styles = StyleSheet.create({
     },
 
     emergencyCardBgImage: {
-        borderRadius: 20,
+        borderRadius: 16,
         opacity: 0.35,
     },
 
@@ -558,19 +560,21 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        paddingLeft: spacing.lg,
-        paddingRight: spacing.sm,
+        paddingLeft: 14,
+        paddingRight: 8,
     },
 
     statusTextContainer: {
         flex: 1,
         justifyContent: 'center',
-        paddingVertical: spacing.xs,
+        paddingVertical: 4,
     },
 
     statusSubtitleText: {
         fontFamily: 'GoogleSans-Medium',
-        fontSize: 14,
+        fontSize: 12.5,
+        lineHeight: 16,
+        includeFontPadding: false,
         color: '#0A2027',
         letterSpacing: 0.2,
         marginBottom: 4,
@@ -581,7 +585,9 @@ const styles = StyleSheet.create({
 
     statusTitleText: {
         fontFamily: 'GoogleSans-Bold',
-        fontSize: 20,
+        fontSize: 18,
+        lineHeight: 22,
+        includeFontPadding: false,
         fontWeight: 'bold',
         color: '#05161A',
         letterSpacing: -0.2,
@@ -592,24 +598,25 @@ const styles = StyleSheet.create({
 
     statusTapHint: {
         fontFamily: 'GoogleSans-Bold',
-        fontSize: 12,
+        fontSize: 11,
+        lineHeight: 15,
+        includeFontPadding: false,
         color: colors.primaryDark,
-        marginTop: 4,
+        marginTop: 3,
     },
 
     ambulancePlaceholder: {
-        width: 120,
-        height: 80,
+        width: 100,
+        height: 70,
     },
 
     statusCardAmbulancePopOut: {
         position: 'absolute',
-        right: 25,
-        top: 10,
-        width: 135,
-        height: 105,
+        right: 20,
+        top: 6,
+        width: 120,
+        height: 95,
         zIndex: 10,
-        // elevation: 5,
     },
 
     statusCardAmbulanceOffline: {
@@ -626,17 +633,17 @@ const styles = StyleSheet.create({
     offlinePill: {
         flexDirection: 'row',
         alignItems: 'center',
-        paddingVertical: 5,
-        paddingHorizontal: 14,
-        borderRadius: 16,
+        paddingVertical: 4,
+        paddingHorizontal: 12,
+        borderRadius: 14,
         backgroundColor: '#FFFFFF',
         marginBottom: 4,
     },
 
     offlineDot: {
-        width: 7,
-        height: 7,
-        borderRadius: 3.5,
+        width: 6,
+        height: 6,
+        borderRadius: 3,
         backgroundColor: '#94A3B8',
         marginRight: 6,
     },
@@ -644,6 +651,8 @@ const styles = StyleSheet.create({
     offlinePillText: {
         fontFamily: 'GoogleSans-Bold',
         fontSize: typography.fontSize.xs,
+        lineHeight: 15,
+        includeFontPadding: false,
         color: '#3d4b5eff',
         letterSpacing: 0.4,
     },
@@ -651,40 +660,43 @@ const styles = StyleSheet.create({
     offlinePrompt: {
         fontFamily: 'GoogleSans-Medium',
         fontSize: typography.fontSize.xs,
+        lineHeight: 15,
+        includeFontPadding: false,
         color: '#FFFFFF',
     },
 
     overviewSection: {
-        marginTop: spacing.xl,
+        marginTop: 0,
     },
 
     sectionTitle: {
         fontFamily: 'GoogleSans-Bold',
-        fontSize: typography.fontSize.md,
+        fontSize: 14,
+        lineHeight: 18,
+        includeFontPadding: false,
         color: colors.textPrimary,
         letterSpacing: 0.1,
-        marginBottom: spacing.sm,
+        marginBottom: 8,
     },
 
     overviewCard: {
         backgroundColor: colors.card,
-        borderRadius: 18,
-        paddingHorizontal: spacing.md,
+        borderRadius: 14,
+        paddingHorizontal: 12,
         borderWidth: 1,
         borderColor: colors.border,
         shadowColor: colors.shadow,
         shadowOffset: {
             width: 0,
-            height: 4,
+            height: 2,
         },
         shadowOpacity: 0.04,
-        shadowRadius: 12,
-        // elevation: 2,
+        shadowRadius: 8,
     },
 
     overviewRow: {
-        minHeight: 60,
-        paddingVertical: spacing.sm,
+        minHeight: 48,
+        paddingVertical: 6,
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
@@ -702,33 +714,37 @@ const styles = StyleSheet.create({
     },
 
     iconBox: {
-        width: 36,
-        height: 36,
-        borderRadius: 12,
+        width: 32,
+        height: 32,
+        borderRadius: 9,
         alignItems: 'center',
         justifyContent: 'center',
-        marginRight: spacing.sm,
+        marginRight: 10,
     },
 
     rowLabel: {
         fontFamily: 'GoogleSans-Medium',
-        fontSize: typography.fontSize.sm,
+        fontSize: 13,
+        lineHeight: 17,
+        includeFontPadding: false,
         color: colors.textSecondary,
         letterSpacing: 0.1,
     },
 
     rowValue: {
         fontFamily: 'GoogleSans-Bold',
-        fontSize: typography.fontSize.md,
+        fontSize: 14,
+        lineHeight: 18,
+        includeFontPadding: false,
         color: colors.textPrimary,
         letterSpacing: 0.1,
     },
 
     emergencyButton: {
-        minHeight: 54,
-        marginTop: spacing.sm,
-        paddingHorizontal: spacing.md,
-        borderRadius: 16,
+        minHeight: 46,
+        marginTop: 12,
+        paddingHorizontal: 16,
+        borderRadius: 13,
         backgroundColor: colors.dangerLight,
         borderWidth: 1,
         borderColor: colors.danger,
@@ -740,7 +756,9 @@ const styles = StyleSheet.create({
 
     emergencyButtonText: {
         fontFamily: 'GoogleSans-Medium',
-        fontSize: typography.fontSize.sm,
+        fontSize: 13.5,
+        lineHeight: 18,
+        includeFontPadding: false,
         color: colors.danger,
     },
 

@@ -10,8 +10,8 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AppIcon } from '../../icons';
-import { colors, typography, spacing } from '../../theme';
-import { TripCardSkeleton } from '../../components/Skeleton';
+import { colors, typography } from '../../theme';
+import { Skeleton, TripCardSkeleton } from '../../components/Skeleton';
 
 type FilterType = 'All' | 'Accepted' | 'Rejected';
 
@@ -305,6 +305,12 @@ const TripsScreen = () => {
             >
                 {isLoading ? (
                     <View style={styles.section}>
+                        <Skeleton
+                            variant="text"
+                            width={50}
+                            height={11}
+                            style={styles.sectionTitleSkeleton}
+                        />
                         <TripCardSkeleton />
                         <TripCardSkeleton />
                         <TripCardSkeleton />
@@ -391,7 +397,7 @@ const styles = StyleSheet.create({
     header: {
         height: 58,
 
-        paddingHorizontal: spacing.lg,
+        paddingHorizontal: 16,
 
         flexDirection: 'row',
         alignItems: 'center',
@@ -401,13 +407,15 @@ const styles = StyleSheet.create({
     headerTitle: {
         fontFamily: 'GoogleSans-Medium',
         fontSize: typography.fontSize.lg,
+        lineHeight: 22,
+        includeFontPadding: false,
         color: colors.textPrimary,
         letterSpacing: 0.1,
     },
 
     filterIconButton: {
         position: 'absolute',
-        right: spacing.lg,
+        right: 16,
 
         width: 38,
         height: 38,
@@ -427,14 +435,14 @@ const styles = StyleSheet.create({
     filterContainer: {
         flexDirection: 'row',
 
-        marginHorizontal: spacing.lg,
+        marginHorizontal: 16,
 
-        marginTop: spacing.xs,
-        marginBottom: spacing.md,
+        marginTop: 4,
+        marginBottom: 10,
 
-        padding: 4,
+        padding: 3,
 
-        borderRadius: 16,
+        borderRadius: 14,
 
         backgroundColor: colors.divider,
     },
@@ -442,9 +450,9 @@ const styles = StyleSheet.create({
     filterButton: {
         flex: 1,
 
-        height: 38,
+        height: 34,
 
-        borderRadius: 13,
+        borderRadius: 11,
 
         alignItems: 'center',
         justifyContent: 'center',
@@ -456,21 +464,25 @@ const styles = StyleSheet.create({
         backgroundColor: colors.card,
 
         shadowColor: colors.shadow,
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.08,
-        shadowRadius: 6,
+        shadowOffset: { width: 0, height: 1.5 },
+        shadowOpacity: 0.07,
+        shadowRadius: 5,
         elevation: 2,
     },
 
     filterText: {
         fontFamily: 'GoogleSans-Medium',
-        fontSize: typography.fontSize.xs,
+        fontSize: 12,
+        lineHeight: 16,
+        includeFontPadding: false,
         color: colors.textSecondary,
     },
 
     activeFilterText: {
         color: colors.primary,
-        fontFamily: 'GoogleSans-Medium',
+        fontFamily: 'GoogleSans-Bold',
+        lineHeight: 16,
+        includeFontPadding: false,
     },
 
     // =====================================================
@@ -478,22 +490,29 @@ const styles = StyleSheet.create({
     // =====================================================
 
     scrollContent: {
-        paddingHorizontal: spacing.lg,
-        paddingBottom: spacing.huge,
+        paddingHorizontal: 16,
+        paddingBottom: 24,
     },
 
     section: {
-        marginTop: spacing.sm,
+        marginTop: 6,
     },
 
     sectionTitle: {
         fontFamily: 'GoogleSans-Medium',
         fontSize: 11,
+        lineHeight: 14,
+        includeFontPadding: false,
         color: colors.textLight,
         letterSpacing: 0.6,
         textTransform: 'uppercase',
 
-        marginBottom: spacing.sm,
+        marginBottom: 8,
+        marginLeft: 2,
+    },
+
+    sectionTitleSkeleton: {
+        marginBottom: 8,
         marginLeft: 2,
     },
 
@@ -502,16 +521,14 @@ const styles = StyleSheet.create({
     // =====================================================
 
     tripCard: {
-        minHeight: 88,
-
         backgroundColor: colors.card,
 
-        borderRadius: 16,
+        borderRadius: 14,
 
-        marginBottom: spacing.sm,
+        marginBottom: 10,
 
-        paddingHorizontal: spacing.sm,
-        paddingVertical: spacing.sm,
+        paddingHorizontal: 12,
+        paddingVertical: 11,
 
         borderWidth: 1,
         borderColor: colors.border,
@@ -520,9 +537,9 @@ const styles = StyleSheet.create({
         alignItems: 'center',
 
         shadowColor: colors.shadow,
-        shadowOffset: { width: 0, height: 3 },
+        shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.04,
-        shadowRadius: 10,
+        shadowRadius: 8,
         elevation: 1,
     },
 
@@ -531,15 +548,15 @@ const styles = StyleSheet.create({
     // =====================================================
 
     tripIcon: {
-        width: 42,
-        height: 42,
+        width: 40,
+        height: 40,
 
-        borderRadius: 13,
+        borderRadius: 12,
 
         alignItems: 'center',
         justifyContent: 'center',
 
-        marginRight: spacing.sm,
+        marginRight: 10,
     },
 
     acceptedIcon: {
@@ -559,12 +576,14 @@ const styles = StyleSheet.create({
 
         justifyContent: 'center',
 
-        paddingRight: spacing.xs,
+        paddingRight: 6,
     },
 
     passengerName: {
         fontFamily: 'GoogleSans-Medium',
-        fontSize: typography.fontSize.sm,
+        fontSize: 13.5,
+        lineHeight: 17,
+        includeFontPadding: false,
         color: colors.textPrimary,
         letterSpacing: 0.1,
 
@@ -578,7 +597,9 @@ const styles = StyleSheet.create({
 
     pickupTime: {
         fontFamily: 'GoogleSans-Regular',
-        fontSize: typography.fontSize.xs,
+        fontSize: 11.5,
+        lineHeight: 15,
+        includeFontPadding: false,
         color: colors.textSecondary,
 
         marginLeft: 4,
@@ -596,7 +617,9 @@ const styles = StyleSheet.create({
 
     distance: {
         fontFamily: 'GoogleSans-Regular',
-        fontSize: typography.fontSize.xs,
+        fontSize: 11.5,
+        lineHeight: 15,
+        includeFontPadding: false,
         color: colors.textSecondary,
     },
 
@@ -605,14 +628,16 @@ const styles = StyleSheet.create({
     // =====================================================
 
     tripRight: {
-        minWidth: 82,
+        minWidth: 80,
 
         alignItems: 'flex-end',
     },
 
     tripTime: {
         fontFamily: 'GoogleSans-Regular',
-        fontSize: typography.fontSize.xs,
+        fontSize: 11,
+        lineHeight: 14,
+        includeFontPadding: false,
         color: colors.textLight,
 
         marginBottom: 3,
@@ -620,17 +645,19 @@ const styles = StyleSheet.create({
 
     amount: {
         fontFamily: 'GoogleSans-Bold',
-        fontSize: typography.fontSize.sm,
+        fontSize: 14.5,
+        lineHeight: 18,
+        includeFontPadding: false,
         color: colors.textPrimary,
 
-        marginBottom: 6,
+        marginBottom: 4,
     },
 
     statusPill: {
         paddingHorizontal: 8,
-        paddingVertical: 3,
+        paddingVertical: 2.5,
 
-        borderRadius: 8,
+        borderRadius: 6,
     },
 
     acceptedPill: {
@@ -644,6 +671,8 @@ const styles = StyleSheet.create({
     status: {
         fontFamily: 'GoogleSans-Medium',
         fontSize: 10,
+        lineHeight: 13,
+        includeFontPadding: false,
         letterSpacing: 0.2,
     },
 
@@ -679,18 +708,22 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
 
-        marginBottom: spacing.md,
+        marginBottom: 12,
     },
 
     emptyText: {
         fontFamily: 'GoogleSans-Medium',
         fontSize: typography.fontSize.sm,
+        lineHeight: 18,
+        includeFontPadding: false,
         color: colors.textPrimary,
     },
 
     emptySubtext: {
         fontFamily: 'GoogleSans-Regular',
         fontSize: typography.fontSize.xs,
+        lineHeight: 16,
+        includeFontPadding: false,
         color: colors.textLight,
 
         marginTop: 4,

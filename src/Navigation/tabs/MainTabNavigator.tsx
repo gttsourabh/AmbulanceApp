@@ -242,7 +242,6 @@ import { AppIcon } from '../../icons';
 import {
     colors,
     typography,
-    spacing,
 } from '../../theme';
 import ProfileStack from '../stacks/Profilestack';
 
@@ -661,7 +660,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'space-around',
 
-        paddingHorizontal: spacing.sm,
+        paddingHorizontal: 8,
 
         zIndex: 10,
     },

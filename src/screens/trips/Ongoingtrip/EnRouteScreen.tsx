@@ -18,7 +18,7 @@ import MapView, {
 } from 'react-native-maps';
 import { useNavigation } from '@react-navigation/native';
 
-import { colors, typography, spacing } from '../../../theme';
+import { colors, typography } from '../../../theme';
 import { AppIcon } from '../../../icons';
 import Header from '../../../components/Header/Header';
 import Button from '../../../components/Button/Button';
@@ -720,11 +720,11 @@ const styles = StyleSheet.create({
   // DISTANCE CARD
   distanceCard: {
     position: 'absolute',
-    top: spacing.md,
-    left: spacing.md,
+    top: 14,
+    left: 14,
     minWidth: 140,
-    paddingHorizontal: spacing.sm + 2,
-    paddingVertical: spacing.sm,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
     borderRadius: 14,
     backgroundColor: colors.card,
     borderWidth: 1,
@@ -755,7 +755,7 @@ const styles = StyleSheet.create({
   routePillsRow: {
     flexDirection: 'row',
     gap: 6,
-    marginTop: spacing.xs + 2,
+    marginTop: 6,
   },
 
   routePill: {
@@ -790,7 +790,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: spacing.sm,
+    marginRight: 10,
   },
 
   distanceText: {
@@ -810,8 +810,8 @@ const styles = StyleSheet.create({
   // FLOATING CONTROLS (TOP RIGHT)
   controlsContainer: {
     position: 'absolute',
-    top: spacing.md,
-    right: spacing.md,
+    top: 14,
+    right: 14,
     gap: 8,
     zIndex: 10,
   },
@@ -840,9 +840,9 @@ const styles = StyleSheet.create({
   // HOSPITAL CARD
   hospitalCardShadowWrap: {
     position: 'absolute',
-    left: spacing.md,
-    right: spacing.md,
-    bottom: spacing.md,
+    left: 14,
+    right: 14,
+    bottom: 14,
     borderRadius: 18,
     shadowColor: colors.shadow,
     shadowOffset: { width: 0, height: 8 },
@@ -854,7 +854,7 @@ const styles = StyleSheet.create({
 
   hospitalCard: {
     minHeight: 72,
-    paddingHorizontal: spacing.sm,
+    paddingHorizontal: 10,
     borderRadius: 18,
     backgroundColor: colors.card,
     borderWidth: 1,
@@ -870,12 +870,12 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primaryLight,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: spacing.sm,
+    marginRight: 10,
   },
 
   hospitalInfo: {
     flex: 1,
-    paddingRight: spacing.xs,
+    paddingRight: 6,
   },
 
   hospitalName: {
@@ -908,9 +908,9 @@ const styles = StyleSheet.create({
   },
 
   bottomContainer: {
-    paddingHorizontal: spacing.md,
-    paddingTop: spacing.sm,
-    paddingBottom: spacing.sm,
+    paddingHorizontal: 14,
+    paddingTop: 8,
+    paddingBottom: 8,
     backgroundColor: colors.background,
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: colors.divider,
@@ -918,7 +918,7 @@ const styles = StyleSheet.create({
 
   bottomButtonsRow: {
     flexDirection: 'row',
-    gap: spacing.sm,
+    gap: 8,
   },
 
   startButton: {
@@ -940,7 +940,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(15, 23, 42, 0.55)', // blurred dark blue backdrop
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: spacing.xl,
+    paddingHorizontal: 20,
   },
 
   modalContentCard: {
@@ -948,8 +948,8 @@ const styles = StyleSheet.create({
     maxWidth: 320,
     backgroundColor: colors.card,
     borderRadius: 20,
-    paddingVertical: spacing.xl,
-    paddingHorizontal: spacing.lg,
+    paddingVertical: 20,
+    paddingHorizontal: 16,
     alignItems: 'center',
     borderWidth: 1,
     borderColor: colors.border,
@@ -967,18 +967,18 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(37, 99, 235, 0.12)',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: spacing.sm,
+    marginBottom: 8,
   },
 
   modalSpinner: {
-    marginVertical: spacing.xs,
+    marginVertical: 4,
   },
 
   modalTitle: {
     fontFamily: 'GoogleSans-Bold',
     fontSize: typography.fontSize.md,
     color: colors.textPrimary,
-    marginTop: spacing.xs,
+    marginTop: 4,
     textAlign: 'center',
   },
 

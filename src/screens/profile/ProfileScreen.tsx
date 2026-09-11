@@ -22,7 +22,6 @@ import {
     colors,
     typography,
     shadows,
-    spacing,
 } from '../../theme';
 
 import { AppIcon } from '../../icons';
@@ -287,8 +286,8 @@ const styles = StyleSheet.create({
     },
 
     scrollContent: {
-        paddingHorizontal: spacing.lg,
-        paddingBottom: spacing.huge,
+        paddingHorizontal: 16,
+        paddingBottom: 24,
     },
 
     // =====================================================
@@ -297,8 +296,8 @@ const styles = StyleSheet.create({
 
     profileSection: {
         alignItems: 'center',
-        paddingTop: spacing.lg,
-        paddingBottom: spacing.xl,
+        paddingTop: 16,
+        paddingBottom: 16,
     },
 
     profileImageRing: {
@@ -310,7 +309,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
 
-        marginBottom: spacing.md,
+        marginBottom: 10,
 
         backgroundColor: colors.card,
 
@@ -371,7 +370,7 @@ const styles = StyleSheet.create({
         fontFamily: 'GoogleSans-Regular',
         fontSize: typography.fontSize.xs,
         color: colors.textSecondary,
-        marginBottom: spacing.sm,
+        marginBottom: 8,
     },
 
     verifiedPill: {
@@ -402,7 +401,7 @@ const styles = StyleSheet.create({
     optionsCard: {
         backgroundColor: colors.card,
         borderRadius: 18,
-        paddingHorizontal: spacing.md,
+        paddingHorizontal: 14,
 
         borderWidth: 1,
         borderColor: colors.border,
@@ -434,7 +433,7 @@ const styles = StyleSheet.create({
         borderRadius: 13,
         alignItems: 'center',
         justifyContent: 'center',
-        marginRight: spacing.md,
+        marginRight: 12,
     },
 
     // =====================================================
@@ -444,7 +443,7 @@ const styles = StyleSheet.create({
     optionContent: {
         flex: 1,
         justifyContent: 'center',
-        paddingRight: spacing.xs,
+        paddingRight: 6,
     },
 
     optionTitle: {
@@ -492,11 +491,11 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
 
-        gap: spacing.xs,
+        gap: 6,
 
         minHeight: 54,
 
-        marginTop: spacing.lg,
+        marginTop: 16,
 
         borderRadius: 16,
 
@@ -519,6 +518,6 @@ const styles = StyleSheet.create({
         fontSize: typography.fontSize.xs,
         color: colors.textLight,
         textAlign: 'center',
-        marginTop: spacing.xl,
+        marginTop: 16,
     },
 });

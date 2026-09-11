@@ -15,7 +15,6 @@ import { AppIcon } from '../../icons';
 import {
     colors,
     typography,
-    spacing,
 } from '../../theme';
 
 interface HeaderProps {
@@ -196,7 +195,7 @@ export default Header;
 const styles = StyleSheet.create({
     container: {
         height: 58,
-        paddingHorizontal: spacing.md,
+        paddingHorizontal: 16,
 
         flexDirection: 'row',
         alignItems: 'center',

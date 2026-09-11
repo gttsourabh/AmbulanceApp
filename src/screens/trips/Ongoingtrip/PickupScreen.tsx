@@ -9,7 +9,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 
-import { colors, typography, shadows, spacing } from '../../../theme';
+import { colors, typography, shadows } from '../../../theme';
 import { AppIcon } from '../../../icons';
 import Header from '../../../components/Header/Header';
 import Button from '../../../components/Button/Button';
@@ -238,8 +238,8 @@ const styles = StyleSheet.create({
 
   content: {
     flex: 1,
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.md,
+    paddingHorizontal: 16,
+    paddingTop: 12,
   },
 
   // =====================================================
@@ -251,8 +251,8 @@ const styles = StyleSheet.create({
 
     borderRadius: 18,
 
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.xs,
+    paddingHorizontal: 14,
+    paddingVertical: 4,
 
     borderWidth: 1,
     borderColor: colors.border,
@@ -269,14 +269,14 @@ const styles = StyleSheet.create({
   // =====================================================
 
   patientSection: {
-    paddingVertical: spacing.sm,
+    paddingVertical: 8,
   },
 
   patientRow: {
     flexDirection: 'row',
     alignItems: 'center',
 
-    gap: spacing.sm,
+    gap: 8,
   },
 
   patientIconCircle: {
@@ -321,7 +321,7 @@ const styles = StyleSheet.create({
   // =====================================================
 
   otpSection: {
-    paddingVertical: spacing.md,
+    paddingVertical: 12,
   },
 
   otpHint: {
@@ -329,7 +329,7 @@ const styles = StyleSheet.create({
     fontSize: typography.fontSize.xs,
     color: colors.textSecondary,
 
-    marginBottom: spacing.sm,
+    marginBottom: 8,
   },
 
   otpContainer: {
@@ -364,7 +364,7 @@ const styles = StyleSheet.create({
   // =====================================================
 
   notesSection: {
-    paddingVertical: spacing.sm,
+    paddingVertical: 8,
   },
 
   notesLabelRow: {
@@ -391,7 +391,7 @@ const styles = StyleSheet.create({
   startButton: {
     height: 54,
 
-    marginTop: spacing.lg,
+    marginTop: 16,
 
     borderRadius: 14,
   },

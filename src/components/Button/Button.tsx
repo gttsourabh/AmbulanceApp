@@ -8,7 +8,7 @@ import {
     ViewStyle,
 } from 'react-native';
 
-import { colors, typography, shadows, spacing } from '../../theme';
+import { colors, typography, shadows } from '../../theme';
 import { AppIcon } from '../../icons';
 
 interface ButtonProps {
@@ -101,7 +101,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
 
-        gap: spacing.xs,
+        gap: 6,
 
         ...shadows.card,
     },

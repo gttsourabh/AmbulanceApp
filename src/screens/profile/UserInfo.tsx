@@ -7,7 +7,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { colors, typography, shadows, spacing } from '../../theme';
+import { colors, typography, shadows } from '../../theme';
 import { AppIcon } from '../../icons';
 import Header from '../../components/Header/Header';
 import { useAppSelector } from '../../redux/hook';
@@ -204,8 +204,8 @@ const styles = StyleSheet.create({
 
     content: {
         flex: 1,
-        paddingHorizontal: spacing.lg,
-        paddingTop: spacing.md,
+        paddingHorizontal: 16,
+        paddingTop: 12,
     },
 
     // =====================================================
@@ -215,8 +215,8 @@ const styles = StyleSheet.create({
     profileSection: {
         alignItems: 'center',
 
-        paddingTop: spacing.sm,
-        paddingBottom: spacing.xl,
+        paddingTop: 8,
+        paddingBottom: 16,
     },
 
     avatarContainer: {
@@ -235,7 +235,7 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: colors.border,
 
-        marginBottom: spacing.sm,
+        marginBottom: 8,
     },
 
     userName: {
@@ -266,7 +266,7 @@ const styles = StyleSheet.create({
         letterSpacing: 0.6,
         textTransform: 'uppercase',
 
-        marginBottom: spacing.sm,
+        marginBottom: 8,
         marginLeft: 2,
     },
 
@@ -279,7 +279,7 @@ const styles = StyleSheet.create({
 
         borderRadius: 18,
 
-        paddingHorizontal: spacing.md,
+        paddingHorizontal: 14,
 
         borderWidth: 1,
         borderColor: colors.border,
@@ -315,7 +315,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
 
-        marginRight: spacing.sm,
+        marginRight: 10,
     },
 
     // =====================================================

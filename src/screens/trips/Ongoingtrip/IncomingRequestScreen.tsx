@@ -14,7 +14,7 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import Header from '../../../components/Header/Header';
-import { colors, typography, spacing } from '../../../theme';
+import { colors, typography } from '../../../theme';
 import { AppIcon } from '../../../icons';
 import Button from '../../../components/Button/Button';
 import { EmergencyTripData } from '../../../utils/emergencyNotificationHandler';
@@ -358,9 +358,9 @@ const styles = StyleSheet.create({
     backgroundColor: colors.card,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.md,
-    paddingBottom: spacing.md,
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: 12,
     borderWidth: 1,
     borderColor: colors.border,
     borderBottomWidth: 0,
@@ -371,7 +371,7 @@ const styles = StyleSheet.create({
   // =====================================================
 
   section: {
-    paddingVertical: spacing.xs,
+    paddingVertical: 4,
   },
 
   labelRow: {
@@ -455,7 +455,7 @@ const styles = StyleSheet.create({
   divider: {
     height: StyleSheet.hairlineWidth,
     backgroundColor: colors.divider,
-    marginVertical: spacing.xs,
+    marginVertical: 4,
   },
 
   // =====================================================
@@ -465,7 +465,7 @@ const styles = StyleSheet.create({
   metaRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: spacing.sm,
+    paddingVertical: 8,
   },
 
   metaItem: {
@@ -476,7 +476,7 @@ const styles = StyleSheet.create({
     width: StyleSheet.hairlineWidth,
     height: 40,
     backgroundColor: colors.divider,
-    marginHorizontal: spacing.md,
+    marginHorizontal: 12,
   },
 
   typePill: {
@@ -509,8 +509,8 @@ const styles = StyleSheet.create({
 
   actionRow: {
     flexDirection: 'row',
-    gap: spacing.sm,
-    marginTop: spacing.sm,
+    gap: 8,
+    marginTop: 8,
   },
 
   rejectButton: {

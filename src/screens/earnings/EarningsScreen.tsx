@@ -270,6 +270,8 @@ const styles = StyleSheet.create({
     headerTitle: {
         fontFamily: 'GoogleSans-Bold',
         fontSize: 18,
+        lineHeight: 22,
+        includeFontPadding: false,
         color: colors.textPrimary,
         letterSpacing: 0.1,
     },
@@ -281,23 +283,23 @@ const styles = StyleSheet.create({
     periodContainer: {
         flexDirection: 'row',
 
-        marginHorizontal: 18,
+        marginHorizontal: 16,
 
         marginTop: 4,
-        marginBottom: 16,
+        marginBottom: 12,
 
-        padding: 4,
+        padding: 3,
 
-        borderRadius: 16,
+        borderRadius: 14,
 
         backgroundColor: colors.divider,
     },
 
     periodButton: {
         flex: 1,
-        height: 36,
+        height: 33,
 
-        borderRadius: 12,
+        borderRadius: 11,
 
         alignItems: 'center',
         justifyContent: 'center',
@@ -309,21 +311,25 @@ const styles = StyleSheet.create({
         backgroundColor: colors.card,
 
         shadowColor: colors.shadow,
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.08,
-        shadowRadius: 6,
+        shadowOffset: { width: 0, height: 1.5 },
+        shadowOpacity: 0.07,
+        shadowRadius: 5,
         elevation: 2,
     },
 
     periodText: {
         fontFamily: 'GoogleSans-Medium',
-        fontSize: 12,
+        fontSize: 11.5,
+        lineHeight: 15,
+        includeFontPadding: false,
 
         color: colors.textSecondary,
     },
 
     activePeriodText: {
         fontFamily: 'GoogleSans-Bold',
+        lineHeight: 15,
+        includeFontPadding: false,
         color: colors.primary,
     },
 
@@ -332,10 +338,10 @@ const styles = StyleSheet.create({
     // =====================================================
 
     scrollContent: {
-        paddingHorizontal: 18,
-        paddingBottom: 100,
+        paddingHorizontal: 16,
+        paddingBottom: 80,
 
-         backgroundColor: colors.background,
+        backgroundColor: colors.background,
     },
 
     // =====================================================
@@ -345,26 +351,26 @@ const styles = StyleSheet.create({
     summaryCard: {
         backgroundColor: colors.card,
 
-        borderRadius: 20,
+        borderRadius: 16,
 
-        paddingHorizontal: 18,
-        paddingTop: 18,
-        paddingBottom: 16,
+        paddingHorizontal: 16,
+        paddingTop: 15,
+        paddingBottom: 13,
 
-        marginBottom: 22,
+        marginBottom: 16,
 
         borderWidth: 1,
         borderColor: colors.border,
 
-        elevation: 3,
+        elevation: 2,
 
         shadowColor: colors.shadow,
         shadowOffset: {
             width: 0,
-            height: 6,
+            height: 3,
         },
-        shadowOpacity: 0.06,
-        shadowRadius: 16,
+        shadowOpacity: 0.05,
+        shadowRadius: 10,
     },
 
     summaryTopRow: {
@@ -372,14 +378,14 @@ const styles = StyleSheet.create({
         alignItems: 'flex-start',
         justifyContent: 'space-between',
 
-        marginBottom: 18,
+        marginBottom: 12,
     },
 
     summaryIconCircle: {
-        width: 44,
-        height: 44,
+        width: 40,
+        height: 40,
 
-        borderRadius: 22,
+        borderRadius: 20,
 
         backgroundColor: colors.primaryLight,
 
@@ -389,17 +395,21 @@ const styles = StyleSheet.create({
 
     summaryLabel: {
         fontFamily: 'GoogleSans-Medium',
-        fontSize: 12,
+        fontSize: 11.5,
+        lineHeight: 15,
+        includeFontPadding: false,
 
         color: colors.textSecondary,
         letterSpacing: 0.2,
 
-        marginBottom: 5,
+        marginBottom: 4,
     },
 
     totalAmount: {
         fontFamily: 'GoogleSans-Bold',
-        fontSize: 27,
+        fontSize: 25,
+        lineHeight: 30,
+        includeFontPadding: false,
 
         color: colors.textPrimary,
         letterSpacing: 0.2,
@@ -414,7 +424,7 @@ const styles = StyleSheet.create({
 
         alignItems: 'center',
 
-        paddingTop: 16,
+        paddingTop: 12,
 
         borderTopWidth: StyleSheet.hairlineWidth,
         borderTopColor: colors.divider,
@@ -426,27 +436,31 @@ const styles = StyleSheet.create({
 
     statLabel: {
         fontFamily: 'GoogleSans-Regular',
-        fontSize: 11,
+        fontSize: 10.5,
+        lineHeight: 14,
+        includeFontPadding: false,
 
         color: colors.textLight,
 
-        marginBottom: 4,
+        marginBottom: 3,
     },
 
     statValue: {
         fontFamily: 'GoogleSans-Bold',
-        fontSize: 15,
+        fontSize: 14,
+        lineHeight: 18,
+        includeFontPadding: false,
 
         color: colors.textPrimary,
     },
 
     statDivider: {
         width: StyleSheet.hairlineWidth,
-        height: 38,
+        height: 30,
 
         backgroundColor: colors.divider,
 
-        marginHorizontal: 15,
+        marginHorizontal: 14,
     },
 
     // =====================================================
@@ -455,39 +469,42 @@ const styles = StyleSheet.create({
 
     sectionTitle: {
         fontFamily: 'GoogleSans-Bold',
-        fontSize: 13,
+        fontSize: 11.5,
+        lineHeight: 14,
+        includeFontPadding: false,
 
         color: colors.textLight,
         letterSpacing: 0.6,
         textTransform: 'uppercase',
 
-        marginBottom: 10,
+        marginBottom: 8,
         marginLeft: 2,
     },
 
     transactionCard: {
         backgroundColor: colors.card,
 
-        borderRadius: 18,
+        borderRadius: 14,
 
-        paddingHorizontal: 14,
+        paddingHorizontal: 12,
 
         borderWidth: 1,
         borderColor: colors.border,
 
-        elevation: 3,
+        elevation: 2,
 
         shadowColor: colors.shadow,
         shadowOffset: {
             width: 0,
-            height: 4,
+            height: 2,
         },
-        shadowOpacity: 0.05,
-        shadowRadius: 12,
+        shadowOpacity: 0.04,
+        shadowRadius: 8,
     },
 
     transactionRow: {
-        minHeight: 68,
+        minHeight: 56,
+        paddingVertical: 8,
 
         flexDirection: 'row',
         alignItems: 'center',
@@ -505,17 +522,17 @@ const styles = StyleSheet.create({
     // =====================================================
 
     transactionIcon: {
-        width: 38,
-        height: 38,
+        width: 34,
+        height: 34,
 
-        borderRadius: 13,
+        borderRadius: 10,
 
         backgroundColor: colors.primaryLight,
 
         alignItems: 'center',
         justifyContent: 'center',
 
-        marginRight: 12,
+        marginRight: 10,
     },
 
     // =====================================================
@@ -528,7 +545,9 @@ const styles = StyleSheet.create({
 
     transactionName: {
         fontFamily: 'GoogleSans-Bold',
-        fontSize: 13,
+        fontSize: 12.5,
+        lineHeight: 16,
+        includeFontPadding: false,
 
         color: colors.textPrimary,
 
@@ -538,6 +557,8 @@ const styles = StyleSheet.create({
     transactionTime: {
         fontFamily: 'GoogleSans-Regular',
         fontSize: 10,
+        lineHeight: 13,
+        includeFontPadding: false,
 
         color: colors.textLight,
     },
@@ -547,10 +568,10 @@ const styles = StyleSheet.create({
     // =====================================================
 
     amountPill: {
-        paddingHorizontal: 9,
-        paddingVertical: 4,
+        paddingHorizontal: 8,
+        paddingVertical: 3.5,
 
-        borderRadius: 8,
+        borderRadius: 6,
 
         backgroundColor: colors.successLight,
     },
@@ -558,7 +579,8 @@ const styles = StyleSheet.create({
     transactionAmount: {
         fontFamily: 'GoogleSans-Bold',
         fontSize: 12,
-
+        lineHeight: 15,
+        includeFontPadding: false,
         color: colors.successDark,
     },
 });

@@ -13,7 +13,6 @@ import { AppIcon } from '../../icons';
 import {
   colors,
   typography,
-  spacing,
 } from '../../theme';
 import Header from '../../components/Header/Header';
 import { NotificationCardSkeleton } from '../../components/Skeleton';
@@ -215,8 +214,8 @@ const styles = StyleSheet.create({
   // ==========================================
 
   listContent: {
-    paddingHorizontal: spacing.md,
-    paddingBottom: spacing.lg,
+    paddingHorizontal: 16,
+    paddingBottom: 20,
   },
 
   // ==========================================
@@ -224,17 +223,17 @@ const styles = StyleSheet.create({
   // ==========================================
 
   notificationRow: {
-    minHeight: 72,
+    minHeight: 52,
 
     flexDirection: 'row',
     alignItems: 'center',
 
-    paddingVertical: spacing.sm,
+    paddingVertical: 7,
 
-    // No border
-    borderWidth: 0,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: colors.divider,
 
-     backgroundColor: colors.background,
+    backgroundColor: colors.background,
   },
 
   // ==========================================
@@ -242,15 +241,15 @@ const styles = StyleSheet.create({
   // ==========================================
 
   iconContainer: {
-    width: 38,
-    height: 38,
+    width: 34,
+    height: 34,
 
-    borderRadius: 19,
+    borderRadius: 17,
 
     alignItems: 'center',
     justifyContent: 'center',
 
-    marginRight: spacing.md,
+    marginRight: 10,
   },
 
   // ==========================================
@@ -262,25 +261,26 @@ const styles = StyleSheet.create({
 
     justifyContent: 'center',
 
-    paddingRight: spacing.sm,
+    paddingRight: 6,
   },
 
   notificationTitle: {
     fontFamily: 'GoogleSans-Medium',
-    fontSize: typography.fontSize.sm,
+    fontSize: 13,
     fontWeight: typography.fontWeight.semibold,
 
     color: colors.textPrimary,
 
-    marginBottom: 4,
+    marginBottom: 2,
   },
 
   notificationMessage: {
     fontFamily: 'GoogleSans-Regular',
-    fontSize: typography.fontSize.xs,
+    fontSize: 11.5,
     fontWeight: typography.fontWeight.regular,
 
     color: colors.textSecondary,
+    lineHeight: 15,
   },
 
   // ==========================================
@@ -289,12 +289,12 @@ const styles = StyleSheet.create({
 
   time: {
     fontFamily: 'GoogleSans-Regular',
-    fontSize: typography.fontSize.xs,
+    fontSize: 10.5,
 
     color: colors.textLight,
 
     alignSelf: 'flex-start',
 
-    marginTop: spacing.sm,
+    marginTop: 2,
   },
 });

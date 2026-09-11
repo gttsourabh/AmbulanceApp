@@ -8,7 +8,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { colors, typography, shadows, spacing } from '../../theme';
+import { colors, typography, shadows } from '../../theme';
 import { AppIcon } from '../../icons';
 import Header from '../../components/Header/Header';
 
@@ -194,9 +194,9 @@ const styles = StyleSheet.create({
   },
 
   scrollContent: {
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.sm,
-    paddingBottom: spacing.huge,
+    paddingHorizontal: 16,
+    paddingTop: 8,
+    paddingBottom: 24,
   },
 
   // =====================================================
@@ -209,9 +209,9 @@ const styles = StyleSheet.create({
 
     borderRadius: 20,
 
-    paddingLeft: spacing.md,
-    paddingRight: spacing.sm,
-    paddingVertical: spacing.md,
+    paddingLeft: 14,
+    paddingRight: 8,
+    paddingVertical: 12,
 
     borderWidth: 1,
     borderColor: colors.border,
@@ -237,7 +237,7 @@ const styles = StyleSheet.create({
     color: colors.textLight,
     letterSpacing: 0.6,
 
-    marginBottom: spacing.xs,
+    marginBottom: 4,
   },
 
   vehicleNumber: {
@@ -285,8 +285,8 @@ const styles = StyleSheet.create({
     letterSpacing: 0.6,
     textTransform: 'uppercase',
 
-    marginTop: spacing.lg,
-    marginBottom: spacing.sm,
+    marginTop: 16,
+    marginBottom: 8,
     marginLeft: 2,
   },
 
@@ -299,7 +299,7 @@ const styles = StyleSheet.create({
 
     borderRadius: 18,
 
-    paddingHorizontal: spacing.md,
+    paddingHorizontal: 14,
 
     borderWidth: 1,
     borderColor: colors.border,
@@ -344,13 +344,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
 
-    marginRight: spacing.sm,
+    marginRight: 10,
   },
 
   documentInfo: {
     flex: 1,
     justifyContent: 'center',
-    paddingRight: spacing.xs,
+    paddingRight: 6,
   },
 
   documentName: {

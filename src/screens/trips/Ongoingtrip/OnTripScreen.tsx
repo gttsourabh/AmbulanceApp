@@ -14,7 +14,7 @@ import MapView, {
 } from 'react-native-maps';
 import { useNavigation } from '@react-navigation/native';
 
-import { colors, typography, shadows, spacing } from '../../../theme';
+import { colors, typography, shadows } from '../../../theme';
 import { AppIcon } from '../../../icons';
 import Header from '../../../components/Header/Header';
 import Button from '../../../components/Button/Button';
@@ -276,14 +276,14 @@ const styles = StyleSheet.create({
   // CONTENT
   content: {
     flex: 1,
-    paddingHorizontal: spacing.md,
-    paddingTop: spacing.md,
+    paddingHorizontal: 16,
+    paddingTop: 12,
   },
 
   // HOSPITAL
   hospitalCard: {
     minHeight: 72,
-    paddingHorizontal: spacing.sm,
+    paddingHorizontal: 10,
     borderRadius: 16,
     backgroundColor: colors.card,
     borderWidth: 1,
@@ -304,12 +304,12 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primaryLight,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: spacing.sm,
+    marginRight: 10,
   },
 
   hospitalInfo: {
     flex: 1,
-    paddingRight: spacing.xs,
+    paddingRight: 6,
   },
 
   hospitalName: {
@@ -358,7 +358,7 @@ const styles = StyleSheet.create({
 
   // MINI MAP
   miniMapCard: {
-    marginTop: spacing.sm,
+    marginTop: 8,
     height: 140,
     borderRadius: 16,
     overflow: 'hidden',
@@ -374,8 +374,8 @@ const styles = StyleSheet.create({
 
   expandMapOverlay: {
     position: 'absolute',
-    bottom: spacing.xs,
-    right: spacing.xs,
+    bottom: 4,
+    right: 4,
   },
 
   expandButton: {
@@ -403,9 +403,9 @@ const styles = StyleSheet.create({
 
   // STATS
   statsCard: {
-    marginTop: spacing.sm,
+    marginTop: 8,
     minHeight: 80,
-    paddingHorizontal: spacing.lg,
+    paddingHorizontal: 16,
     borderRadius: 16,
     backgroundColor: colors.card,
     borderWidth: 1,
@@ -449,8 +449,8 @@ const styles = StyleSheet.create({
 
   // PROGRESS
   progressCard: {
-    marginTop: spacing.sm,
-    padding: spacing.md,
+    marginTop: 8,
+    padding: 12,
     borderRadius: 16,
     backgroundColor: colors.card,
     borderWidth: 1,
@@ -468,7 +468,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.4,
     color: colors.textLight,
     textTransform: 'uppercase',
-    marginBottom: spacing.md,
+    marginBottom: 12,
   },
 
   progressRow: {
@@ -479,7 +479,7 @@ const styles = StyleSheet.create({
   progressIndicator: {
     alignItems: 'center',
     width: 24,
-    marginRight: spacing.sm,
+    marginRight: 10,
   },
 
   completedCircle: {
@@ -552,9 +552,9 @@ const styles = StyleSheet.create({
 
   // BOTTOM BUTTON
   bottomContainer: {
-    paddingHorizontal: spacing.md,
-    paddingTop: spacing.sm,
-    paddingBottom: spacing.sm,
+    paddingHorizontal: 14,
+    paddingTop: 8,
+    paddingBottom: 8,
     backgroundColor: colors.background,
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: colors.divider,

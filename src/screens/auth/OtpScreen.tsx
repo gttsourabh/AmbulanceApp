@@ -26,7 +26,6 @@ import {
   colors,
   dimensions,
   shadows,
-  spacing,
   typography,
 } from '../../theme';
 
@@ -576,7 +575,7 @@ const styles = StyleSheet.create({
 
   content: {
     flex: 1,
-    paddingHorizontal: spacing.lg,
+    paddingHorizontal: 16,
   },
 
   // =====================================================
@@ -587,7 +586,7 @@ const styles = StyleSheet.create({
     width: dimensions.buttonHeight,
     height: dimensions.buttonHeight,
 
-    marginTop: spacing.xs,
+    marginTop: 4,
 
     justifyContent: 'center',
     alignItems: 'flex-start',
@@ -605,7 +604,7 @@ const styles = StyleSheet.create({
   // =====================================================
 
   mainContent: {
-    paddingTop: spacing.lg,
+    paddingTop: 16,
   },
 
   title: {
@@ -615,7 +614,7 @@ const styles = StyleSheet.create({
 
     letterSpacing: -0.5,
 
-    marginBottom: spacing.sm,
+    marginBottom: 8,
 
     fontFamily: 'GoogleSans-Regular',
   },
@@ -637,7 +636,7 @@ const styles = StyleSheet.create({
 
     fontWeight: '700',
 
-    marginTop: spacing.xs,
+    marginTop: 4,
 
     fontFamily: 'GoogleSans-Regular',
   },
@@ -647,7 +646,7 @@ const styles = StyleSheet.create({
   // =====================================================
 
   otpInputWrapper: {
-    marginTop: spacing.lg,
+    marginTop: 16,
 
     width: '100%',
   },
@@ -669,7 +668,7 @@ const styles = StyleSheet.create({
 
     justifyContent: 'space-between',
 
-    paddingHorizontal: spacing.xs,
+    paddingHorizontal: 4,
   },
 
   otpBox: {
@@ -719,8 +718,8 @@ const styles = StyleSheet.create({
   },
 
   inlineErrorContainer: {
-    marginTop: spacing.sm,
-    paddingHorizontal: spacing.sm,
+    marginTop: 8,
+    paddingHorizontal: 8,
     alignItems: 'center',
   },
 
@@ -737,7 +736,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     alignSelf: 'center',
-    marginTop: spacing.md,
+    marginTop: 12,
     paddingVertical: 6,
     paddingHorizontal: 14,
     borderRadius: 20,
@@ -779,7 +778,7 @@ const styles = StyleSheet.create({
   // =====================================================
 
   verifyButton: {
-    marginTop: spacing.lg,
+    marginTop: 16,
   },
 
   // =====================================================
@@ -792,7 +791,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
 
-    marginTop: spacing.lg,
+    marginTop: 16,
   },
 
   resendText: {
@@ -812,7 +811,7 @@ const styles = StyleSheet.create({
 
     fontWeight: '700',
 
-    marginLeft: spacing.xs,
+    marginLeft: 4,
 
     fontFamily: 'GoogleSans-Regular',
   },
@@ -834,10 +833,10 @@ const styles = StyleSheet.create({
   changeNumberButton: {
     alignSelf: 'center',
 
-    marginTop: spacing.md,
+    marginTop: 12,
 
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.md,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
   },
 
   changeNumberText: {

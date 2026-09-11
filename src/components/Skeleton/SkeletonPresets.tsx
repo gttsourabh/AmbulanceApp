@@ -1,7 +1,7 @@
 import React from 'react';
 import { DimensionValue, StyleSheet, View } from 'react-native';
 import { Skeleton } from './Skeleton';
-import { colors, spacing } from '../../theme';
+import { colors } from '../../theme';
 
 // ============================================================================
 // BASIC BUILDING BLOCKS
@@ -73,9 +73,9 @@ export const TripCardSkeleton: React.FC = () => {
             {/* Left Icon */}
             <Skeleton
                 variant="rounded"
-                width={42}
-                height={42}
-                borderRadius={13}
+                width={40}
+                height={40}
+                borderRadius={12}
                 style={styles.mr10}
             />
 
@@ -83,21 +83,21 @@ export const TripCardSkeleton: React.FC = () => {
             <View style={styles.tripMiddle}>
                 <Skeleton
                     variant="text"
-                    width="70%"
-                    height={16}
-                    style={styles.mb6}
+                    width="65%"
+                    height={14}
+                    style={styles.mb4}
                 />
                 <View style={styles.rowCenter}>
                     <Skeleton
                         variant="circle"
-                        width={12}
-                        height={12}
+                        width={10}
+                        height={10}
                         style={styles.mr6}
                     />
                     <Skeleton
                         variant="text"
-                        width="50%"
-                        height={12}
+                        width="45%"
+                        height={11}
                     />
                 </View>
             </View>
@@ -106,21 +106,21 @@ export const TripCardSkeleton: React.FC = () => {
             <View style={styles.tripRight}>
                 <Skeleton
                     variant="text"
-                    width={45}
+                    width={40}
                     height={10}
-                    style={styles.mb4}
+                    style={styles.mb3}
                 />
                 <Skeleton
                     variant="text"
-                    width={55}
-                    height={16}
-                    style={styles.mb6}
+                    width={50}
+                    height={15}
+                    style={styles.mb4}
                 />
                 <Skeleton
                     variant="rounded"
-                    width={64}
-                    height={20}
-                    borderRadius={8}
+                    width={60}
+                    height={19}
+                    borderRadius={6}
                 />
             </View>
         </View>
@@ -136,10 +136,10 @@ export const NotificationCardSkeleton: React.FC = () => {
             {/* Left circular icon */}
             <Skeleton
                 variant="circle"
-                width={38}
-                height={38}
-                borderRadius={19}
-                style={styles.mr12}
+                width={34}
+                height={34}
+                borderRadius={17}
+                style={styles.mr10}
             />
 
             {/* Content lines */}
@@ -147,20 +147,20 @@ export const NotificationCardSkeleton: React.FC = () => {
                 <Skeleton
                     variant="text"
                     width="55%"
-                    height={14}
-                    style={styles.mb6}
+                    height={13}
+                    style={styles.mb3}
                 />
                 <Skeleton
                     variant="text"
                     width="85%"
-                    height={12}
+                    height={11}
                 />
             </View>
 
             {/* Time */}
             <Skeleton
                 variant="text"
-                width={40}
+                width={36}
                 height={10}
                 style={styles.selfStart}
             />
@@ -180,21 +180,21 @@ export const EarningsCardSkeleton: React.FC = () => {
                     <View>
                         <Skeleton
                             variant="text"
-                            width={90}
-                            height={12}
-                            style={styles.mb8}
+                            width={80}
+                            height={11}
+                            style={styles.mb4}
                         />
                         <Skeleton
                             variant="text"
-                            width={160}
-                            height={28}
+                            width={140}
+                            height={25}
                         />
                     </View>
                     <Skeleton
                         variant="circle"
-                        width={44}
-                        height={44}
-                        borderRadius={22}
+                        width={40}
+                        height={40}
+                        borderRadius={20}
                     />
                 </View>
 
@@ -203,28 +203,28 @@ export const EarningsCardSkeleton: React.FC = () => {
                     <View style={styles.statItem}>
                         <Skeleton
                             variant="text"
-                            width={60}
-                            height={11}
-                            style={styles.mb4}
+                            width={55}
+                            height={10}
+                            style={styles.mb3}
                         />
                         <Skeleton
                             variant="text"
-                            width={40}
-                            height={16}
+                            width={38}
+                            height={14}
                         />
                     </View>
                     <View style={styles.statDivider} />
                     <View style={styles.statItem}>
                         <Skeleton
                             variant="text"
-                            width={75}
-                            height={11}
-                            style={styles.mb4}
+                            width={65}
+                            height={10}
+                            style={styles.mb3}
                         />
                         <Skeleton
                             variant="text"
-                            width={50}
-                            height={16}
+                            width={45}
+                            height={14}
                         />
                     </View>
                 </View>
@@ -233,43 +233,50 @@ export const EarningsCardSkeleton: React.FC = () => {
             {/* Section Title */}
             <Skeleton
                 variant="text"
-                width={140}
-                height={13}
-                style={styles.mb12}
+                width={130}
+                height={11}
+                style={[styles.mb8, styles.ml2]}
             />
 
-            {/* 3 Transaction Cards */}
-            {[1, 2, 3].map(key => (
-                <View key={key} style={styles.transactionCard}>
-                    <View style={styles.transactionRow}>
+            {/* Transactions Card with Rows */}
+            <View style={styles.transactionCardContainer}>
+                {[1, 2, 3].map((key, index) => (
+                    <View
+                        key={key}
+                        style={[
+                            styles.transactionRow,
+                            index === 2 && styles.lastRow,
+                        ]}
+                    >
                         <Skeleton
-                            variant="circle"
-                            width={38}
-                            height={38}
-                            borderRadius={19}
-                            style={styles.mr12}
+                            variant="rounded"
+                            width={34}
+                            height={34}
+                            borderRadius={10}
+                            style={styles.mr10}
                         />
                         <View style={styles.flex1}>
                             <Skeleton
                                 variant="text"
-                                width="60%"
-                                height={14}
-                                style={styles.mb4}
+                                width="55%"
+                                height={12}
+                                style={styles.mb3}
                             />
                             <Skeleton
                                 variant="text"
-                                width="35%"
-                                height={11}
+                                width="30%"
+                                height={10}
                             />
                         </View>
                         <Skeleton
-                            variant="text"
-                            width={65}
-                            height={16}
+                            variant="rounded"
+                            width={55}
+                            height={20}
+                            borderRadius={6}
                         />
                     </View>
-                </View>
-            ))}
+                ))}
+            </View>
         </View>
     );
 };
@@ -285,63 +292,69 @@ export const HomeScreenSkeleton: React.FC = () => {
                 <View style={styles.flex1}>
                     <Skeleton
                         variant="text"
-                        width={100}
+                        width={90}
                         height={12}
-                        style={styles.mb6}
+                        style={styles.mb4}
                     />
                     <Skeleton
                         variant="text"
-                        width={150}
-                        height={20}
+                        width={140}
+                        height={18}
                     />
                 </View>
                 <Skeleton
                     variant="circle"
-                    width={40}
-                    height={40}
-                    borderRadius={20}
+                    width={44}
+                    height={44}
+                    borderRadius={22}
                 />
             </View>
 
-            {/* Big Emergency Card placeholder */}
+            {/* Emergency Card placeholder */}
             <Skeleton
                 variant="rounded"
                 width="100%"
-                height={160}
-                borderRadius={20}
-                style={styles.mb20}
+                height={114}
+                borderRadius={16}
+                style={styles.mb14}
             />
 
             {/* Section title */}
             <Skeleton
                 variant="text"
-                width={130}
-                height={16}
-                style={styles.mb14}
+                width={110}
+                height={13}
+                style={styles.mb8}
             />
 
             {/* Overview Card with 3 rows */}
             <View style={styles.overviewCard}>
-                {[1, 2, 3].map(item => (
-                    <View key={item} style={styles.overviewRow}>
+                {[1, 2, 3].map((item, index) => (
+                    <View
+                        key={item}
+                        style={[
+                            styles.overviewRow,
+                            index === 2 && styles.lastRow,
+                        ]}
+                    >
                         <View style={styles.rowLeft}>
                             <Skeleton
                                 variant="rounded"
                                 width={32}
                                 height={32}
-                                borderRadius={10}
+                                borderRadius={9}
                                 style={styles.mr10}
                             />
                             <Skeleton
                                 variant="text"
-                                width={80}
-                                height={14}
+                                width={75}
+                                height={13}
                             />
                         </View>
                         <Skeleton
                             variant="text"
-                            width={40}
-                            height={16}
+                            width={35}
+                            height={14}
                         />
                     </View>
                 ))}
@@ -351,9 +364,9 @@ export const HomeScreenSkeleton: React.FC = () => {
             <Skeleton
                 variant="rounded"
                 width="100%"
-                height={52}
-                borderRadius={14}
-                style={styles.mt18}
+                height={46}
+                borderRadius={13}
+                style={styles.mt12}
             />
         </View>
     );
@@ -367,15 +380,16 @@ const styles = StyleSheet.create({
     mr6: { marginRight: 6 },
     mr10: { marginRight: 10 },
     mr12: { marginRight: 12 },
+    mb3: { marginBottom: 3 },
     mb4: { marginBottom: 4 },
     mb6: { marginBottom: 6 },
     mb8: { marginBottom: 8 },
     mb12: { marginBottom: 12 },
     mb14: { marginBottom: 14 },
-    mb20: { marginBottom: 20 },
-    mt18: { marginTop: 18 },
+    mt12: { marginTop: 12 },
+    ml2: { marginLeft: 2 },
     flex1: { flex: 1 },
-    selfStart: { alignSelf: 'flex-start', marginTop: 4 },
+    selfStart: { alignSelf: 'flex-start', marginTop: 2 },
 
     rowCenter: {
         flexDirection: 'row',
@@ -386,9 +400,9 @@ const styles = StyleSheet.create({
     tripCardContainer: {
         backgroundColor: colors.card,
         borderRadius: 14,
-        marginBottom: spacing.sm,
-        paddingHorizontal: spacing.sm,
-        paddingVertical: spacing.sm,
+        marginBottom: 10,
+        paddingHorizontal: 12,
+        paddingVertical: 11,
         borderWidth: 1,
         borderColor: colors.border,
         flexDirection: 'row',
@@ -397,38 +411,39 @@ const styles = StyleSheet.create({
     tripMiddle: {
         flex: 1,
         justifyContent: 'center',
-        paddingRight: spacing.xs,
+        paddingRight: 6,
     },
     tripRight: {
-        minWidth: 82,
+        minWidth: 80,
         alignItems: 'flex-end',
     },
 
     // Notification Skeleton
     notificationRow: {
-        minHeight: 72,
+        minHeight: 52,
         flexDirection: 'row',
         alignItems: 'center',
-        paddingVertical: spacing.sm,
-        paddingHorizontal: spacing.md,
+        paddingVertical: 7,
+        borderBottomWidth: StyleSheet.hairlineWidth,
+        borderBottomColor: colors.divider,
     },
     notificationContent: {
         flex: 1,
         justifyContent: 'center',
-        paddingRight: spacing.sm,
+        paddingRight: 6,
     },
 
     // Earnings Skeleton
     earningsContainer: {
-        paddingTop: 10,
+        paddingTop: 0,
     },
     summaryCard: {
         backgroundColor: colors.card,
-        borderRadius: 20,
-        paddingHorizontal: 18,
-        paddingTop: 18,
-        paddingBottom: 16,
-        marginBottom: 22,
+        borderRadius: 16,
+        paddingHorizontal: 16,
+        paddingTop: 15,
+        paddingBottom: 13,
+        marginBottom: 16,
         borderWidth: 1,
         borderColor: colors.border,
     },
@@ -436,12 +451,12 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'flex-start',
         justifyContent: 'space-between',
-        marginBottom: 18,
+        marginBottom: 12,
     },
     statsContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        paddingTop: 16,
+        paddingTop: 12,
         borderTopWidth: StyleSheet.hairlineWidth,
         borderTopColor: colors.divider,
     },
@@ -450,47 +465,55 @@ const styles = StyleSheet.create({
     },
     statDivider: {
         width: StyleSheet.hairlineWidth,
-        height: 38,
+        height: 30,
         backgroundColor: colors.divider,
-        marginHorizontal: 15,
+        marginHorizontal: 14,
     },
-    transactionCard: {
+    transactionCardContainer: {
         backgroundColor: colors.card,
-        borderRadius: 18,
-        paddingHorizontal: 14,
-        paddingVertical: 14,
-        marginBottom: 12,
+        borderRadius: 14,
+        paddingHorizontal: 12,
         borderWidth: 1,
         borderColor: colors.border,
     },
     transactionRow: {
+        minHeight: 56,
+        paddingVertical: 8,
         flexDirection: 'row',
         alignItems: 'center',
+        borderBottomWidth: StyleSheet.hairlineWidth,
+        borderBottomColor: colors.divider,
     },
 
     // Home Skeleton
     homeContainer: {
-        paddingTop: spacing.xs,
+        paddingTop: 0,
     },
     greetingSection: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        marginBottom: spacing.md,
+        marginTop: 8,
+        marginBottom: 12,
     },
     overviewCard: {
         backgroundColor: colors.card,
-        borderRadius: 18,
-        paddingHorizontal: spacing.md,
-        paddingVertical: spacing.sm,
+        borderRadius: 14,
+        paddingHorizontal: 12,
         borderWidth: 1,
         borderColor: colors.border,
     },
     overviewRow: {
+        minHeight: 48,
+        paddingVertical: 6,
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        paddingVertical: spacing.sm,
+        borderBottomWidth: StyleSheet.hairlineWidth,
+        borderBottomColor: colors.divider,
+    },
+    lastRow: {
+        borderBottomWidth: 0,
     },
     rowLeft: {
         flexDirection: 'row',
