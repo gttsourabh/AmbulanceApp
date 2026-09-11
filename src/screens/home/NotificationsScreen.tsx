@@ -223,7 +223,7 @@ const styles = StyleSheet.create({
   // ==========================================
 
   notificationRow: {
-    minHeight: 52,
+    height: 52,
 
     flexDirection: 'row',
     alignItems: 'center',
@@ -268,6 +268,8 @@ const styles = StyleSheet.create({
     fontFamily: 'GoogleSans-Medium',
     fontSize: 13,
     fontWeight: typography.fontWeight.semibold,
+    lineHeight: 15,
+    includeFontPadding: false,
 
     color: colors.textPrimary,
 
@@ -278,9 +280,10 @@ const styles = StyleSheet.create({
     fontFamily: 'GoogleSans-Regular',
     fontSize: 11.5,
     fontWeight: typography.fontWeight.regular,
+    lineHeight: 14,
+    includeFontPadding: false,
 
     color: colors.textSecondary,
-    lineHeight: 15,
   },
 
   // ==========================================
@@ -290,6 +293,8 @@ const styles = StyleSheet.create({
   time: {
     fontFamily: 'GoogleSans-Regular',
     fontSize: 10.5,
+    lineHeight: 12,
+    includeFontPadding: false,
 
     color: colors.textLight,
 

@@ -1,5 +1,7 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
+    RefreshControl,
+    ScrollView,
     StyleSheet,
     Text,
     TouchableOpacity,
@@ -10,6 +12,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, typography, shadows } from '../../theme';
 import { AppIcon } from '../../icons';
 import Header from '../../components/Header/Header';
+import { UserInfoSkeleton } from '../../components/Skeleton';
 import { useAppSelector } from '../../redux/hook';
 
 interface InfoItemProps {
@@ -24,6 +27,24 @@ interface InfoItemProps {
 
 const UserInfo = () => {
     const user = useAppSelector(state => state.auth.user);
+    const [isLoading, setIsLoading] = useState(true);
+    const [refreshing, setRefreshing] = useState(false);
+
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setIsLoading(false);
+        }, 700);
+        return () => clearTimeout(timer);
+    }, []);
+
+    const handleRefresh = () => {
+        setRefreshing(true);
+        setIsLoading(true);
+        setTimeout(() => {
+            setRefreshing(false);
+            setIsLoading(false);
+        }, 1000);
+    };
 
     const handleVehicle = () => {
         console.log('Vehicle Info');
@@ -71,7 +92,10 @@ const UserInfo = () => {
                 {/* TEXT */}
 
                 <View style={styles.infoContent}>
-                    <Text style={styles.infoTitle}>
+                    <Text
+                        style={styles.infoTitle}
+                        numberOfLines={1}
+                    >
                         {title}
                     </Text>
 
@@ -80,6 +104,7 @@ const UserInfo = () => {
                             styles.infoValue,
                             valueColor ? { color: valueColor } : null,
                         ]}
+                        numberOfLines={1}
                     >
                         {value}
                     </Text>
@@ -112,36 +137,50 @@ const UserInfo = () => {
                 showRightIcon={false}
             />
 
-            <View style={styles.content}>
+            <ScrollView
+                showsVerticalScrollIndicator={false}
+                contentContainerStyle={styles.scrollContent}
+                refreshControl={
+                    <RefreshControl
+                        refreshing={refreshing}
+                        onRefresh={handleRefresh}
+                        colors={[colors.primary]}
+                        tintColor={colors.primary}
+                    />
+                }
+            >
+                {isLoading ? (
+                    <UserInfoSkeleton />
+                ) : (
+                    <>
+                        {/* ================= PROFILE ================= */}
 
-                {/* ================= PROFILE ================= */}
+                        <View style={styles.profileSection}>
 
-                <View style={styles.profileSection}>
+                            <View style={styles.avatarContainer}>
+                                <AppIcon
+                                    family="material"
+                                    name="account"
+                                    size={40}
+                                    color={colors.primary}
+                                />
+                            </View>
 
-                    <View style={styles.avatarContainer}>
-                        <AppIcon
-                            family="material"
-                            name="account"
-                            size={40}
-                            color={colors.primary}
-                        />
-                    </View>
+                            <Text style={styles.userName}>
+                                {user?.name || 'Ambulance Driver'}
+                            </Text>
 
-                    <Text style={styles.userName}>
-                        {user?.name || 'Ambulance Driver'}
-                    </Text>
+                            <Text style={styles.phoneNumber}>
+                                {user?.mobile_number ? `+91 ${user.mobile_number}` : (user?.phone ? `+91 ${user.phone}` : '+91 98765 43210')}
+                            </Text>
 
-                    <Text style={styles.phoneNumber}>
-                        {user?.mobile_number ? `+91 ${user.mobile_number}` : (user?.phone ? `+91 ${user.phone}` : '+91 98765 43210')}
-                    </Text>
+                        </View>
 
-                </View>
+                        {/* ================= INFORMATION CARD ================= */}
 
-                {/* ================= INFORMATION CARD ================= */}
-
-                <Text style={styles.sectionTitle}>
-                    Driver Details
-                </Text>
+                        <Text style={styles.sectionTitle}>
+                            Driver Details
+                        </Text>
 
                 <View style={styles.infoCard}>
 
@@ -184,8 +223,9 @@ const UserInfo = () => {
                     })}
 
                 </View>
-
-            </View>
+                    </>
+                )}
+            </ScrollView>
         </SafeAreaView>
     );
 };
@@ -199,13 +239,13 @@ const styles = StyleSheet.create({
 
     container: {
         flex: 1,
-         backgroundColor: colors.background,
+        backgroundColor: colors.background,
     },
 
-    content: {
-        flex: 1,
+    scrollContent: {
         paddingHorizontal: 16,
         paddingTop: 12,
+        paddingBottom: 24,
     },
 
     // =====================================================
@@ -241,6 +281,8 @@ const styles = StyleSheet.create({
     userName: {
         fontFamily: 'GoogleSans-Medium',
         fontSize: 14,
+        lineHeight: 16,
+        includeFontPadding: false,
         color: colors.textPrimary,
         letterSpacing: 0.1,
 
@@ -250,6 +292,8 @@ const styles = StyleSheet.create({
     phoneNumber: {
         fontFamily: 'GoogleSans-Regular',
         fontSize: 11,
+        lineHeight: 13,
+        includeFontPadding: false,
         color: colors.textSecondary,
 
         marginTop: 3,
@@ -262,6 +306,8 @@ const styles = StyleSheet.create({
     sectionTitle: {
         fontFamily: 'GoogleSans-Medium',
         fontSize: 11,
+        lineHeight: 13,
+        includeFontPadding: false,
         color: colors.textLight,
         letterSpacing: 0.6,
         textTransform: 'uppercase',
@@ -275,7 +321,7 @@ const styles = StyleSheet.create({
     // =====================================================
 
     infoCard: {
-         backgroundColor: colors.background,
+        backgroundColor: colors.card,
 
         borderRadius: 18,
 
@@ -296,7 +342,7 @@ const styles = StyleSheet.create({
     // =====================================================
 
     infoRow: {
-        minHeight: 62,
+        height: 56,
 
         flexDirection: 'row',
         alignItems: 'center',
@@ -331,15 +377,19 @@ const styles = StyleSheet.create({
     infoTitle: {
         fontFamily: 'GoogleSans-Medium',
         fontSize: 12,
+        lineHeight: 14,
+        includeFontPadding: false,
         color: colors.textPrimary,
         letterSpacing: 0.1,
 
-        marginBottom: 3,
+        marginBottom: 2,
     },
 
     infoValue: {
         fontFamily: 'GoogleSans-Regular',
         fontSize: 11,
+        lineHeight: 13,
+        includeFontPadding: false,
         color: colors.textSecondary,
     },
 
@@ -362,6 +412,6 @@ const styles = StyleSheet.create({
     divider: {
         height: StyleSheet.hairlineWidth,
         backgroundColor: colors.divider,
-        marginLeft: 50,
+        marginLeft: 48,
     },
 });

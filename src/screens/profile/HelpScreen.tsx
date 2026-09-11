@@ -1,6 +1,8 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Linking,
+  RefreshControl,
+  ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -11,6 +13,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, typography, shadows } from '../../theme';
 import { AppIcon } from '../../icons';
 import Header from '../../components/Header/Header';
+import { HelpScreenSkeleton } from '../../components/Skeleton';
 
 interface HelpItemProps {
   icon: string;
@@ -19,6 +22,25 @@ interface HelpItemProps {
 }
 
 const HelpScreen = () => {
+  const [isLoading, setIsLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsLoading(false);
+    }, 700);
+    return () => clearTimeout(timer);
+  }, []);
+
+  const handleRefresh = () => {
+    setRefreshing(true);
+    setIsLoading(true);
+    setTimeout(() => {
+      setRefreshing(false);
+      setIsLoading(false);
+    }, 1000);
+  };
+
   const handleFAQs = () => {
     console.log('FAQs');
   };
@@ -63,7 +85,7 @@ const HelpScreen = () => {
 
         {/* TITLE */}
 
-        <Text style={styles.helpTitle}>
+        <Text style={styles.helpTitle} numberOfLines={1}>
           {title}
         </Text>
 
@@ -94,105 +116,114 @@ const HelpScreen = () => {
         showRightIcon={false}
       />
 
-      <View style={styles.content}>
-
-        <Text style={styles.question}>
-          How can we help you?
-        </Text>
-
-        {/* ================= HELP CARD ================= */}
-
-        <View style={styles.helpCard}>
-
-          {/* FAQs */}
-
-          {renderHelpItem({
-            icon: 'help-circle-outline',
-            title: 'FAQs',
-            onPress: handleFAQs,
-          })}
-
-          <View style={styles.divider} />
-
-          {/* CONTACT SUPPORT */}
-
-          {renderHelpItem({
-            icon: 'face-agent',
-            title: 'Contact Support',
-            onPress: handleContactSupport,
-          })}
-
-          <View style={styles.divider} />
-
-          {/* CHAT */}
-
-          {renderHelpItem({
-            icon: 'chat-outline',
-            title: 'Chat with Us',
-            onPress: handleChat,
-          })}
-
-          <View style={styles.divider} />
-
-          {/* REPORT ISSUE */}
-
-          {renderHelpItem({
-            icon: 'alert-circle-outline',
-            title: 'Report an Issue',
-            onPress: handleReportIssue,
-          })}
-
-        </View>
-
-        {/* ================= EMERGENCY SUPPORT ================= */}
-
-        <View style={styles.emergencyCard}>
-
-          <View style={styles.emergencyIconBadge}>
-            <AppIcon
-              family="material"
-              name="lifebuoy"
-              size={20}
-              color={colors.primary}
-            />
-          </View>
-
-          <View style={styles.emergencyContent}>
-
-            <View style={styles.emergencyTitleRow}>
-              <Text style={styles.emergencyTitle}>
-                EMERGENCY SUPPORT
-              </Text>
-
-              <View style={styles.liveDot} />
-
-              <Text style={styles.availableText}>
-                24x7 Available
-              </Text>
-            </View>
-
-            <Text style={styles.phoneNumber}>
-              +91 80 1234 5678
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+            colors={[colors.primary]}
+            tintColor={colors.primary}
+          />
+        }
+      >
+        {isLoading ? (
+          <HelpScreenSkeleton />
+        ) : (
+          <>
+            <Text style={styles.question} numberOfLines={1}>
+              How can we help you?
             </Text>
 
-          </View>
+            {/* ================= HELP CARD ================= */}
 
-          <TouchableOpacity
-            activeOpacity={0.75}
-            style={styles.callButton}
-            onPress={handleEmergencyCall}
-          >
-            <AppIcon
-              family="material"
-              name="phone"
-              size={19}
-              color={colors.white}
-            />
-          </TouchableOpacity>
+            <View style={styles.helpCard}>
+              {/* FAQs */}
 
-        </View>
+              {renderHelpItem({
+                icon: 'help-circle-outline',
+                title: 'FAQs',
+                onPress: handleFAQs,
+              })}
 
-      </View>
+              <View style={styles.divider} />
+
+              {/* CONTACT SUPPORT */}
+
+              {renderHelpItem({
+                icon: 'face-agent',
+                title: 'Contact Support',
+                onPress: handleContactSupport,
+              })}
+
+              <View style={styles.divider} />
+
+              {/* CHAT */}
+
+              {renderHelpItem({
+                icon: 'chat-outline',
+                title: 'Chat with Us',
+                onPress: handleChat,
+              })}
+
+              <View style={styles.divider} />
+
+              {/* REPORT ISSUE */}
+
+              {renderHelpItem({
+                icon: 'alert-circle-outline',
+                title: 'Report an Issue',
+                onPress: handleReportIssue,
+              })}
+            </View>
+
+            {/* ================= EMERGENCY SUPPORT ================= */}
+
+            <View style={styles.emergencyCard}>
+              <View style={styles.emergencyIconBadge}>
+                <AppIcon
+                  family="material"
+                  name="lifebuoy"
+                  size={20}
+                  color={colors.primary}
+                />
+              </View>
+
+              <View style={styles.emergencyContent}>
+                <View style={styles.emergencyTitleRow}>
+                  <Text style={styles.emergencyTitle} numberOfLines={1}>
+                    EMERGENCY SUPPORT
+                  </Text>
+
+                  <View style={styles.liveDot} />
+
+                  <Text style={styles.availableText} numberOfLines={1}>
+                    24x7 Available
+                  </Text>
+                </View>
+
+                <Text style={styles.phoneNumber} numberOfLines={1}>
+                  +91 80 1234 5678
+                </Text>
+              </View>
+
+              <TouchableOpacity
+                activeOpacity={0.75}
+                style={styles.callButton}
+                onPress={handleEmergencyCall}
+              >
+                <AppIcon
+                  family="material"
+                  name="phone"
+                  size={19}
+                  color={colors.white}
+                />
+              </TouchableOpacity>
+            </View>
+          </>
+        )}
+      </ScrollView>
     </SafeAreaView>
   );
 };
@@ -209,11 +240,10 @@ const styles = StyleSheet.create({
      backgroundColor: colors.background,
   },
 
-  content: {
-    flex: 1,
-
+  scrollContent: {
     paddingHorizontal: 16,
     paddingTop: 12,
+    paddingBottom: 24,
   },
 
   // =====================================================
@@ -223,6 +253,8 @@ const styles = StyleSheet.create({
   question: {
     fontFamily: 'GoogleSans-Bold',
     fontSize: typography.fontSize.md,
+    lineHeight: 18,
+    includeFontPadding: false,
     color: colors.textPrimary,
     letterSpacing: 0.1,
 
@@ -234,7 +266,7 @@ const styles = StyleSheet.create({
   // =====================================================
 
   helpCard: {
-     backgroundColor: colors.background,
+    backgroundColor: colors.card,
 
     borderRadius: 18,
 
@@ -255,7 +287,7 @@ const styles = StyleSheet.create({
   // =====================================================
 
   helpRow: {
-    minHeight: 60,
+    height: 56,
 
     flexDirection: 'row',
     alignItems: 'center',
@@ -288,6 +320,8 @@ const styles = StyleSheet.create({
 
     fontFamily: 'GoogleSans-Medium',
     fontSize: 12,
+    lineHeight: 14,
+    includeFontPadding: false,
     color: colors.textPrimary,
     letterSpacing: 0.1,
   },
@@ -309,7 +343,7 @@ const styles = StyleSheet.create({
 
     backgroundColor: colors.divider,
 
-    marginLeft: 48,
+    marginLeft: 46,
   },
 
   // =====================================================
@@ -319,7 +353,7 @@ const styles = StyleSheet.create({
   emergencyCard: {
     marginTop: 16,
 
-    minHeight: 86,
+    height: 86,
 
     paddingHorizontal: 14,
     paddingVertical: 12,
@@ -347,7 +381,7 @@ const styles = StyleSheet.create({
 
     borderRadius: 14,
 
-     backgroundColor: colors.background,
+    backgroundColor: colors.background,
 
     alignItems: 'center',
     justifyContent: 'center',
@@ -363,12 +397,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
 
-    marginBottom: 5,
+    marginBottom: 6,
   },
 
   emergencyTitle: {
     fontFamily: 'GoogleSans-Medium',
     fontSize: 10,
+    lineHeight: 12,
+    includeFontPadding: false,
     color: colors.primary,
     letterSpacing: 0.5,
   },
@@ -386,6 +422,8 @@ const styles = StyleSheet.create({
   phoneNumber: {
     fontFamily: 'GoogleSans-Bold',
     fontSize: 16,
+    lineHeight: 18,
+    includeFontPadding: false,
     color: colors.textPrimary,
     letterSpacing: 0.2,
   },
@@ -393,6 +431,8 @@ const styles = StyleSheet.create({
   availableText: {
     fontFamily: 'GoogleSans-Regular',
     fontSize: 10,
+    lineHeight: 12,
+    includeFontPadding: false,
     color: colors.textSecondary,
   },
 

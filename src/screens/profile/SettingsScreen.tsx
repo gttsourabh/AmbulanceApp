@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Alert,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   Switch,
@@ -13,6 +14,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, typography, shadows } from '../../theme';
 import { AppIcon } from '../../icons';
 import Header from '../../components/Header/Header';
+import { SettingsScreenSkeleton } from '../../components/Skeleton';
 import { useAppDispatch } from '../../redux/hook';
 import { logout } from '../../redux/slices/authSlice';
 import { storage } from '../../storage/storage';
@@ -32,11 +34,30 @@ interface SettingItemProps {
 
 const SettingsScreen = () => {
   const dispatch = useAppDispatch();
+  const [isLoading, setIsLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+
   const [notificationsEnabled, setNotificationsEnabled] =
     useState(true);
 
   const [soundEnabled, setSoundEnabled] =
     useState(true);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsLoading(false);
+    }, 700);
+    return () => clearTimeout(timer);
+  }, []);
+
+  const handleRefresh = () => {
+    setRefreshing(true);
+    setIsLoading(true);
+    setTimeout(() => {
+      setRefreshing(false);
+      setIsLoading(false);
+    }, 1000);
+  };
 
   const handleLanguage = () => {
     console.log('Language');
@@ -111,7 +132,7 @@ const SettingsScreen = () => {
 
         {/* TITLE */}
 
-        <Text style={styles.settingTitle}>
+        <Text style={styles.settingTitle} numberOfLines={1}>
           {title}
         </Text>
 
@@ -132,7 +153,7 @@ const SettingsScreen = () => {
         ) : (
           <View style={styles.rightContainer}>
             {rightText && (
-              <Text style={styles.rightText}>
+              <Text style={styles.rightText} numberOfLines={1}>
                 {rightText}
               </Text>
             )}
@@ -167,125 +188,134 @@ const SettingsScreen = () => {
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
-      >
-        {/* ================= GENERAL ================= */}
-
-        <Text style={styles.sectionHeading}>
-          General
-        </Text>
-
-        <View style={styles.settingsCard}>
-
-          {/* LANGUAGE */}
-
-          {renderSettingItem({
-            icon: 'translate',
-            title: 'Language',
-            rightText: 'English',
-            iconBg: colors.primaryLight,
-            iconColor: colors.primary,
-            onPress: handleLanguage,
-          })}
-
-          <View style={styles.divider} />
-
-          {/* NOTIFICATIONS */}
-
-          {renderSettingItem({
-            icon: 'bell-outline',
-            title: 'Notifications',
-            type: 'switch',
-            value: notificationsEnabled,
-            onValueChange: setNotificationsEnabled,
-            iconBg: colors.warningLight,
-            iconColor: colors.warning,
-          })}
-
-          <View style={styles.divider} />
-
-          {/* SOUND */}
-
-          {renderSettingItem({
-            icon: 'volume-high',
-            title: 'Sound',
-            type: 'switch',
-            value: soundEnabled,
-            onValueChange: setSoundEnabled,
-            iconBg: colors.infoLight,
-            iconColor: colors.info,
-          })}
-
-        </View>
-
-        {/* ================= ABOUT ================= */}
-
-        <Text style={styles.sectionHeading}>
-          About
-        </Text>
-
-        <View style={styles.settingsCard}>
-
-          {/* PRIVACY */}
-
-          {renderSettingItem({
-            icon: 'lock-outline',
-            title: 'Privacy Policy',
-            iconBg: colors.primaryLight,
-            iconColor: colors.primary,
-            onPress: handlePrivacyPolicy,
-          })}
-
-          <View style={styles.divider} />
-
-          {/* TERMS */}
-
-          {renderSettingItem({
-            icon: 'file-document-outline',
-            title: 'Terms & Conditions',
-            iconBg: colors.primaryLight,
-            iconColor: colors.primary,
-            onPress: handleTerms,
-          })}
-
-          <View style={styles.divider} />
-
-          {/* HELP */}
-
-          {renderSettingItem({
-            icon: 'help-circle-outline',
-            title: 'Help & Support',
-            iconBg: colors.successLight,
-            iconColor: colors.successDark,
-            onPress: handleHelp,
-          })}
-
-        </View>
-
-        {/* ================= LOGOUT ================= */}
-
-        <TouchableOpacity
-          activeOpacity={0.7}
-          style={styles.logoutButton}
-          onPress={handleLogout}
-        >
-          <AppIcon
-            family="material"
-            name="logout"
-            size={19}
-            color={colors.danger}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+            colors={[colors.primary]}
+            tintColor={colors.primary}
           />
+        }
+      >
+        {isLoading ? (
+          <SettingsScreenSkeleton />
+        ) : (
+          <>
+            {/* ================= GENERAL ================= */}
 
-          <Text style={styles.logoutText}>
-            Logout
-          </Text>
-        </TouchableOpacity>
+            <Text style={styles.sectionHeading} numberOfLines={1}>
+              General
+            </Text>
 
-        {/* VERSION */}
+            <View style={styles.settingsCard}>
+              {/* LANGUAGE */}
 
-        <Text style={styles.versionText}>
-          Version 1.0.0
-        </Text>
+              {renderSettingItem({
+                icon: 'translate',
+                title: 'Language',
+                rightText: 'English',
+                iconBg: colors.primaryLight,
+                iconColor: colors.primary,
+                onPress: handleLanguage,
+              })}
 
+              <View style={styles.divider} />
+
+              {/* NOTIFICATIONS */}
+
+              {renderSettingItem({
+                icon: 'bell-outline',
+                title: 'Notifications',
+                type: 'switch',
+                value: notificationsEnabled,
+                onValueChange: setNotificationsEnabled,
+                iconBg: colors.warningLight,
+                iconColor: colors.warning,
+              })}
+
+              <View style={styles.divider} />
+
+              {/* SOUND */}
+
+              {renderSettingItem({
+                icon: 'volume-high',
+                title: 'Sound',
+                type: 'switch',
+                value: soundEnabled,
+                onValueChange: setSoundEnabled,
+                iconBg: colors.infoLight,
+                iconColor: colors.info,
+              })}
+            </View>
+
+            {/* ================= ABOUT ================= */}
+
+            <Text style={styles.sectionHeading} numberOfLines={1}>
+              About
+            </Text>
+
+            <View style={styles.settingsCard}>
+              {/* PRIVACY */}
+
+              {renderSettingItem({
+                icon: 'lock-outline',
+                title: 'Privacy Policy',
+                iconBg: colors.primaryLight,
+                iconColor: colors.primary,
+                onPress: handlePrivacyPolicy,
+              })}
+
+              <View style={styles.divider} />
+
+              {/* TERMS */}
+
+              {renderSettingItem({
+                icon: 'file-document-outline',
+                title: 'Terms & Conditions',
+                iconBg: colors.primaryLight,
+                iconColor: colors.primary,
+                onPress: handleTerms,
+              })}
+
+              <View style={styles.divider} />
+
+              {/* HELP */}
+
+              {renderSettingItem({
+                icon: 'help-circle-outline',
+                title: 'Help & Support',
+                iconBg: colors.successLight,
+                iconColor: colors.successDark,
+                onPress: handleHelp,
+              })}
+            </View>
+
+            {/* ================= LOGOUT ================= */}
+
+            <TouchableOpacity
+              activeOpacity={0.7}
+              style={styles.logoutButton}
+              onPress={handleLogout}
+            >
+              <AppIcon
+                family="material"
+                name="logout"
+                size={19}
+                color={colors.danger}
+              />
+
+              <Text style={styles.logoutText} numberOfLines={1}>
+                Logout
+              </Text>
+            </TouchableOpacity>
+
+            {/* VERSION */}
+
+            <Text style={styles.versionText} numberOfLines={1}>
+              Version 1.0.0
+            </Text>
+          </>
+        )}
       </ScrollView>
     </SafeAreaView>
   );
@@ -316,6 +346,8 @@ const styles = StyleSheet.create({
   sectionHeading: {
     fontFamily: 'GoogleSans-Medium',
     fontSize: 11,
+    lineHeight: 13,
+    includeFontPadding: false,
     color: colors.textLight,
     letterSpacing: 0.6,
     textTransform: 'uppercase',
@@ -330,7 +362,7 @@ const styles = StyleSheet.create({
   // =====================================================
 
   settingsCard: {
-     backgroundColor: colors.background,
+    backgroundColor: colors.card,
 
     borderRadius: 18,
 
@@ -351,7 +383,7 @@ const styles = StyleSheet.create({
   // =====================================================
 
   settingRow: {
-    minHeight: 60,
+    height: 56,
 
     flexDirection: 'row',
     alignItems: 'center',
@@ -382,6 +414,8 @@ const styles = StyleSheet.create({
 
     fontFamily: 'GoogleSans-Medium',
     fontSize: 12,
+    lineHeight: 14,
+    includeFontPadding: false,
     color: colors.textPrimary,
     letterSpacing: 0.1,
   },
@@ -400,6 +434,8 @@ const styles = StyleSheet.create({
   rightText: {
     fontFamily: 'GoogleSans-Regular',
     fontSize: 11,
+    lineHeight: 13,
+    includeFontPadding: false,
     color: colors.textSecondary,
   },
 
@@ -429,7 +465,7 @@ const styles = StyleSheet.create({
 
     backgroundColor: colors.divider,
 
-    marginLeft: 48,
+    marginLeft: 46,
   },
 
   // =====================================================
@@ -437,9 +473,9 @@ const styles = StyleSheet.create({
   // =====================================================
 
   logoutButton: {
-    height: 54,
+    height: 48,
 
-    marginTop: 20,
+    marginTop: 16,
 
     borderRadius: 16,
 
@@ -455,6 +491,8 @@ const styles = StyleSheet.create({
   logoutText: {
     fontFamily: 'GoogleSans-Medium',
     fontSize: 13,
+    lineHeight: 15,
+    includeFontPadding: false,
     color: colors.danger,
     letterSpacing: 0.1,
   },
@@ -466,9 +504,11 @@ const styles = StyleSheet.create({
   versionText: {
     fontFamily: 'GoogleSans-Regular',
     fontSize: typography.fontSize.xs,
+    lineHeight: 14,
+    includeFontPadding: false,
     color: colors.textLight,
     textAlign: 'center',
 
-    marginTop: 16,
+    marginTop: 12,
   },
 });

@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     Alert,
     Image,
+    RefreshControl,
     ScrollView,
     StyleSheet,
     Text,
@@ -26,6 +27,7 @@ import {
 
 import { AppIcon } from '../../icons';
 import Header from '../../components/Header/Header';
+import { ProfileScreenSkeleton } from '../../components/Skeleton';
 import { ProfileStackParamList } from '../../Navigation/stacks/Profilestack';
 
 type ProfileNavigationProp =
@@ -45,8 +47,28 @@ const ProfileScreen = () => {
     const navigation = useNavigation<ProfileNavigationProp>();
     const dispatch = useAppDispatch();
     const user = useAppSelector(state => state.auth.user);
+    const authLoading = useAppSelector(state => state.auth.loading);
     const driverChannel = useAppSelector(state => state.auth.driverChannel);
     const userChannel = useAppSelector(state => state.auth.userChannel);
+
+    const [isLoading, setIsLoading] = useState(true);
+    const [refreshing, setRefreshing] = useState(false);
+
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setIsLoading(false);
+        }, 700);
+        return () => clearTimeout(timer);
+    }, []);
+
+    const handleRefresh = () => {
+        setRefreshing(true);
+        setIsLoading(true);
+        setTimeout(() => {
+            setRefreshing(false);
+            setIsLoading(false);
+        }, 1000);
+    };
 
     const handleLogout = () => {
         Alert.alert(
@@ -88,7 +110,7 @@ const ProfileScreen = () => {
     const profileOptions: ProfileOption[] = [
         {
             title: 'User Information',
-            subtitle: 'View and manage your personal information',
+            subtitle: 'Manage your personal information',
             icon: 'account-outline',
             iconFamily: 'material',
             iconBg: colors.primaryLight,
@@ -139,135 +161,155 @@ const ProfileScreen = () => {
             <ScrollView
                 showsVerticalScrollIndicator={false}
                 contentContainerStyle={styles.scrollContent}
+                refreshControl={
+                    <RefreshControl
+                        refreshing={refreshing}
+                        onRefresh={handleRefresh}
+                        colors={[colors.primary]}
+                        tintColor={colors.primary}
+                    />
+                }
             >
-                {/* PROFILE */}
+                {isLoading || authLoading ? (
+                    <ProfileScreenSkeleton />
+                ) : (
+                    <>
+                        {/* PROFILE */}
 
-                <View style={styles.profileSection}>
-                    <View style={styles.profileImageRing}>
-                        <View style={styles.profileImageContainer}>
-                            <Image
-                                source={{
-                                    uri: 'https://i.pravatar.cc/300?img=12',
-                                }}
-                                style={styles.profileImage}
-                            />
-                        </View>
-
-                        <View style={styles.editBadge}>
-                            <AppIcon
-                                family="material"
-                                name="pencil"
-                                size={12}
-                                color={colors.white}
-                            />
-                        </View>
-                    </View>
-
-                    <Text style={styles.profileName}>
-                        {user?.name || 'Ambulance Driver'}
-                    </Text>
-
-                    <Text style={styles.phoneNumber}>
-                        {user?.mobile_number ? `+91 ${user.mobile_number}` : (user?.phone ? `+91 ${user.phone}` : '+91 98765 43210')}
-                    </Text>
-
-                    <View style={styles.verifiedPill}>
-                        <AppIcon
-                            family="material"
-                            name="check-decagram"
-                            size={13}
-                            color={colors.successDark}
-                        />
-
-                        <Text style={styles.verifiedText}>
-                            Verified Driver
-                        </Text>
-                    </View>
-                </View>
-
-                {/* PROFILE OPTIONS */}
-
-                <View style={styles.optionsCard}>
-                    {profileOptions.map((item, index) => (
-                        <React.Fragment key={item.title}>
-                            <TouchableOpacity
-                                activeOpacity={0.7}
-                                style={styles.optionRow}
-                                onPress={item.onPress}
-                            >
-                                {/* ICON */}
-
-                                <View
-                                    style={[
-                                        styles.iconContainer,
-                                        { backgroundColor: item.iconBg },
-                                    ]}
-                                >
-                                    <AppIcon
-                                        family={item.iconFamily}
-                                        name={item.icon}
-                                        size={20}
-                                        color={item.iconColor}
+                        <View style={styles.profileSection}>
+                            <View style={styles.profileImageRing}>
+                                <View style={styles.profileImageContainer}>
+                                    <Image
+                                        source={{
+                                            uri: 'https://i.pravatar.cc/300?img=12',
+                                        }}
+                                        style={styles.profileImage}
                                     />
                                 </View>
 
-                                {/* TEXT */}
-
-                                <View style={styles.optionContent}>
-                                    <Text style={styles.optionTitle}>
-                                        {item.title}
-                                    </Text>
-
-                                    <Text style={styles.optionSubtitle}>
-                                        {item.subtitle}
-                                    </Text>
-                                </View>
-
-                                {/* ARROW */}
-
-                                <View style={styles.chevronContainer}>
+                                <View style={styles.editBadge}>
                                     <AppIcon
                                         family="material"
-                                        name="chevron-right"
-                                        size={19}
-                                        color={colors.textLight}
+                                        name="pencil"
+                                        size={12}
+                                        color={colors.white}
                                     />
                                 </View>
-                            </TouchableOpacity>
+                            </View>
 
-                            {/* DIVIDER */}
+                            <Text style={styles.profileName}>
+                                {user?.name || 'Ambulance Driver'}
+                            </Text>
 
-                            {index !== profileOptions.length - 1 && (
-                                <View style={styles.divider} />
-                            )}
-                        </React.Fragment>
-                    ))}
-                </View>
+                            <Text style={styles.phoneNumber}>
+                                {user?.mobile_number ? `+91 ${user.mobile_number}` : (user?.phone ? `+91 ${user.phone}` : '+91 98765 43210')}
+                            </Text>
 
-                {/* LOGOUT */}
+                            <View style={styles.verifiedPill}>
+                                <AppIcon
+                                    family="material"
+                                    name="check-decagram"
+                                    size={13}
+                                    color={colors.successDark}
+                                />
 
-                <TouchableOpacity
-                    activeOpacity={0.75}
-                    style={styles.logoutButton}
-                    onPress={handleLogout}
-                >
-                    <AppIcon
-                        family="material"
-                        name="logout"
-                        size={18}
-                        color={colors.danger}
-                    />
+                                <Text style={styles.verifiedText}>
+                                    Verified Driver
+                                </Text>
+                            </View>
+                        </View>
 
-                    <Text style={styles.logoutText}>
-                        Log Out
-                    </Text>
-                </TouchableOpacity>
+                        {/* PROFILE OPTIONS */}
 
-                {/* VERSION */}
+                        <View style={styles.optionsCard}>
+                            {profileOptions.map((item, index) => (
+                                <React.Fragment key={item.title}>
+                                    <TouchableOpacity
+                                        activeOpacity={0.7}
+                                        style={styles.optionRow}
+                                        onPress={item.onPress}
+                                    >
+                                        {/* ICON */}
 
-                <Text style={styles.versionText}>
-                    Version 1.0.0
-                </Text>
+                                        <View
+                                            style={[
+                                                styles.iconContainer,
+                                                { backgroundColor: item.iconBg },
+                                            ]}
+                                        >
+                                            <AppIcon
+                                                family={item.iconFamily}
+                                                name={item.icon}
+                                                size={20}
+                                                color={item.iconColor}
+                                            />
+                                        </View>
+
+                                        {/* TEXT */}
+
+                                        <View style={styles.optionContent}>
+                                            <Text
+                                                style={styles.optionTitle}
+                                                numberOfLines={1}
+                                            >
+                                                {item.title}
+                                            </Text>
+
+                                            <Text
+                                                style={styles.optionSubtitle}
+                                                numberOfLines={1}
+                                            >
+                                                {item.subtitle}
+                                            </Text>
+                                        </View>
+
+                                        {/* ARROW */}
+
+                                        <View style={styles.chevronContainer}>
+                                            <AppIcon
+                                                family="material"
+                                                name="chevron-right"
+                                                size={19}
+                                                color={colors.textLight}
+                                            />
+                                        </View>
+                                    </TouchableOpacity>
+
+                                    {/* DIVIDER */}
+
+                                    {index !== profileOptions.length - 1 && (
+                                        <View style={styles.divider} />
+                                    )}
+                                </React.Fragment>
+                            ))}
+                        </View>
+
+                        {/* LOGOUT */}
+
+                        <TouchableOpacity
+                            activeOpacity={0.75}
+                            style={styles.logoutButton}
+                            onPress={handleLogout}
+                        >
+                            <AppIcon
+                                family="material"
+                                name="logout"
+                                size={18}
+                                color={colors.danger}
+                            />
+
+                            <Text style={styles.logoutText}>
+                                Log Out
+                            </Text>
+                        </TouchableOpacity>
+
+                        {/* VERSION */}
+
+                        <Text style={styles.versionText}>
+                            Version 1.0.0
+                        </Text>
+                    </>
+                )}
             </ScrollView>
         </SafeAreaView>
     );
@@ -296,8 +338,8 @@ const styles = StyleSheet.create({
 
     profileSection: {
         alignItems: 'center',
-        paddingTop: 16,
-        paddingBottom: 16,
+        paddingTop: 12,
+        paddingBottom: 12,
     },
 
     profileImageRing: {
@@ -309,7 +351,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
 
-        marginBottom: 10,
+        marginBottom: 8,
 
         backgroundColor: colors.card,
 
@@ -361,26 +403,31 @@ const styles = StyleSheet.create({
     profileName: {
         fontFamily: 'GoogleSans-Bold',
         fontSize: typography.fontSize.md,
+        lineHeight: 18,
+        includeFontPadding: false,
         color: colors.textPrimary,
         letterSpacing: 0.1,
-        marginBottom: 4,
+        marginBottom: 2,
     },
 
     phoneNumber: {
         fontFamily: 'GoogleSans-Regular',
         fontSize: typography.fontSize.xs,
+        lineHeight: 14,
+        includeFontPadding: false,
         color: colors.textSecondary,
-        marginBottom: 8,
+        marginBottom: 6,
     },
 
     verifiedPill: {
         flexDirection: 'row',
         alignItems: 'center',
+        justifyContent: 'center',
 
+        height: 22,
         paddingHorizontal: 10,
-        paddingVertical: 4,
 
-        borderRadius: 20,
+        borderRadius: 11,
 
         backgroundColor: colors.successLight,
 
@@ -390,6 +437,8 @@ const styles = StyleSheet.create({
     verifiedText: {
         fontFamily: 'GoogleSans-Medium',
         fontSize: 11,
+        lineHeight: 13,
+        includeFontPadding: false,
         color: colors.successDark,
         letterSpacing: 0.2,
     },
@@ -418,7 +467,7 @@ const styles = StyleSheet.create({
     // =====================================================
 
     optionRow: {
-        minHeight: 72,
+        height: 56,
         flexDirection: 'row',
         alignItems: 'center',
     },
@@ -449,14 +498,18 @@ const styles = StyleSheet.create({
     optionTitle: {
         fontFamily: 'GoogleSans-Medium',
         fontSize: typography.fontSize.sm,
+        lineHeight: 16,
+        includeFontPadding: false,
         color: colors.textPrimary,
         letterSpacing: 0.1,
-        marginBottom: 3,
+        marginBottom: 2,
     },
 
     optionSubtitle: {
         fontFamily: 'GoogleSans-Regular',
         fontSize: typography.fontSize.xs,
+        lineHeight: 14,
+        includeFontPadding: false,
         color: colors.textSecondary,
     },
 
@@ -493,9 +546,9 @@ const styles = StyleSheet.create({
 
         gap: 6,
 
-        minHeight: 54,
+        height: 48,
 
-        marginTop: 16,
+        marginTop: 12,
 
         borderRadius: 16,
 
@@ -505,6 +558,8 @@ const styles = StyleSheet.create({
     logoutText: {
         fontFamily: 'GoogleSans-Medium',
         fontSize: typography.fontSize.sm,
+        lineHeight: 16,
+        includeFontPadding: false,
         color: colors.danger,
         letterSpacing: 0.1,
     },
@@ -516,8 +571,10 @@ const styles = StyleSheet.create({
     versionText: {
         fontFamily: 'GoogleSans-Regular',
         fontSize: typography.fontSize.xs,
+        lineHeight: 14,
+        includeFontPadding: false,
         color: colors.textLight,
         textAlign: 'center',
-        marginTop: 16,
+        marginTop: 12,
     },
 });

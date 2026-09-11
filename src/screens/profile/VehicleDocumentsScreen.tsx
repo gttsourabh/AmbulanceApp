@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Image,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
@@ -11,6 +12,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, typography, shadows } from '../../theme';
 import { AppIcon } from '../../icons';
 import Header from '../../components/Header/Header';
+import { VehicleDocumentsSkeleton } from '../../components/Skeleton';
 
 interface DocumentItem {
   title: string;
@@ -19,6 +21,25 @@ interface DocumentItem {
 }
 
 const VehicleDocumentsScreen = () => {
+  const [isLoading, setIsLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsLoading(false);
+    }, 700);
+    return () => clearTimeout(timer);
+  }, []);
+
+  const handleRefresh = () => {
+    setRefreshing(true);
+    setIsLoading(true);
+    setTimeout(() => {
+      setRefreshing(false);
+      setIsLoading(false);
+    }, 1000);
+  };
+
   const documents: DocumentItem[] = [
     {
       title: 'Driving License',
@@ -72,110 +93,121 @@ const VehicleDocumentsScreen = () => {
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+            colors={[colors.primary]}
+            tintColor={colors.primary}
+          />
+        }
       >
-        {/* ================= VEHICLE CARD ================= */}
+        {isLoading ? (
+          <VehicleDocumentsSkeleton />
+        ) : (
+          <>
+            {/* ================= VEHICLE CARD ================= */}
 
-        <View style={styles.vehicleCard}>
-          <View style={styles.vehicleInfo}>
-            <Text style={styles.sectionLabel}>
-              VEHICLE DETAILS
+            <View style={styles.vehicleCard}>
+              <View style={styles.vehicleInfo}>
+                <Text style={styles.sectionLabel} numberOfLines={1}>
+                  VEHICLE DETAILS
+                </Text>
+
+                <Text style={styles.vehicleNumber} numberOfLines={1}>
+                  KA 01 AB 1234
+                </Text>
+
+                <Text style={styles.vehicleName} numberOfLines={1}>
+                  Force Traveller
+                </Text>
+              </View>
+
+              <View style={styles.vehicleImageContainer}>
+                <Image
+                  source={{
+                    uri: 'https://upload.wikimedia.org/wikipedia/commons/thumb/4/4f/Force_Traveller.jpg/640px-Force_Traveller.jpg',
+                  }}
+                  style={styles.vehicleImage}
+                  resizeMode="contain"
+                />
+              </View>
+            </View>
+
+            {/* ================= DOCUMENTS ================= */}
+
+            <Text style={styles.sectionHeading} numberOfLines={1}>
+              Documents
             </Text>
 
-            <Text style={styles.vehicleNumber}>
-              KA 01 AB 1234
-            </Text>
+            <View style={styles.documentsCard}>
+              {documents.map((document, index) => {
+                const statusColors = getStatusColors(document.status);
 
-            <Text style={styles.vehicleName}>
-              Force Traveller
-            </Text>
-          </View>
-
-          <View style={styles.vehicleImageContainer}>
-            <Image
-              source={{
-                uri: 'https://upload.wikimedia.org/wikipedia/commons/thumb/4/4f/Force_Traveller.jpg/640px-Force_Traveller.jpg',
-              }}
-              style={styles.vehicleImage}
-              resizeMode="contain"
-            />
-          </View>
-        </View>
-
-        {/* ================= DOCUMENTS ================= */}
-
-        <Text style={styles.sectionHeading}>
-          Documents
-        </Text>
-
-        <View style={styles.documentsCard}>
-
-          {documents.map((document, index) => {
-            const statusColors = getStatusColors(
-              document.status,
-            );
-
-            return (
-              <View
-                key={document.title}
-                style={[
-                  styles.documentRow,
-                  index === documents.length - 1 &&
-                  styles.lastDocumentRow,
-                ]}
-              >
-                {/* ICON */}
-
-                <View style={styles.documentIcon}>
-                  <AppIcon
-                    family="material"
-                    name="file-document-outline"
-                    size={17}
-                    color={colors.primary}
-                  />
-                </View>
-
-                {/* DOCUMENT INFO */}
-
-                <View style={styles.documentInfo}>
-                  <Text style={styles.documentName}>
-                    {document.title}
-                  </Text>
-
-                  {document.subtitle && (
-                    <Text style={styles.documentSubtitle}>
-                      {document.subtitle}
-                    </Text>
-                  )}
-                </View>
-
-                {/* STATUS */}
-
-                <View
-                  style={[
-                    styles.statusPill,
-                    { backgroundColor: statusColors.bg },
-                  ]}
-                >
-                  <AppIcon
-                    family="material"
-                    name="check-circle"
-                    size={12}
-                    color={statusColors.text}
-                  />
-
-                  <Text
+                return (
+                  <View
+                    key={document.title}
                     style={[
-                      styles.statusText,
-                      { color: statusColors.text },
+                      styles.documentRow,
+                      index === documents.length - 1 && styles.lastDocumentRow,
                     ]}
                   >
-                    {document.status}
-                  </Text>
-                </View>
-              </View>
-            );
-          })}
-        </View>
+                    {/* ICON */}
+
+                    <View style={styles.documentIcon}>
+                      <AppIcon
+                        family="material"
+                        name="file-document-outline"
+                        size={17}
+                        color={colors.primary}
+                      />
+                    </View>
+
+                    {/* DOCUMENT INFO */}
+
+                    <View style={styles.documentInfo}>
+                      <Text style={styles.documentName} numberOfLines={1}>
+                        {document.title}
+                      </Text>
+
+                      {document.subtitle && (
+                        <Text style={styles.documentSubtitle} numberOfLines={1}>
+                          {document.subtitle}
+                        </Text>
+                      )}
+                    </View>
+
+                    {/* STATUS */}
+
+                    <View
+                      style={[
+                        styles.statusPill,
+                        { backgroundColor: statusColors.bg },
+                      ]}
+                    >
+                      <AppIcon
+                        family="material"
+                        name="check-circle"
+                        size={12}
+                        color={statusColors.text}
+                      />
+
+                      <Text
+                        style={[
+                          styles.statusText,
+                          { color: statusColors.text },
+                        ]}
+                        numberOfLines={1}
+                      >
+                        {document.status}
+                      </Text>
+                    </View>
+                  </View>
+                );
+              })}
+            </View>
+          </>
+        )}
       </ScrollView>
     </SafeAreaView>
   );
@@ -204,7 +236,7 @@ const styles = StyleSheet.create({
   // =====================================================
 
   vehicleCard: {
-    minHeight: 110,
+    height: 110,
     backgroundColor: colors.primaryLight,
 
     borderRadius: 20,
@@ -234,6 +266,8 @@ const styles = StyleSheet.create({
   sectionLabel: {
     fontFamily: 'GoogleSans-Medium',
     fontSize: 10,
+    lineHeight: 12,
+    includeFontPadding: false,
     color: colors.textLight,
     letterSpacing: 0.6,
 
@@ -243,6 +277,8 @@ const styles = StyleSheet.create({
   vehicleNumber: {
     fontFamily: 'GoogleSans-Bold',
     fontSize: typography.fontSize.sm,
+    lineHeight: 16,
+    includeFontPadding: false,
     color: colors.textPrimary,
     letterSpacing: 0.2,
 
@@ -252,6 +288,8 @@ const styles = StyleSheet.create({
   vehicleName: {
     fontFamily: 'GoogleSans-Regular',
     fontSize: typography.fontSize.xs,
+    lineHeight: 14,
+    includeFontPadding: false,
     color: colors.textSecondary,
   },
 
@@ -261,7 +299,7 @@ const styles = StyleSheet.create({
 
     borderRadius: 14,
 
-     backgroundColor: colors.background,
+    backgroundColor: colors.background,
 
     alignItems: 'center',
     justifyContent: 'center',
@@ -281,6 +319,8 @@ const styles = StyleSheet.create({
   sectionHeading: {
     fontFamily: 'GoogleSans-Medium',
     fontSize: 11,
+    lineHeight: 13,
+    includeFontPadding: false,
     color: colors.textLight,
     letterSpacing: 0.6,
     textTransform: 'uppercase',
@@ -295,7 +335,7 @@ const styles = StyleSheet.create({
   // =====================================================
 
   documentsCard: {
-     backgroundColor: colors.background,
+    backgroundColor: colors.card,
 
     borderRadius: 18,
 
@@ -316,7 +356,7 @@ const styles = StyleSheet.create({
   // =====================================================
 
   documentRow: {
-    minHeight: 62,
+    height: 56,
 
     flexDirection: 'row',
     alignItems: 'center',
@@ -356,6 +396,8 @@ const styles = StyleSheet.create({
   documentName: {
     fontFamily: 'GoogleSans-Medium',
     fontSize: typography.fontSize.xs,
+    lineHeight: 14,
+    includeFontPadding: false,
     color: colors.textPrimary,
 
     marginBottom: 2,
@@ -364,6 +406,8 @@ const styles = StyleSheet.create({
   documentSubtitle: {
     fontFamily: 'GoogleSans-Regular',
     fontSize: 10,
+    lineHeight: 12,
+    includeFontPadding: false,
     color: colors.textLight,
   },
 
@@ -372,12 +416,13 @@ const styles = StyleSheet.create({
   // =====================================================
 
   statusPill: {
+    height: 22,
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     gap: 4,
 
     paddingHorizontal: 9,
-    paddingVertical: 5,
 
     borderRadius: 10,
   },
@@ -385,6 +430,8 @@ const styles = StyleSheet.create({
   statusText: {
     fontFamily: 'GoogleSans-Medium',
     fontSize: 10,
+    lineHeight: 12,
+    includeFontPadding: false,
     letterSpacing: 0.2,
   },
 });
