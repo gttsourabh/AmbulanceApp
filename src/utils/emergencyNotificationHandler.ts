@@ -12,6 +12,8 @@ export interface EmergencyTripData {
     address: string;
     emergencyType: string;
     ambulanceTrip: boolean;
+    estimatedEarnings?: string | number;
+    destination?: string;
     raw?: any;
 }
 
@@ -55,6 +57,8 @@ export function parseEmergencyTripPayload(data: any): EmergencyTripData | null {
     const lat = parseFloat(payloadObj.LAT ?? payloadObj.lat ?? payloadObj.latitude ?? '0');
     const lng = parseFloat(payloadObj.LNG ?? payloadObj.lng ?? payloadObj.longitude ?? '0');
     const rawRequestId = payloadObj.REQUEST_ID ?? payloadObj.requestId ?? 0;
+    const earnings = payloadObj.ESTIMATED_EARNINGS ?? payloadObj.estimatedEarnings ?? payloadObj.FARE ?? payloadObj.fare ?? payloadObj.AMOUNT ?? payloadObj.amount;
+    const dest = payloadObj.DESTINATION ?? payloadObj.destination ?? payloadObj.HOSPITAL_NAME ?? payloadObj.hospitalName ?? 'Nearest Emergency Hospital';
 
     return {
         requestId: typeof rawRequestId === 'number' ? rawRequestId : parseInt(String(rawRequestId), 10) || 0,
@@ -65,6 +69,8 @@ export function parseEmergencyTripPayload(data: any): EmergencyTripData | null {
         address: payloadObj.ADDRESS ?? payloadObj.address ?? 'Pickup location not specified',
         emergencyType: payloadObj.EMERGENCY_TYPE ?? payloadObj.emergencyType ?? 'Medical',
         ambulanceTrip: true,
+        estimatedEarnings: earnings ? String(earnings) : undefined,
+        destination: dest,
         raw: payloadObj,
     };
 }

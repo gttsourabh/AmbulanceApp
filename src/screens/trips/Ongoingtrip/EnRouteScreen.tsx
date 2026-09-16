@@ -7,6 +7,8 @@ import {
   Platform,
   ActivityIndicator,
   Modal,
+  Linking,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import MapView, {
@@ -16,7 +18,8 @@ import MapView, {
   MapType,
   Region,
 } from 'react-native-maps';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
+import { useAppSelector } from '../../../redux/hook';
 
 import { colors, typography } from '../../../theme';
 import { AppIcon } from '../../../icons';
@@ -38,12 +41,16 @@ import {
 
 const EnRouteScreen = () => {
   const navigation = useNavigation();
+  const route = useRoute<any>();
+  const user = useAppSelector(state => state.auth.user);
   const mapRef = useRef<MapView>(null);
   const hasInitialFit = useRef(false);
 
-  // Static IDs for location tracking API
-  const STATIC_AMBULANCE_REQUEST_ID = 5;
-  const STATIC_DRIVER_ID = 4;
+  // Static IDs for location tracking API (commented for dynamic usage)
+  // const STATIC_AMBULANCE_REQUEST_ID = 5;
+  // const STATIC_DRIVER_ID = 4;
+  const dynamicDriverId = Number(route?.params?.driverId || user?.driver_id || user?.id || user?.userId || 0);
+  const ambulanceRequestId = Number(route?.params?.requestId || 0);
 
   const [distanceText, setDistanceText] = useState('Calculating...');
   const [etaText, setEtaText] = useState('Finding nearest route...');
@@ -81,11 +88,12 @@ const EnRouteScreen = () => {
   useEffect(() => {
     if (isNavigating) {
       console.log(
-        `🚀 [EN-ROUTE NAVIGATION STARTED] Ambulance Live Location -> Lat: ${ambulanceLocationRef.current.latitude.toFixed(6)}, Lng: ${ambulanceLocationRef.current.longitude.toFixed(6)}`
+        `🚀 [EN-ROUTE NAVIGATION STARTED] Ambulance Live Location -> Lat: ${ambulanceLocationRef.current.latitude.toFixed(6)}, Lng: ${ambulanceLocationRef.current.longitude.toFixed(6)} | Request ID: ${ambulanceRequestId} | Driver ID: ${dynamicDriverId}`
       );
       startBackgroundLocationTracking({
-        ambulanceRequestId: STATIC_AMBULANCE_REQUEST_ID,
-        driverId: STATIC_DRIVER_ID,
+        ambulanceRequestId: ambulanceRequestId,
+        driverId: dynamicDriverId,
+        type: 'pd',
         getCoordinates: () => ambulanceLocationRef.current,
       });
     } else {
@@ -95,13 +103,18 @@ const EnRouteScreen = () => {
     return () => {
       stopBackgroundLocationTracking();
     };
-  }, [isNavigating]);
+  }, [isNavigating, ambulanceRequestId, dynamicDriverId]);
 
-  // Hospital Destination: Government Medical College & Hospital (Civil Hospital), Sangli
-  const hospitalLocation: LatLng = {
-    latitude: 16.8543,
-    longitude: 74.5772,
-  };
+  // Hospital Destination: dynamic drop location or Civil Hospital Sangli
+  const dynamicHospitalLat = Number(route?.params?.drop_lat || route?.params?.hospitalLocation?.latitude || route?.params?.destinationLocation?.latitude);
+  const dynamicHospitalLng = Number(route?.params?.drop_lng || route?.params?.hospitalLocation?.longitude || route?.params?.destinationLocation?.longitude);
+
+  const hospitalLocation: LatLng = (dynamicHospitalLat && dynamicHospitalLng)
+    ? { latitude: dynamicHospitalLat, longitude: dynamicHospitalLng }
+    : {
+        latitude: 16.8543,
+        longitude: 74.5772,
+      };
 
   // Fallback road coordinates
   const fallbackRoute = [
@@ -354,12 +367,25 @@ const EnRouteScreen = () => {
   };
 
   const handleCall = () => {
-    console.log('Call hospital');
+    const phone = route?.params?.contactNo || route?.params?.hospitalPhone;
+    if (phone) {
+      Linking.openURL(`tel:${phone}`);
+    } else {
+      Alert.alert('Notice', 'No contact number available.');
+    }
   };
 
   const handleReachedHospital = () => {
     stopBackgroundLocationTracking();
-    navigation.navigate('OnTrip' as never);
+    (navigation.navigate as any)('OnTrip', {
+      requestId: ambulanceRequestId,
+      driverId: dynamicDriverId,
+      patientName: route?.params?.patientName,
+      contactNo: route?.params?.contactNo,
+      address: route?.params?.address,
+      destination: route?.params?.destination,
+      emergencyType: route?.params?.emergencyType,
+    });
   };
 
   return (

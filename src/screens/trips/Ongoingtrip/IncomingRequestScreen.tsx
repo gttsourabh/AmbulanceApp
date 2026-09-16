@@ -48,9 +48,16 @@ const IncomingRequestScreen = () => {
 
   const handleReject = async () => {
     if (isSubmitting) return;
+    // Commented static fallback:
+    // const requestId = Number(emergencyData?.requestId) || 38;
+    const requestId = Number(emergencyData?.requestId);
+    if (!requestId) {
+      Alert.alert('Invalid Request', 'No valid emergency request ID found.');
+      return;
+    }
+
     setIsSubmitting('reject');
     try {
-      const requestId = Number(emergencyData?.requestId) || 38;
       console.log(`📡 [EMERGENCY RESPONSE] Sending reject for request_id: ${requestId}`);
       const response = await respondToEmergencyRequest({
         action: 'reject',
@@ -88,9 +95,16 @@ const IncomingRequestScreen = () => {
 
   const handleAccept = async () => {
     if (isSubmitting) return;
+    // Commented static fallback:
+    // const requestId = Number(emergencyData?.requestId) || 38;
+    const requestId = Number(emergencyData?.requestId);
+    if (!requestId) {
+      Alert.alert('Invalid Request', 'No valid emergency request ID found to accept.');
+      return;
+    }
+
     setIsSubmitting('accept');
     try {
-      const requestId = Number(emergencyData?.requestId) || 38;
       console.log(`📡 [EMERGENCY RESPONSE] Sending accept for request_id: ${requestId}`);
       const response = await respondToEmergencyRequest({
         action: 'accept',
@@ -109,6 +123,8 @@ const IncomingRequestScreen = () => {
 
       // ONLY navigate to next page if backend succeeds!
       await storage.remove(STORAGE_KEYS.PENDING_EMERGENCY_REQUEST);
+
+      /* Commented static navigation parameters:
       (navigation.navigate as any)('NavigationToPickup', {
         pickupLocation: {
           latitude: emergencyData?.latitude || 21.1458,
@@ -119,6 +135,22 @@ const IncomingRequestScreen = () => {
         address: emergencyData?.address || '2496, Baba Farid Nagar, 4783Chitnis NagarNagpur, Sitabuldi, Nagpur, Maharashtra 440001, India',
         requestId: emergencyData?.requestId || 38,
         emergencyType: emergencyData?.emergencyType || 'cardiac',
+      });
+      */
+
+      // Dynamic navigation parameters
+      (navigation.navigate as any)('NavigationToPickup', {
+        pickupLocation: {
+          latitude: emergencyData?.latitude || 0,
+          longitude: emergencyData?.longitude || 0,
+        },
+        patientName: emergencyData?.patientName || 'Patient',
+        contactNo: emergencyData?.contactNo || '',
+        address: emergencyData?.address || 'Pickup Location',
+        requestId: requestId,
+        emergencyType: emergencyData?.emergencyType || 'Emergency',
+        destination: emergencyData?.destination || 'Nearest Emergency Hospital',
+        estimatedEarnings: emergencyData?.estimatedEarnings || '450',
       });
     } catch (err: any) {
       console.warn('⚠️ Failed to send accept response to server:', err);
@@ -138,9 +170,13 @@ const IncomingRequestScreen = () => {
   // =====================================================
 
   const handleCall = () => {
-    const phone = emergencyData?.contactNo || '9373962355';
+    // Commented static phone fallback:
+    // const phone = emergencyData?.contactNo || '9373962355';
+    const phone = emergencyData?.contactNo;
     if (phone) {
       Linking.openURL(`tel:${phone}`);
+    } else {
+      Alert.alert('Notice', 'No contact number provided for this patient.');
     }
   };
 
@@ -175,8 +211,9 @@ const IncomingRequestScreen = () => {
 
             <View style={styles.patientRow}>
               <View>
+                {/* Static fallback commented: {emergencyData?.patientName || 'Omkar Bhosale'} */}
                 <Text style={styles.value}>
-                  {emergencyData?.patientName || 'Omkar Bhosale'}
+                  {emergencyData?.patientName || 'Emergency Patient'}
                 </Text>
                 {emergencyData?.contactNo ? (
                   <Text style={styles.secondaryValue}>
@@ -214,8 +251,9 @@ const IncomingRequestScreen = () => {
               </Text>
             </View>
 
+            {/* Static fallback commented: {emergencyData?.address || '2496, Baba Farid Nagar, 4783Chitnis NagarNagpur, Sitabuldi, Nagpur, Maharashtra 440001, India'} */}
             <Text style={styles.value} numberOfLines={2}>
-              {emergencyData?.address || '2496, Baba Farid Nagar, 4783Chitnis NagarNagpur, Sitabuldi, Nagpur, Maharashtra 440001, India'}
+              {emergencyData?.address || 'Pickup location not specified'}
             </Text>
 
             {emergencyData?.latitude && emergencyData?.longitude ? (
@@ -243,8 +281,9 @@ const IncomingRequestScreen = () => {
               </Text>
             </View>
 
+            {/* Dynamic destination */}
             <Text style={styles.value}>
-              Nearest Emergency Hospital
+              {emergencyData?.destination || 'Nearest Emergency Hospital'}
             </Text>
 
             <Text style={styles.secondaryValue}>
@@ -274,10 +313,11 @@ const IncomingRequestScreen = () => {
                   color={colors.danger}
                 />
 
+                {/* Static fallback commented: emergencyData?.emergencyType ? emergencyData.emergencyType.toUpperCase() : 'CARDIAC' */}
                 <Text style={styles.typeText}>
                   {emergencyData?.emergencyType
                     ? emergencyData.emergencyType.toUpperCase()
-                    : 'CARDIAC'}
+                    : 'EMERGENCY'}
                 </Text>
               </View>
             </View>
@@ -289,8 +329,9 @@ const IncomingRequestScreen = () => {
                 ESTIMATED EARNINGS
               </Text>
 
+              {/* Static earning commented: ₹ 450 */}
               <Text style={styles.earningValue}>
-                ₹ 450
+                {emergencyData?.estimatedEarnings ? `₹ ${emergencyData.estimatedEarnings}` : '₹ 450'}
               </Text>
             </View>
           </View>

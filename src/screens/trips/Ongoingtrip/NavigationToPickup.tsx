@@ -8,6 +8,7 @@ import {
     ActivityIndicator,
     Modal,
     Linking,
+    Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import MapView, {
@@ -18,6 +19,7 @@ import MapView, {
     Region,
 } from 'react-native-maps';
 import { useNavigation, useRoute } from '@react-navigation/native';
+import { useAppSelector } from '../../../redux/hook';
 
 import { colors, typography } from '../../../theme';
 import { AppIcon } from '../../../icons';
@@ -43,10 +45,14 @@ const NavigationToPickup = () => {
     const mapRef = useRef<MapView>(null);
     const hasInitialFit = useRef(false);
 
-    // Static IDs for location tracking API (override with route params if present)
-    const STATIC_AMBULANCE_REQUEST_ID = 5;
-    const STATIC_DRIVER_ID = 4;
-    const ambulanceRequestId = Number(route?.params?.requestId) || STATIC_AMBULANCE_REQUEST_ID;
+    // Static IDs for location tracking API (commented for dynamic usage)
+    // const STATIC_AMBULANCE_REQUEST_ID = 5;
+    // const STATIC_DRIVER_ID = 4;
+    // const ambulanceRequestId = Number(route?.params?.requestId) || STATIC_AMBULANCE_REQUEST_ID;
+
+    const user = useAppSelector(state => state.auth.user);
+    const dynamicDriverId = Number(user?.driver_id || user?.id || user?.userId || 0);
+    const ambulanceRequestId = Number(route?.params?.requestId || 0);
 
     const [distanceText, setDistanceText] = useState('Calculating...');
     const [etaText, setEtaText] = useState('Finding nearest route...');
@@ -84,11 +90,12 @@ const NavigationToPickup = () => {
     useEffect(() => {
         if (isNavigating) {
             console.log(
-                `🚀 [NAVIGATION STARTED] Driver Current Location -> Lat: ${driverLocationRef.current.latitude.toFixed(6)}, Lng: ${driverLocationRef.current.longitude.toFixed(6)} | Request ID: ${ambulanceRequestId}`
+                `🚀 [NAVIGATION STARTED] Driver Current Location -> Lat: ${driverLocationRef.current.latitude.toFixed(6)}, Lng: ${driverLocationRef.current.longitude.toFixed(6)} | Request ID: ${ambulanceRequestId} | Driver ID: ${dynamicDriverId}`
             );
             startBackgroundLocationTracking({
                 ambulanceRequestId: ambulanceRequestId,
-                driverId: STATIC_DRIVER_ID,
+                driverId: dynamicDriverId,
+                type: 'np',
                 getCoordinates: () => driverLocationRef.current,
             });
         } else {
@@ -98,13 +105,20 @@ const NavigationToPickup = () => {
         return () => {
             stopBackgroundLocationTracking();
         };
-    }, [isNavigating, ambulanceRequestId]);
+    }, [isNavigating, ambulanceRequestId, dynamicDriverId]);
 
-    // Patient Pickup Location: from navigation params or fallback to Vishrambag, Sangli
-    const pickupLocation: LatLng = route?.params?.pickupLocation || {
-        latitude: 16.8455,
-        longitude: 74.6010,
-    };
+    // Patient Pickup Location: from navigation params
+    // Commented static Sangli fallback:
+    // const pickupLocation: LatLng = route?.params?.pickupLocation || {
+    //     latitude: 16.8455,
+    //     longitude: 74.6010,
+    // };
+    const pickupLocation: LatLng = (route?.params?.pickupLocation?.latitude && route?.params?.pickupLocation?.longitude)
+        ? route.params.pickupLocation
+        : {
+            latitude: driverLocation.latitude,
+            longitude: driverLocation.longitude,
+        };
 
     // Fallback direct road polyline if offline/loading
     const fallbackRoute = [
@@ -410,15 +424,29 @@ const NavigationToPickup = () => {
     // =====================================================
 
     const handleCall = () => {
-        const phone = route?.params?.contactNo || '9373962355';
+        // Commented static phone fallback:
+        // const phone = route?.params?.contactNo || '9373962355';
+        const phone = route?.params?.contactNo;
         if (phone) {
             Linking.openURL(`tel:${phone}`);
+        } else {
+            Alert.alert('Notice', 'No contact number available for this patient.');
         }
     };
 
     const handleArrived = () => {
         stopBackgroundLocationTracking();
-        navigation.navigate('Pickup' as never);
+        // Forward dynamic trip parameters directly to EnRoute screen (OTP screen removed after reaching patient)
+        (navigation.navigate as any)('EnRoute', {
+            requestId: ambulanceRequestId,
+            driverId: dynamicDriverId,
+            patientName: route?.params?.patientName || 'Patient',
+            contactNo: route?.params?.contactNo || '',
+            address: route?.params?.address || 'Pickup Location',
+            pickupLocation: pickupLocation,
+            destination: route?.params?.destination || 'Nearest Emergency Hospital',
+            emergencyType: route?.params?.emergencyType || 'Emergency',
+        });
     };
 
     return (
@@ -494,11 +522,15 @@ const NavigationToPickup = () => {
                     />
 
                     {/* Patient Pickup Destination Marker */}
+                    {/* Commented static fallback:
+                    title={route?.params?.patientName ? `${route.params.patientName} (Patient)` : 'Omkar Bhosale (Patient)'}
+                    description={route?.params?.address || 'Near Ganapati Temple, Vishrambag, Sangli'}
+                    */}
                     <LocationMarker
                         coordinate={pickupLocation}
                         type="pickup"
-                        title={route?.params?.patientName ? `${route.params.patientName} (Patient)` : 'Omkar Bhosale (Patient)'}
-                        description={route?.params?.address || 'Near Ganapati Temple, Vishrambag, Sangli'}
+                        title={route?.params?.patientName ? `${route.params.patientName} (Patient)` : 'Patient Pickup'}
+                        description={route?.params?.address || 'Pickup Location'}
                         label="Patient Pickup"
                     />
                 </MapView>
@@ -667,7 +699,8 @@ const NavigationToPickup = () => {
 
                             <View style={styles.patientInfo}>
                                 <Text style={styles.patientName}>
-                                    {route?.params?.patientName || 'Omkar Bhosale'}
+                                    {/* Static name commented: {route?.params?.patientName || 'Omkar Bhosale'} */}
+                                    {route?.params?.patientName || 'Emergency Patient'}
                                 </Text>
 
                                 <View style={styles.patientAddressRow}>
@@ -682,7 +715,8 @@ const NavigationToPickup = () => {
                                         style={styles.patientAddress}
                                         numberOfLines={1}
                                     >
-                                        {route?.params?.address || 'Near Ganapati Temple, Vishrambag, Sangli'}
+                                        {/* Static address commented: {route?.params?.address || 'Near Ganapati Temple, Vishrambag, Sangli'} */}
+                                        {route?.params?.address || 'Pickup Location'}
                                     </Text>
                                 </View>
                             </View>

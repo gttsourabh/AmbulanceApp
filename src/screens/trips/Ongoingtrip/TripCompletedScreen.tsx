@@ -9,12 +9,15 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, typography, shadows } from '../../../theme';
 import { AppIcon } from '../../../icons';
 import Button from '../../../components/Button/Button';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
+import { useAppSelector } from '../../../redux/hook';
 
 const TripCompletedScreen = () => {
-    const navigation = useNavigation()
+    const navigation = useNavigation();
+    const route = useRoute<any>();
+    const user = useAppSelector(state => state.auth.user);
     const handleComplete = () => {
-        navigation.navigate("MainTabs" as never)
+        navigation.navigate("MainTabs" as never);
     };
 
     return (
@@ -73,8 +76,9 @@ const TripCompletedScreen = () => {
                         </View>
 
                         <View style={styles.driverInfo}>
+                            {/* Static name commented: John Doe */}
                             <Text style={styles.driverName}>
-                                John Doe
+                                {user?.name || 'Ambulance Driver'}
                             </Text>
 
                             <View style={styles.ratingRow}>
@@ -365,6 +369,7 @@ const styles = StyleSheet.create({
     },
 
     stars: {
+        fontFamily: 'GoogleSans-Regular',
         fontSize: 13,
         letterSpacing: 1,
 

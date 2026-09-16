@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   StyleSheet,
   Text,
@@ -12,16 +12,56 @@ import MapView, {
   PROVIDER_GOOGLE,
   PROVIDER_DEFAULT,
 } from 'react-native-maps';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 
 import { colors, typography, shadows } from '../../../theme';
 import { AppIcon } from '../../../icons';
 import Header from '../../../components/Header/Header';
 import Button from '../../../components/Button/Button';
 import { AmbulanceMarker, LocationMarker, medicalMapStyle } from '../../../components/Map';
+import { useAppSelector } from '../../../redux/hook';
+import { getAmbulanceRequestApi, AmbulanceRequestItem } from '../../../api/driverApi';
+import { storage } from '../../../storage/storage';
+import { STORAGE_KEYS } from '../../../storage/storageKeys';
 
 const OnTripScreen = () => {
   const navigation = useNavigation();
+  const route = useRoute<any>();
+  const user = useAppSelector(state => state.auth.user);
+  const [activeRequest, setActiveRequest] = useState<AmbulanceRequestItem | null>(null);
+
+  // Screen 10: Fetch active ambulance request for driver
+  useEffect(() => {
+    const fetchActiveTrip = async () => {
+      let driverId = route?.params?.driverId || user?.driver_id || user?.id || user?.userId;
+      if (!driverId && driverId !== 0) {
+        try {
+          const storedUser = await storage.get<any>(STORAGE_KEYS.USER_DATA);
+          driverId = storedUser?.driver_id || storedUser?.id || storedUser?.userId;
+        } catch {
+          // ignore
+        }
+      }
+      const effectiveDriverId = Number(driverId) || 1;
+      try {
+        console.log(`📡 [ON TRIP SCREEN 10] Fetching request for driver_id: ${effectiveDriverId}`);
+        const res = await getAmbulanceRequestApi({ driver_id: effectiveDriverId });
+        const items = res?.data?.data || [];
+        if (items.length > 0) {
+          const target = route?.params?.requestId
+            ? items.find(x => x.id === Number(route.params.requestId)) || items[0]
+            : items[0];
+          if (target) {
+            setActiveRequest(target);
+          }
+        }
+      } catch (err) {
+        console.warn('⚠️ [ON TRIP SCREEN 10] Error fetching active request:', err);
+      }
+    };
+
+    fetchActiveTrip();
+  }, [user, route?.params]);
 
   const ambulanceLocation = {
     latitude: 12.9610,
@@ -59,7 +99,12 @@ const OnTripScreen = () => {
   };
 
   const handleReachedHospital = () => {
-    navigation.navigate('TripCompleted' as never);
+    (navigation.navigate as any)('TripCompleted', {
+      patientName: route?.params?.patientName || activeRequest?.patient_name,
+      destination: route?.params?.destination || activeRequest?.drop_address,
+      requestId: route?.params?.requestId || activeRequest?.id,
+      driverId: route?.params?.driverId || activeRequest?.driver_id,
+    });
   };
 
   return (
@@ -84,8 +129,9 @@ const OnTripScreen = () => {
           </View>
 
           <View style={styles.hospitalInfo}>
+            {/* Static name commented: Secure Hospital */}
             <Text style={styles.hospitalName}>
-              Secure Hospital
+              {route?.params?.destination || 'Nearest Emergency Hospital'}
             </Text>
 
             <View style={styles.hospitalAddressRow}>
@@ -97,7 +143,7 @@ const OnTripScreen = () => {
               />
 
               <Text style={styles.hospitalAddress}>
-                45, Hospital Road, Bengaluru
+                {route?.params?.destination ? 'Destination Hospital' : '45, Hospital Road, Bengaluru'}
               </Text>
             </View>
           </View>

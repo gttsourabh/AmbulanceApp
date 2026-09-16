@@ -1,11 +1,12 @@
 import BackgroundService from 'react-native-background-actions';
 import Geolocation from '@react-native-community/geolocation';
-import { updateDriverLocation, UpdateDriverLocationPayload } from '../api/driverApi';
+import { updateDriverLocation, UpdateDriverLocationPayload, TripNavigationType } from '../api/driverApi';
 import { requestNotificationPermission } from '../utils/locationPermission';
 
 const sleep = (ms: number) => new Promise<void>(resolve => setTimeout(() => resolve(), ms));
 
 let latestCoordsGetter: (() => { latitude: number; longitude: number } | null) | null = null;
+let currentTrackingType: TripNavigationType = 'np';
 
 const getFreshGpsPosition = (): Promise<{ latitude: number; longitude: number } | null> => {
     return new Promise(resolve => {
@@ -32,8 +33,12 @@ const getFreshGpsPosition = (): Promise<{ latitude: number; longitude: number } 
 const backgroundTask = async (taskDataArguments?: any) => {
     const ambulanceRequestId = taskDataArguments?.ambulance_request_id || 5;
     const driverId = taskDataArguments?.driver_id || 4;
+    const initialType: TripNavigationType = taskDataArguments?.type || currentTrackingType || 'np';
+    if (taskDataArguments?.type) {
+        currentTrackingType = taskDataArguments.type;
+    }
 
-    console.log('🚀 [BACKGROUND SERVICE TASK STARTED]');
+    console.log('🚀 [BACKGROUND SERVICE TASK STARTED] Type:', currentTrackingType);
 
     while (BackgroundService.isRunning()) {
         try {
@@ -44,15 +49,17 @@ const backgroundTask = async (taskDataArguments?: any) => {
             }
 
             if (coords && coords.latitude && coords.longitude) {
+                const tripType = currentTrackingType || initialType;
                 const payload: UpdateDriverLocationPayload = {
                     ambulance_request_id: ambulanceRequestId,
                     driver_id: driverId,
                     latitude: Number(coords.latitude.toFixed(6)),
                     longitude: Number(coords.longitude.toFixed(6)),
+                    type: tripType,
                 };
 
                 console.log(
-                    `📍 [BACKGROUND LIVE GPS (Every 10s)] -> Latitude: ${payload.latitude}, Longitude: ${payload.longitude}`
+                    `📍 [BACKGROUND LIVE GPS (Every 10s)] -> Latitude: ${payload.latitude}, Longitude: ${payload.longitude}, Type: ${payload.type}`
                 );
                 console.log(
                     '📡 [POST /api/ambulance/driver/update-location] Sending background payload:',
@@ -81,7 +88,15 @@ const backgroundTask = async (taskDataArguments?: any) => {
 export interface BackgroundTrackingOptions {
     ambulanceRequestId?: number;
     driverId?: number;
+    type?: TripNavigationType;
     getCoordinates?: () => { latitude: number; longitude: number } | null;
+}
+
+/**
+ * Updates the navigation tracking type dynamically ('np' = nav to patient, 'pd' = patient to doctor).
+ */
+export function updateTrackingType(type: TripNavigationType) {
+    currentTrackingType = type;
 }
 
 /**
@@ -89,17 +104,21 @@ export interface BackgroundTrackingOptions {
  * every 10 seconds, even when the app is minimized or the screen is locked.
  */
 export async function startBackgroundLocationTracking(options?: BackgroundTrackingOptions) {
+    if (options?.type) {
+        currentTrackingType = options.type;
+    }
+
+    if (options?.getCoordinates) {
+        latestCoordsGetter = options.getCoordinates;
+    }
+
     if (BackgroundService.isRunning()) {
-        console.log('ℹ️ Background location tracking is already running.');
+        console.log(`ℹ️ Background location tracking is already running. Updated tracking type to: ${currentTrackingType}`);
         return;
     }
 
     // Ensure notification permission is granted on Android 13+
     await requestNotificationPermission();
-
-    if (options?.getCoordinates) {
-        latestCoordsGetter = options.getCoordinates;
-    }
 
     const taskOptions = {
         taskName: 'AmbulanceLiveNavigation',
@@ -115,12 +134,13 @@ export async function startBackgroundLocationTracking(options?: BackgroundTracki
         parameters: {
             ambulance_request_id: options?.ambulanceRequestId || 5,
             driver_id: options?.driverId || 4,
+            type: options?.type || 'np',
         },
     };
 
     try {
         await BackgroundService.start(backgroundTask, taskOptions as any);
-        console.log('🛡️ [FOREGROUND SERVICE STARTED] Live navigation running in background.');
+        console.log('🛡️ [FOREGROUND SERVICE STARTED] Live navigation running in background. Type:', currentTrackingType);
     } catch (err) {
         console.error('Failed to start background location service:', err);
     }

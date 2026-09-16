@@ -1,4 +1,12 @@
 export const typography = {
+    fontFamily: {
+        regular: 'GoogleSans-Regular',
+        medium: 'GoogleSans-Medium',
+        semiBold: 'GoogleSans-SemiBold',
+        bold: 'GoogleSans-Bold',
+        italic: 'GoogleSans-Italic',
+    },
+
     fontSize: {
         xs: 12,
         sm: 14,
@@ -16,4 +24,4 @@ export const typography = {
         semibold: '600' as const,
         bold: '700' as const,
     },
-};
+};

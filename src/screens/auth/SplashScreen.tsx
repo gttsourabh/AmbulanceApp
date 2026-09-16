@@ -124,8 +124,6 @@ const styles = StyleSheet.create({
         height: '100%',
         backgroundColor: '#F8F9FF',
         alignItems: 'center',
-        fontFamily: 'GoogleSans-Regular',
-        fontSize: 20,
     },
 
     // Logo
@@ -137,30 +135,24 @@ const styles = StyleSheet.create({
     logoText: {
         marginTop: 5,
         fontSize: 38,
-        fontWeight: '800',
         letterSpacing: 2,
         color: '#155EEF',
-        fontFamily: 'GoogleSans-Regular',
-
+        fontFamily: 'GoogleSans-Bold',
     },
 
     tagline: {
         marginTop: 3,
         fontSize: 16,
-        fontWeight: '500',
         color: '#5575C8',
-        fontFamily: 'GoogleSans-Regular',
-
+        fontFamily: 'GoogleSans-Medium',
     },
 
     // Driver
     driverText: {
         marginTop: '12%',
         fontSize: 23,
-        fontWeight: '700',
         color: '#12336B',
-        fontFamily: 'GoogleSans-Regular',
-
+        fontFamily: 'GoogleSans-Bold',
     },
 
     // City
@@ -173,15 +165,11 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'flex-end',
         opacity: 0.3,
-        fontFamily: 'GoogleSans-Regular',
-
     },
 
     building: {
         backgroundColor: '#DDE5FA',
         marginRight: 3,
-        fontFamily: 'GoogleSans-Regular',
-
     },
 
     b1: {
@@ -239,11 +227,9 @@ const styles = StyleSheet.create({
 
     poweredText: {
         fontSize: 14,
-        fontWeight: '600',
         color: '#253B6B',
         marginBottom: 18,
-        fontFamily: 'GoogleSans-Regular',
-
+        fontFamily: 'GoogleSans-Medium',
     },
 
     progressBackground: {

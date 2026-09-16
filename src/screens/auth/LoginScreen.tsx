@@ -441,19 +441,17 @@ const styles = StyleSheet.create({
 
     welcomeTitle: {
         fontSize: 28,
-        fontWeight: '800',
         color: '#1E293B',
         letterSpacing: -0.5,
         marginBottom: 8,
-        fontFamily: 'GoogleSans-Regular',
+        fontFamily: 'GoogleSans-Bold',
     },
 
     welcomeSubtitle: {
         fontSize: 16,
         color: '#64748B',
-        fontWeight: '500',
         letterSpacing: 0.2,
-        fontFamily: 'GoogleSans-Regular',
+        fontFamily: 'GoogleSans-Medium',
     },
 
     /* =========================
@@ -508,8 +506,7 @@ const styles = StyleSheet.create({
     callingCode: {
         fontSize: 16,
         color: '#1E293B',
-        fontWeight: '600',
-        fontFamily: 'GoogleSans-Regular',
+        fontFamily: 'GoogleSans-Medium',
     },
 
     arrow: {
@@ -583,10 +580,9 @@ const styles = StyleSheet.create({
 
     sendOTPText: {
         fontSize: 16,
-        fontWeight: '700',
         color: '#FFFFFF',
         letterSpacing: 0.3,
-        fontFamily: 'GoogleSans-Regular',
+        fontFamily: 'GoogleSans-Bold',
     },
 
     /* =========================
@@ -603,14 +599,12 @@ const styles = StyleSheet.create({
         textAlign: 'center',
         lineHeight: 22,
         letterSpacing: 0.2,
-        fontWeight: '500',
         fontFamily: 'GoogleSans-Regular',
     },
 
     footerLink: {
         color: '#2563EB',
-        fontWeight: '700',
-        fontFamily: 'GoogleSans-Regular',
+        fontFamily: 'GoogleSans-Bold',
     },
 
     /* =========================
@@ -666,9 +660,8 @@ const styles = StyleSheet.create({
 
     modalTitle: {
         fontSize: 18,
-        fontWeight: '700',
         color: '#1E293B',
-        fontFamily: 'GoogleSans-Regular',
+        fontFamily: 'GoogleSans-Bold',
     },
 
     closeButton: {
@@ -703,7 +696,7 @@ const styles = StyleSheet.create({
         fontSize: 15,
         color: '#1E293B',
 
-        fontFamily: 'GoogleSans-Regular',
+        fontFamily: 'GoogleSans-Medium',
     },
 
     countryCallingCode: {

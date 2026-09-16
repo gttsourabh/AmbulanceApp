@@ -1,13 +1,12 @@
-import React, { useRef, useState } from 'react';
+import React from 'react';
 import {
   Keyboard,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 
 import { colors, typography, shadows } from '../../../theme';
 import { AppIcon } from '../../../icons';
@@ -16,65 +15,26 @@ import Button from '../../../components/Button/Button';
 
 const PickupScreen = () => {
   const navigation = useNavigation();
-
-  const [otp, setOtp] = useState(['', '', '', '']);
-
-  const inputRefs = useRef<Array<TextInput | null>>([]);
-
-  const isOtpComplete = otp.every(digit => digit.length === 1);
-
-  // =====================================================
-  // OTP CHANGE
-  // =====================================================
-
-  const handleOtpChange = (value: string, index: number) => {
-    const number = value.replace(/[^0-9]/g, '');
-
-    const updatedOtp = [...otp];
-    updatedOtp[index] = number.slice(-1);
-
-    setOtp(updatedOtp);
-
-    if (number && index < 3) {
-      inputRefs.current[index + 1]?.focus();
-    }
-
-    if (number && index === 3) {
-      Keyboard.dismiss();
-    }
-  };
-
-  // =====================================================
-  // OTP BACKSPACE
-  // =====================================================
-
-  const handleKeyPress = (
-    event: any,
-    index: number,
-  ) => {
-    if (
-      event.nativeEvent.key === 'Backspace' &&
-      !otp[index] &&
-      index > 0
-    ) {
-      inputRefs.current[index - 1]?.focus();
-    }
-  };
+  const route = useRoute<any>();
 
   // =====================================================
   // START TRIP
   // =====================================================
 
   const handleStartTrip = () => {
-    const enteredOtp = otp.join('');
-
-    if (enteredOtp.length !== 4) {
-      return;
-    }
-
     Keyboard.dismiss();
 
-    navigation.navigate('EnRoute' as never);
+    // Forward dynamic trip parameters to EnRoute
+    (navigation.navigate as any)('EnRoute', {
+      requestId: route?.params?.requestId,
+      driverId: route?.params?.driverId,
+      patientName: route?.params?.patientName,
+      contactNo: route?.params?.contactNo,
+      address: route?.params?.address,
+      pickupLocation: route?.params?.pickupLocation,
+      destination: route?.params?.destination,
+      emergencyType: route?.params?.emergencyType,
+    });
   };
 
   return (
@@ -124,56 +84,11 @@ const PickupScreen = () => {
                   PATIENT NAME
                 </Text>
 
+                {/* Static name commented: John Doe */}
                 <Text style={styles.patientName}>
-                  John Doe
+                  {route?.params?.patientName || 'Emergency Patient'}
                 </Text>
               </View>
-
-            </View>
-
-          </View>
-
-          <View style={styles.divider} />
-
-          {/* OTP */}
-
-          <View style={styles.otpSection}>
-
-            <Text style={styles.label}>
-              VERIFY OTP FROM PATIENT
-            </Text>
-
-            <Text style={styles.otpHint}>
-              Ask the patient for the 4-digit code
-            </Text>
-
-            <View style={styles.otpContainer}>
-
-              {otp.map((digit, index) => (
-                <TextInput
-                  key={index}
-                  ref={ref => {
-                    inputRefs.current[index] = ref;
-                  }}
-                  value={digit}
-                  onChangeText={value =>
-                    handleOtpChange(value, index)
-                  }
-                  onKeyPress={event =>
-                    handleKeyPress(event, index)
-                  }
-                  keyboardType="number-pad"
-                  maxLength={1}
-                  textAlign="center"
-                  selectionColor={colors.primary}
-                  style={[
-                    styles.otpInput,
-                    digit
-                      ? styles.otpInputFilled
-                      : null,
-                  ]}
-                />
-              ))}
 
             </View>
 
@@ -215,7 +130,6 @@ const PickupScreen = () => {
           onPress={handleStartTrip}
           icon="arrow-right"
           variant="primary"
-          disabled={!isOtpComplete}
           style={styles.startButton}
         />
 

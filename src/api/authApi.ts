@@ -121,6 +121,7 @@ export const verifyOtpApi = async (
  * POST /user/verifyOtpAmbDriver
  * Body: { mobile_number, otp, cloud_id }
  */
+
 export const verifyOtpAmbDriverApi = async (
     data: VerifyOtpAmbDriverRequest,
 ): Promise<VerifyOtpAmbDriverResponse> => {

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback, cacheSignal } from 'react';
 import {
     RefreshControl,
     ScrollView,
@@ -12,8 +12,12 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { AppIcon } from '../../icons';
 import { colors, typography } from '../../theme';
 import { Skeleton, TripCardSkeleton } from '../../components/Skeleton';
+import { useAppSelector } from '../../redux/hook';
+import { getAmbulanceRequestApi, AmbulanceRequestItem } from '../../api/driverApi';
+import { storage } from '../../storage/storage';
+import { STORAGE_KEYS } from '../../storage/storageKeys';
 
-type FilterType = 'All' | 'Accepted' | 'Rejected';
+type FilterType = 'All' | 'Completed' | 'Cancelled';
 
 interface Trip {
     id: number;
@@ -22,11 +26,17 @@ interface Trip {
     pickupTime: string;
     distance: string;
     amount: string;
-    status: 'Accepted' | 'Rejected';
+    status: 'Completed' | 'Cancelled' | 'Active';
+    rawStatus: string;
     icon: string;
+    dateCategory: 'Today' | 'Yesterday' | 'Earlier';
+    address?: string;
+    emergencyType?: string;
 }
 
-const trips: Trip[] = [
+// Static mock trips commented out for dynamic API integration:
+/*
+const staticTrips: Trip[] = [
     {
         id: 1,
         name: 'John Doe',
@@ -37,75 +47,125 @@ const trips: Trip[] = [
         status: 'Accepted',
         icon: 'account',
     },
-    {
-        id: 2,
-        name: 'Alice Smith',
-        time: '10:15 AM',
-        pickupTime: '2:20 PM',
-        distance: '8.6 km',
-        amount: '₹280',
-        status: 'Accepted',
-        icon: 'account',
-    },
-    {
-        id: 3,
-        name: 'Robert Brown',
-        time: '10:20 AM',
-        pickupTime: '6:45 PM',
-        distance: '10.2 km',
-        amount: '₹310',
-        status: 'Accepted',
-        icon: 'account',
-    },
-    {
-        id: 4,
-        name: 'Rejected Trip',
-        time: '11:30 AM',
-        pickupTime: '3:20 PM',
-        distance: '',
-        amount: '₹0',
-        status: 'Rejected',
-        icon: 'close-circle',
-    },
+    ...
 ];
+*/
 
 const TripsScreen = () => {
-    const [selectedFilter, setSelectedFilter] =
-        useState<FilterType>('All');
-    const [isLoading, setIsLoading] = useState(false);
+    const user = useAppSelector(state => state.auth.user);
+    const [selectedFilter, setSelectedFilter] = useState<FilterType>('All');
+    const [trips, setTrips] = useState<Trip[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
+
+    const fetchTrips = useCallback(async (filter: FilterType = selectedFilter) => {
+        let driverId = user?.driver_id || user?.id || user?.userId;
+        if (!driverId && driverId !== 0) {
+            try {
+                const storedUser = await storage.get<any>(STORAGE_KEYS.USER_DATA);
+                driverId = storedUser?.driver_id || storedUser?.id || storedUser?.userId;
+            } catch {
+                // ignore
+            }
+        }
+
+        const effectiveDriverId = Number(driverId) || 1;
+
+        try {
+            console.log(`📡 [TRIPS API] Fetching trips for driver_id: ${effectiveDriverId}, filter: ${filter}`);
+            const statusParam =
+                filter === 'Completed'
+                    ? 'completed'
+                    : filter === 'Cancelled'
+                        ? 'cancelled'
+                        : undefined;
+
+            const res = await getAmbulanceRequestApi({
+                driver_id: effectiveDriverId,
+                status: statusParam,
+            });
+            console.log(res)
+            const dataItems: AmbulanceRequestItem[] = res?.data?.data || [];
+            console.log(`✅ [TRIPS API SUCCESS] Received ${dataItems.length} trips`);
+
+            const mapped: Trip[] = dataItems.map(item => {
+                const rawSt = String(item.status || 'requested').toLowerCase();
+                const isCancelled = rawSt.includes('cancel');
+                const isCompleted = rawSt.includes('complete');
+
+                let dateCategory: 'Today' | 'Yesterday' | 'Earlier' = 'Earlier';
+                let timeStr = '--';
+                if (item.created_at) {
+                    const d = new Date(item.created_at);
+                    if (!isNaN(d.getTime())) {
+                        const now = new Date();
+                        const isToday = d.toDateString() === now.toDateString();
+                        const yesterday = new Date();
+                        yesterday.setDate(now.getDate() - 1);
+                        const isYesterday = d.toDateString() === yesterday.toDateString();
+
+                        dateCategory = isToday ? 'Today' : isYesterday ? 'Yesterday' : 'Earlier';
+                        timeStr = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
+                    }
+                }
+
+                const pickupTimeStr = item.time || (item.eta_minutes ? `${item.eta_minutes} mins` : timeStr);
+                const distanceStr = item.distance ? `${item.distance} km` : '';
+                const amountStr = item.amount ? `₹${item.amount}` : item.fare ? `₹${item.fare}` : (isCancelled ? '₹0' : '₹350');
+
+                return {
+                    id: item.id,
+                    name: item.patient_name || 'Emergency Patient',
+                    time: timeStr,
+                    pickupTime: pickupTimeStr,
+                    distance: distanceStr,
+                    amount: amountStr,
+                    status: isCancelled ? 'Cancelled' : isCompleted ? 'Completed' : 'Active',
+                    rawStatus: rawSt,
+                    icon: isCancelled ? 'close-circle' : 'account',
+                    dateCategory,
+                    address: item.pickup_address || '',
+                    emergencyType: item.emergency_type || 'Medical',
+                };
+            });
+
+            setTrips(mapped);
+        } catch (error) {
+            console.warn('❌ [TRIPS API ERROR]:', error);
+        } finally {
+            setIsLoading(false);
+            setRefreshing(false);
+        }
+    }, [user, selectedFilter]);
+
+    useEffect(() => {
+        fetchTrips(selectedFilter);
+    }, [fetchTrips, selectedFilter]);
 
     const handleRefresh = () => {
         setRefreshing(true);
-        setIsLoading(true);
-        setTimeout(() => {
-            setRefreshing(false);
-            setIsLoading(false);
-        }, 1000);
+        fetchTrips(selectedFilter);
     };
 
     const handleFilterChange = (filter: FilterType) => {
         if (filter === selectedFilter) return;
         setSelectedFilter(filter);
         setIsLoading(true);
-        setTimeout(() => {
-            setIsLoading(false);
-        }, 450);
     };
 
     const filteredTrips = trips.filter(trip => {
-        if (selectedFilter === 'All') {
-            return true;
-        }
-
-        return trip.status === selectedFilter;
+        if (selectedFilter === 'All') return true;
+        if (selectedFilter === 'Completed') return trip.rawStatus === 'completed';
+        if (selectedFilter === 'Cancelled') return trip.rawStatus.includes('cancel');
+        return true;
     });
 
-    const todayTrips = filteredTrips.slice(0, 2);
-    const yesterdayTrips = filteredTrips.slice(2);
+    const todayTrips = filteredTrips.filter(t => t.dateCategory === 'Today');
+    const yesterdayTrips = filteredTrips.filter(t => t.dateCategory === 'Yesterday');
+    const earlierTrips = filteredTrips.filter(t => t.dateCategory === 'Earlier');
 
     const renderTrip = (trip: Trip) => {
-        const isRejected = trip.status === 'Rejected';
+        const isCancelled = trip.status === 'Cancelled';
 
         return (
             <View
@@ -119,7 +179,7 @@ const TripsScreen = () => {
                 <View
                     style={[
                         styles.tripIcon,
-                        isRejected
+                        isCancelled
                             ? styles.rejectedIcon
                             : styles.acceptedIcon,
                     ]}
@@ -129,7 +189,7 @@ const TripsScreen = () => {
                         name={trip.icon}
                         size={20}
                         color={
-                            isRejected
+                            isCancelled
                                 ? colors.danger
                                 : colors.primary
                         }
@@ -193,7 +253,7 @@ const TripsScreen = () => {
                     <View
                         style={[
                             styles.statusPill,
-                            isRejected
+                            isCancelled
                                 ? styles.rejectedPill
                                 : styles.acceptedPill,
                         ]}
@@ -201,7 +261,7 @@ const TripsScreen = () => {
                         <Text
                             style={[
                                 styles.status,
-                                isRejected
+                                isCancelled
                                     ? styles.rejectedStatus
                                     : styles.acceptedStatus,
                             ]}
@@ -233,10 +293,11 @@ const TripsScreen = () => {
                 <TouchableOpacity
                     activeOpacity={0.7}
                     style={styles.filterIconButton}
+                    onPress={handleRefresh}
                 >
                     <AppIcon
                         family="material"
-                        name="filter-variant"
+                        name="refresh"
                         size={20}
                         color={colors.primary}
                     />
@@ -251,7 +312,7 @@ const TripsScreen = () => {
             <View style={styles.filterContainer}>
 
                 {(
-                    ['All', 'Accepted', 'Rejected'] as FilterType[]
+                    ['All', 'Completed', 'Cancelled'] as FilterType[]
                 ).map(filter => {
 
                     const isActive =
@@ -346,6 +407,20 @@ const TripsScreen = () => {
                             </View>
                         )}
 
+                        {/* EARLIER */}
+
+                        {earlierTrips.length > 0 && (
+                            <View style={styles.section}>
+
+                                <Text style={styles.sectionTitle}>
+                                    Earlier
+                                </Text>
+
+                                {earlierTrips.map(renderTrip)}
+
+                            </View>
+                        )}
+
                         {/* EMPTY */}
 
                         {filteredTrips.length === 0 && (
@@ -365,7 +440,7 @@ const TripsScreen = () => {
                                 </Text>
 
                                 <Text style={styles.emptySubtext}>
-                                    Your accepted and rejected trips will show up here
+                                    Your completed and cancelled trips will show up here
                                 </Text>
 
                             </View>

@@ -609,36 +609,24 @@ const styles = StyleSheet.create({
 
   title: {
     fontSize: typography.fontSize.xxl,
-    fontWeight: '800',
     color: colors.textPrimary,
-
     letterSpacing: -0.5,
-
     marginBottom: 8,
-
-    fontFamily: 'GoogleSans-Regular',
+    fontFamily: 'GoogleSans-Bold',
   },
 
   subtitle: {
     fontSize: typography.fontSize.sm,
     color: colors.textSecondary,
-
     lineHeight: 21,
-
-    fontWeight: '500',
-
-    fontFamily: 'GoogleSans-Regular',
+    fontFamily: 'GoogleSans-Medium',
   },
 
   phoneNumber: {
     fontSize: typography.fontSize.sm,
     color: colors.textPrimary,
-
-    fontWeight: '700',
-
     marginTop: 4,
-
-    fontFamily: 'GoogleSans-Regular',
+    fontFamily: 'GoogleSans-Bold',
   },
 
   // =====================================================
@@ -705,12 +693,8 @@ const styles = StyleSheet.create({
 
   otpText: {
     fontSize: typography.fontSize.xl,
-
-    fontWeight: '700',
-
     color: colors.textPrimary,
-
-    fontFamily: 'GoogleSans-Regular',
+    fontFamily: 'GoogleSans-Bold',
   },
 
   otpTextError: {
@@ -726,9 +710,8 @@ const styles = StyleSheet.create({
   inlineErrorText: {
     fontSize: typography.fontSize.xs,
     color: colors.danger,
-    fontWeight: '600',
     textAlign: 'center',
-    fontFamily: 'GoogleSans-Regular',
+    fontFamily: 'GoogleSans-Medium',
   },
 
   timerBadge: {
@@ -752,8 +735,7 @@ const styles = StyleSheet.create({
 
   timerText: {
     fontSize: typography.fontSize.xs,
-    fontWeight: '600',
-    fontFamily: 'GoogleSans-Regular',
+    fontFamily: 'GoogleSans-Medium',
   },
 
   timerTextActive: {
@@ -809,11 +791,9 @@ const styles = StyleSheet.create({
 
     color: '#315EFF',
 
-    fontWeight: '700',
-
     marginLeft: 4,
 
-    fontFamily: 'GoogleSans-Regular',
+    fontFamily: 'GoogleSans-Bold',
   },
 
   resendLinkExpired: {
@@ -844,8 +824,6 @@ const styles = StyleSheet.create({
 
     color: colors.textSecondary,
 
-    fontWeight: '600',
-
-    fontFamily: 'GoogleSans-Regular',
+    fontFamily: 'GoogleSans-Medium',
   },
 });

@@ -242,6 +242,12 @@ const MainTabNavigator = () => {
             tabBar={props => <CustomTabBar {...props} />}
             screenOptions={{
                 headerShown: false,
+                tabBarStyle: {
+                    position: 'absolute',
+                    backgroundColor: 'transparent',
+                    borderTopWidth: 0,
+                    elevation: 0,
+                },
             }}
         >
             <Tab.Screen name="Home" component={HomeStack} />
@@ -270,18 +276,28 @@ const styles = StyleSheet.create({
     tabBarContainer: {
         width: '100%',
         height: TAB_BAR_HEIGHT,
-        borderRadius: 24,
+
+        borderTopLeftRadius: 24,
+        borderTopRightRadius: 24,
+        borderBottomLeftRadius: 8,
+        borderBottomRightRadius: 8,
+
         backgroundColor: colors.card,
+
+        // Directional inner-shadow effect (inset depth from inside)
+        borderWidth: 1.5,
+        borderTopColor: 'rgba(16, 42, 48, 0.14)',
+        borderLeftColor: 'rgba(16, 42, 48, 0.07)',
+        borderRightColor: 'rgba(16, 42, 48, 0.07)',
+        borderBottomColor: 'rgba(255, 255, 255, 0.95)',
+
         flexDirection: 'row',
         alignItems: 'center',
         position: 'relative',
 
-        // Ambient diffuse elevation
-        shadowColor: '#102A30',
-        shadowOffset: { width: 0, height: 8 },
-        shadowOpacity: 0.12,
-        shadowRadius: 18,
-        elevation: 10,
+        // No outer shadow (shadow is strictly inside)
+        elevation: 0,
+        shadowOpacity: 0,
     },
 
     slidingRaisedContainer: {
