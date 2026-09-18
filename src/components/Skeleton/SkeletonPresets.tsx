@@ -282,6 +282,88 @@ export const EarningsCardSkeleton: React.FC = () => {
 };
 
 /**
+ * Skeleton placeholder for the LoginScreen.
+ */
+export const LoginScreenSkeleton: React.FC = () => {
+    return (
+        <View style={styles.loginContainer}>
+            <View style={styles.loginContent}>
+                {/* Welcome section */}
+                <View style={styles.loginWelcomeSection}>
+                    <Skeleton
+                        variant="text"
+                        width={190}
+                        height={26}
+                        style={styles.mb6}
+                    />
+                    <Skeleton
+                        variant="text"
+                        width={130}
+                        height={15}
+                    />
+                </View>
+
+                {/* Phone Input Container */}
+                <View style={styles.loginPhoneInputContainer}>
+                    <View style={styles.loginCountryPart}>
+                        <Skeleton
+                            variant="circle"
+                            width={22}
+                            height={22}
+                            style={styles.mr8}
+                        />
+                        <Skeleton
+                            variant="text"
+                            width={34}
+                            height={16}
+                        />
+                    </View>
+                    <View style={styles.loginDivider} />
+                    <Skeleton
+                        variant="text"
+                        width={130}
+                        height={18}
+                    />
+                </View>
+
+                {/* Send OTP Button */}
+                <Skeleton
+                    variant="rounded"
+                    width="100%"
+                    height={54}
+                    borderRadius={12}
+                    style={styles.loginButton}
+                />
+
+                {/* Footer terms */}
+                <View style={styles.loginFooter}>
+                    <Skeleton
+                        variant="text"
+                        width={180}
+                        height={12}
+                        style={styles.mb4}
+                    />
+                    <Skeleton
+                        variant="text"
+                        width={220}
+                        height={12}
+                    />
+                </View>
+            </View>
+
+            {/* Bottom illustration placeholder */}
+            <View style={styles.loginIllustrationContainer}>
+                <Skeleton
+                    variant="rounded"
+                    width="100%"
+                    height="100%"
+                />
+            </View>
+        </View>
+    );
+};
+
+/**
  * Skeleton placeholder for the HomeScreen.
  */
 export const HomeScreenSkeleton: React.FC = () => {
@@ -1299,5 +1381,57 @@ const styles = StyleSheet.create({
     },
     mt16: {
         marginTop: 16,
+    },
+    mr8: {
+        marginRight: 8,
+    },
+
+    // Login Screen Skeleton Styles
+    loginContainer: {
+        flex: 1,
+        backgroundColor: '#FFFFFF',
+        justifyContent: 'space-between',
+    },
+    loginContent: {
+        paddingHorizontal: 24,
+        paddingTop: 32,
+    },
+    loginWelcomeSection: {
+        marginBottom: 28,
+    },
+    loginPhoneInputContainer: {
+        width: '100%',
+        height: 56,
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#FFFFFF',
+        borderRadius: 12,
+        borderWidth: 1.5,
+        borderColor: '#F1F5F9',
+        paddingHorizontal: 16,
+        marginBottom: 20,
+    },
+    loginCountryPart: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingRight: 14,
+    },
+    loginDivider: {
+        width: 1,
+        height: 30,
+        backgroundColor: '#E2E8F0',
+        marginRight: 14,
+    },
+    loginButton: {
+        marginBottom: 24,
+    },
+    loginFooter: {
+        alignItems: 'center',
+        marginBottom: 16,
+    },
+    loginIllustrationContainer: {
+        width: '100%',
+        height: 200,
+        justifyContent: 'flex-end',
     },
 });

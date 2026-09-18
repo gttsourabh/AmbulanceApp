@@ -3,6 +3,8 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import SplashScreen from '../screens/auth/SplashScreen';
 import LoginScreen from '../screens/auth/LoginScreen';
 import OtpScreen from '../screens/auth/OtpScreen';
+import PrivacyPolicyScreen from '../screens/profile/PrivacyPolicyScreen';
+import TermsConditionsScreen from '../screens/profile/TermsConditionsScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -37,6 +39,8 @@ const AuthNavigator = ({
 
             <Stack.Screen name="Login" component={LoginScreen} />
             <Stack.Screen name="OTP" component={OtpScreen} />
+            <Stack.Screen name="PrivacyPolicy" component={PrivacyPolicyScreen} />
+            <Stack.Screen name="TermsConditions" component={TermsConditionsScreen} />
         </Stack.Navigator>
     );
 };

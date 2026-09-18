@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     StyleSheet,
     Text,
@@ -17,6 +17,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { sendOtpApi } from '../../api/authApi';
+import { LoginScreenSkeleton } from '../../components/Skeleton';
 
 type Country = {
     code: string;
@@ -91,9 +92,17 @@ const COUNTRIES: Country[] = [
 const LoginScreen = () => {
     const [phoneNumber, setPhoneNumber] = useState('');
     const [loading, setLoading] = useState(false);
+    const [isPageLoading, setIsPageLoading] = useState(true);
     const [countryPickerVisible, setCountryPickerVisible] =
         useState(false);
     const navigation = useNavigation<any>();
+
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setIsPageLoading(false);
+        }, 700);
+        return () => clearTimeout(timer);
+    }, []);
 
 
     const [selectedCountry, setSelectedCountry] =
@@ -168,17 +177,18 @@ const LoginScreen = () => {
                 backgroundColor="#FFFFFF"
             />
 
-            <KeyboardAvoidingView
-                style={styles.keyboardView}
-                behavior={
-                    Platform.OS === 'ios'
-                        ? 'padding'
-                        : undefined
-                }
-            >
-                <View style={styles.content}>
-                    <View style={styles.topSection}>
-
+            {isPageLoading ? (
+                <LoginScreenSkeleton />
+            ) : (
+                <KeyboardAvoidingView
+                    style={styles.keyboardView}
+                    behavior={
+                        Platform.OS === 'ios'
+                            ? 'padding'
+                            : undefined
+                    }
+                >
+                    <View style={styles.content}>
                         {/* =========================
                             Welcome Section
                         ========================== */}
@@ -281,19 +291,24 @@ const LoginScreen = () => {
                             </Text>
 
                             <Text style={styles.footerText}>
-                                <Text style={styles.footerLink}>
+                                <Text
+                                    style={styles.footerLink}
+                                    onPress={() => (navigation as any).navigate('TermsConditions')}
+                                >
                                     Terms & Conditions
                                 </Text>
 
                                 {' & '}
 
-                                <Text style={styles.footerLink}>
+                                <Text
+                                    style={styles.footerLink}
+                                    onPress={() => (navigation as any).navigate('PrivacyPolicy')}
+                                >
                                     Privacy Policy
                                 </Text>
                             </Text>
                         </View>
                     </View>
-                </View>
 
                 {/* =========================
                     Bottom Illustration
@@ -308,6 +323,7 @@ const LoginScreen = () => {
                     />
                 </View>
             </KeyboardAvoidingView>
+            )}
 
             {/* =========================
                 Country Picker Modal
@@ -418,17 +434,13 @@ const styles = StyleSheet.create({
 
     keyboardView: {
         flex: 1,
+        justifyContent: 'space-between',
     },
 
     content: {
-        flex: 1,
         paddingHorizontal: 24,
-        paddingTop: 40,
+        paddingTop: 32,
         zIndex: 1,
-    },
-
-    topSection: {
-        flex: 1,
     },
 
     /* =========================
@@ -436,19 +448,19 @@ const styles = StyleSheet.create({
     ========================== */
 
     welcomeSection: {
-        marginBottom: 40,
+        marginBottom: 28,
     },
 
     welcomeTitle: {
-        fontSize: 28,
+        fontSize: 26,
         color: '#1E293B',
         letterSpacing: -0.5,
-        marginBottom: 8,
+        marginBottom: 6,
         fontFamily: 'GoogleSans-Bold',
     },
 
     welcomeSubtitle: {
-        fontSize: 16,
+        fontSize: 15,
         color: '#64748B',
         letterSpacing: 0.2,
         fontFamily: 'GoogleSans-Medium',
@@ -459,12 +471,12 @@ const styles = StyleSheet.create({
     ========================== */
 
     inputSection: {
-        marginBottom: 24,
+        marginBottom: 20,
     },
 
     phoneInputContainer: {
         width: '100%',
-        height: 60,
+        height: 56,
 
         flexDirection: 'row',
         alignItems: 'center',
@@ -528,7 +540,7 @@ const styles = StyleSheet.create({
 
         /*
          * Do NOT give the TextInput a fixed height.
-         * The parent controls the 60px height.
+         * The parent controls the 56px height.
          */
         height: '100%',
 
@@ -562,7 +574,7 @@ const styles = StyleSheet.create({
     ========================== */
 
     sendOTPButton: {
-        height: 56,
+        height: 54,
 
         backgroundColor: '#2563EB',
 
@@ -571,7 +583,7 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
 
-        marginBottom: 32,
+        marginBottom: 24,
     },
 
     sendOTPButtonDisabled: {
@@ -591,6 +603,7 @@ const styles = StyleSheet.create({
 
     footer: {
         alignItems: 'center',
+        marginBottom: 16,
     },
 
     footerText: {

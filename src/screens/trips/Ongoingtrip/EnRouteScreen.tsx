@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useRef, useEffect, useState, useMemo } from 'react';
 import {
   StyleSheet,
   Text,
@@ -46,11 +46,74 @@ const EnRouteScreen = () => {
   const mapRef = useRef<MapView>(null);
   const hasInitialFit = useRef(false);
 
-  // Static IDs for location tracking API (commented for dynamic usage)
-  // const STATIC_AMBULANCE_REQUEST_ID = 5;
-  // const STATIC_DRIVER_ID = 4;
+  // Dynamic Driver & Request IDs
   const dynamicDriverId = Number(route?.params?.driverId || user?.driver_id || user?.id || user?.userId || 0);
   const ambulanceRequestId = Number(route?.params?.requestId || 0);
+
+  // =====================================================
+  // PATIENT DETAILS & PICKUP LOCATION
+  // =====================================================
+  const patientName = route?.params?.patientName || 'Emergency Patient';
+  const patientPhone = route?.params?.contactNo || '';
+  const patientAddress =
+    route?.params?.patientAddress ||
+    route?.params?.pickupAddress ||
+    route?.params?.address ||
+    'Pickup Location';
+  const emergencyType = route?.params?.emergencyType || 'Emergency';
+
+  const patientLat = Number(
+    route?.params?.patientLocation?.latitude ??
+    route?.params?.pickupLocation?.latitude ??
+    route?.params?.pickup_lat ??
+    0
+  );
+  const patientLng = Number(
+    route?.params?.patientLocation?.longitude ??
+    route?.params?.pickupLocation?.longitude ??
+    route?.params?.pickup_lng ??
+    0
+  );
+
+  const patientLocation: LatLng = useMemo(() => {
+    if (patientLat && patientLng) {
+      return { latitude: patientLat, longitude: patientLng };
+    }
+    return { latitude: 16.8524, longitude: 74.5815 };
+  }, [patientLat, patientLng]);
+
+  // =====================================================
+  // HOSPITAL DESTINATION DETAILS & LOCATION
+  // =====================================================
+  const dynamicHospitalLat = Number(
+    route?.params?.drop_lat ??
+    route?.params?.hospitalLocation?.latitude ??
+    route?.params?.destinationLocation?.latitude ??
+    0
+  );
+  const dynamicHospitalLng = Number(
+    route?.params?.drop_lng ??
+    route?.params?.hospitalLocation?.longitude ??
+    route?.params?.destinationLocation?.longitude ??
+    0
+  );
+
+  const chosenHospitalName =
+    route?.params?.hospitalName || route?.params?.destination || 'Civil Hospital Sangli';
+  const chosenHospitalAddress =
+    route?.params?.hospitalAddress || 'Govt. Medical College & Hospital, Sangli';
+  const chosenHospitalPhone =
+    route?.params?.hospitalPhone || '';
+
+  const hospitalLocation: LatLng = useMemo(() => {
+    if (dynamicHospitalLat && dynamicHospitalLng) {
+      return { latitude: dynamicHospitalLat, longitude: dynamicHospitalLng };
+    }
+    return {
+      latitude: 16.8543,
+      longitude: 74.5772,
+    };
+  }, [dynamicHospitalLat, dynamicHospitalLng]);
 
   const [distanceText, setDistanceText] = useState('Calculating...');
   const [etaText, setEtaText] = useState('Finding nearest route...');
@@ -60,7 +123,7 @@ const EnRouteScreen = () => {
   const [activeCoordinates, setActiveCoordinates] = useState<Array<{ latitude: number; longitude: number }>>([]);
   const [alternativeCoordinates, setAlternativeCoordinates] = useState<Array<{ latitude: number; longitude: number }>>([]);
   const [selectedRouteType, setSelectedRouteType] = useState<'nearest' | 'alternative'>('nearest');
-  const [isNavigating, setIsNavigating] = useState(false);
+  const [isNavigating, setIsNavigating] = useState(route?.params?.autoStartTracking !== false);
   const isNavigatingRef = useRef(isNavigating);
 
   useEffect(() => {
@@ -68,16 +131,19 @@ const EnRouteScreen = () => {
   }, [isNavigating]);
 
   // =====================================================
-  // SANGLI CITY LOCATION DATA (Ambulance -> Nearest Hospital)
+  // AMBULANCE LIVE LOCATION (Initialized to Patient Pickup Location)
   // =====================================================
-
-  // Ambulance with Patient (Default to Vishrambag, Sangli until GPS updates)
-  const [ambulanceLocation, setAmbulanceLocation] = useState<LatLng>({
-    latitude: 16.8455,
-    longitude: 74.6010,
-  });
+  const [ambulanceLocation, setAmbulanceLocation] = useState<LatLng>(patientLocation);
   const [ambulanceHeading, setAmbulanceHeading] = useState<number>(135);
   const ambulanceLocationRef = useRef<LatLng>(ambulanceLocation);
+
+  // Sync ambulance location if patient coordinates change
+  useEffect(() => {
+    if (patientLat && patientLng) {
+      setAmbulanceLocation({ latitude: patientLat, longitude: patientLng });
+      ambulanceLocationRef.current = { latitude: patientLat, longitude: patientLng };
+    }
+  }, [patientLat, patientLng]);
 
   // Keep ref in sync for 10s interval logging & API updates
   useEffect(() => {
@@ -93,7 +159,7 @@ const EnRouteScreen = () => {
       startBackgroundLocationTracking({
         ambulanceRequestId: ambulanceRequestId,
         driverId: dynamicDriverId,
-        type: 'pd',
+        type: 'ph',
         getCoordinates: () => ambulanceLocationRef.current,
       });
     } else {
@@ -105,29 +171,29 @@ const EnRouteScreen = () => {
     };
   }, [isNavigating, ambulanceRequestId, dynamicDriverId]);
 
-  // Hospital Destination: dynamic drop location or Civil Hospital Sangli
-  const dynamicHospitalLat = Number(route?.params?.drop_lat || route?.params?.hospitalLocation?.latitude || route?.params?.destinationLocation?.latitude);
-  const dynamicHospitalLng = Number(route?.params?.drop_lng || route?.params?.hospitalLocation?.longitude || route?.params?.destinationLocation?.longitude);
-
-  const hospitalLocation: LatLng = (dynamicHospitalLat && dynamicHospitalLng)
-    ? { latitude: dynamicHospitalLat, longitude: dynamicHospitalLng }
-    : {
-        latitude: 16.8543,
-        longitude: 74.5772,
-      };
-
-  // Fallback road coordinates
-  const fallbackRoute = [
-    ambulanceLocation,
+  // Fallback road coordinates connecting Patient and Hospital
+  const fallbackRoute = useMemo(() => [
+    patientLocation,
     hospitalLocation,
-  ];
+  ], [patientLocation, hospitalLocation]);
 
-  const initialRegion: Region = {
-    latitude: (ambulanceLocation.latitude + hospitalLocation.latitude) / 2,
-    longitude: (ambulanceLocation.longitude + hospitalLocation.longitude) / 2,
-    latitudeDelta: 0.05,
-    longitudeDelta: 0.05,
-  };
+  // Initial Region framing both Patient and Hospital
+  const initialRegion: Region = useMemo(() => {
+    const minLat = Math.min(patientLocation.latitude, hospitalLocation.latitude);
+    const maxLat = Math.max(patientLocation.latitude, hospitalLocation.latitude);
+    const minLng = Math.min(patientLocation.longitude, hospitalLocation.longitude);
+    const maxLng = Math.max(patientLocation.longitude, hospitalLocation.longitude);
+
+    const latDelta = Math.max(0.04, (maxLat - minLat) * 1.6);
+    const lngDelta = Math.max(0.04, (maxLng - minLng) * 1.6);
+
+    return {
+      latitude: (minLat + maxLat) / 2,
+      longitude: (minLng + maxLng) / 2,
+      latitudeDelta: latDelta,
+      longitudeDelta: lngDelta,
+    };
+  }, [patientLocation, hospitalLocation]);
 
   const currentRegionRef = useRef<Region>(initialRegion);
   const lastRouteFetchLoc = useRef<LatLng | null>(null);
@@ -137,6 +203,9 @@ const EnRouteScreen = () => {
   const updateHospitalRoute = async (currentAmbulancePos: LatLng) => {
     setIsRouteLoading(true);
     try {
+      console.log(
+        `📡 [EN ROUTE] Calculating road route from origin (${currentAmbulancePos.latitude.toFixed(5)}, ${currentAmbulancePos.longitude.toFixed(5)}) to hospital (${hospitalLocation.latitude.toFixed(5)}, ${hospitalLocation.longitude.toFixed(5)})`
+      );
       const routes = await getDrivingRoutesWithAlternatives(currentAmbulancePos, hospitalLocation);
       if (routes?.primaryRoute && routes.primaryRoute.coordinates.length > 0) {
         setPrimaryRouteInfo(routes.primaryRoute);
@@ -153,21 +222,27 @@ const EnRouteScreen = () => {
 
         if (!hasInitialFit.current) {
           hasInitialFit.current = true;
-          mapRef.current?.fitToCoordinates(routes.primaryRoute.coordinates, {
-            edgePadding: { top: 90, right: 60, bottom: 140, left: 60 },
-            animated: true,
-          });
+          mapRef.current?.fitToCoordinates(
+            [patientLocation, hospitalLocation, ...routes.primaryRoute.coordinates],
+            {
+              edgePadding: { top: 90, right: 60, bottom: 140, left: 60 },
+              animated: true,
+            }
+          );
         }
       } else {
         setActiveCoordinates(fallbackRoute);
         if (!hasInitialFit.current) {
           hasInitialFit.current = true;
-          mapRef.current?.fitToCoordinates([currentAmbulancePos, hospitalLocation], {
+          mapRef.current?.fitToCoordinates([patientLocation, hospitalLocation], {
             edgePadding: { top: 90, right: 60, bottom: 140, left: 60 },
             animated: true,
           });
         }
       }
+    } catch (routeErr) {
+      console.warn('Driving route error in EnRoute:', routeErr);
+      setActiveCoordinates(fallbackRoute);
     } finally {
       setIsRouteLoading(false);
     }
@@ -321,8 +396,8 @@ const EnRouteScreen = () => {
 
   const handleBackToRoute = () => {
     const coordsToFit = activeCoordinates.length > 0
-      ? activeCoordinates
-      : [ambulanceLocation, hospitalLocation];
+      ? [patientLocation, ambulanceLocation, hospitalLocation, ...activeCoordinates]
+      : [patientLocation, ambulanceLocation, hospitalLocation];
 
     mapRef.current?.fitToCoordinates(coordsToFit, {
       edgePadding: { top: 90, right: 60, bottom: 140, left: 60 },
@@ -366,8 +441,16 @@ const EnRouteScreen = () => {
     navigation.goBack();
   };
 
+  const handleCallPatient = () => {
+    if (patientPhone) {
+      Linking.openURL(`tel:${patientPhone}`);
+    } else {
+      Alert.alert('Notice', 'No contact number available for this patient.');
+    }
+  };
+
   const handleCall = () => {
-    const phone = route?.params?.contactNo || route?.params?.hospitalPhone;
+    const phone = chosenHospitalPhone || patientPhone;
     if (phone) {
       Linking.openURL(`tel:${phone}`);
     } else {
@@ -380,11 +463,23 @@ const EnRouteScreen = () => {
     (navigation.navigate as any)('OnTrip', {
       requestId: ambulanceRequestId,
       driverId: dynamicDriverId,
-      patientName: route?.params?.patientName,
-      contactNo: route?.params?.contactNo,
-      address: route?.params?.address,
-      destination: route?.params?.destination,
-      emergencyType: route?.params?.emergencyType,
+      patientName: patientName,
+      contactNo: patientPhone,
+      address: patientAddress,
+      pickupAddress: patientAddress,
+      patientAddress: patientAddress,
+      patientLocation: patientLocation,
+      pickupLocation: patientLocation,
+      pickup_lat: patientLocation.latitude,
+      pickup_lng: patientLocation.longitude,
+      destination: chosenHospitalName,
+      hospitalName: chosenHospitalName,
+      hospitalAddress: chosenHospitalAddress,
+      hospitalPhone: chosenHospitalPhone,
+      drop_lat: hospitalLocation.latitude,
+      drop_lng: hospitalLocation.longitude,
+      hospitalLocation: hospitalLocation,
+      emergencyType: emergencyType,
     });
   };
 
@@ -395,6 +490,58 @@ const EnRouteScreen = () => {
     >
       {/* HEADER */}
       <Header backEnabled onLeftPress={handleBack} title="En-Route To Hospital" />
+
+      {/* PATIENT TRIP CONTEXT BAR */}
+      <View style={styles.patientContextBar}>
+        <View style={styles.patientContextLeft}>
+          <View style={styles.patientIconWrap}>
+            <AppIcon
+              family="material"
+              name="account-alert"
+              size={18}
+              color={colors.white}
+            />
+          </View>
+          <View style={styles.patientContextInfo}>
+            <View style={styles.patientNameRow}>
+              <Text style={styles.patientName} numberOfLines={1}>
+                {patientName}
+              </Text>
+              <View style={styles.emergencyBadge}>
+                <Text style={styles.emergencyBadgeText}>
+                  {emergencyType.toUpperCase()}
+                </Text>
+              </View>
+            </View>
+            <View style={styles.patientAddressRow}>
+              <AppIcon
+                family="material"
+                name="map-marker-radius"
+                size={12}
+                color={colors.textLight}
+              />
+              <Text style={styles.patientAddress} numberOfLines={1}>
+                {patientAddress}
+              </Text>
+            </View>
+          </View>
+        </View>
+
+        {patientPhone ? (
+          <TouchableOpacity
+            style={styles.patientCallButton}
+            onPress={handleCallPatient}
+            activeOpacity={0.7}
+          >
+            <AppIcon
+              family="material"
+              name="phone"
+              size={16}
+              color={colors.white}
+            />
+          </TouchableOpacity>
+        ) : null}
+      </View>
 
       {/* MAP AREA */}
       <View style={styles.mapContainer}>
@@ -452,11 +599,20 @@ const EnRouteScreen = () => {
             />
           )}
 
+          {/* Patient Pickup Origin Marker */}
+          <LocationMarker
+            coordinate={patientLocation}
+            type="pickup"
+            title={`${patientName} (Pickup)`}
+            description={patientAddress}
+            label="Pickup"
+          />
+
           {/* Ambulance Live Location */}
           <AmbulanceMarker
             coordinate={ambulanceLocation}
             title="Ambulance (In Transit)"
-            description="Heading to Civil Hospital Sangli"
+            description={`Heading to ${chosenHospitalName}`}
             heading={ambulanceHeading}
           />
 
@@ -464,9 +620,9 @@ const EnRouteScreen = () => {
           <LocationMarker
             coordinate={hospitalLocation}
             type="hospital"
-            title="Civil Hospital Sangli"
-            description="Govt. Medical College & Hospital, Sangli"
-            label="Civil Hospital"
+            title={chosenHospitalName}
+            description={chosenHospitalAddress}
+            label={chosenHospitalName.split(' ')[0]}
           />
         </MapView>
 
@@ -613,16 +769,16 @@ const EnRouteScreen = () => {
           <View style={styles.hospitalCard}>
             <View style={styles.hospitalIcon}>
               <AppIcon
-                family="fontawesome"
-                name="hospital"
-                size={18}
+                family="material"
+                name="hospital-building"
+                size={22}
                 color={colors.primary}
               />
             </View>
 
             <View style={styles.hospitalInfo}>
-              <Text style={styles.hospitalName}>
-                Secure Hospital
+              <Text style={styles.hospitalName} numberOfLines={1}>
+                {chosenHospitalName}
               </Text>
 
               <View style={styles.hospitalAddressRow}>
@@ -637,19 +793,21 @@ const EnRouteScreen = () => {
                   style={styles.hospitalAddress}
                   numberOfLines={1}
                 >
-                  45, Hospital Road, Bengaluru
+                  {chosenHospitalAddress}
                 </Text>
               </View>
             </View>
 
-            <Button
-              title=""
-              onPress={handleCall}
-              icon="phone"
-              iconSize={17}
-              variant="primary"
-              style={styles.callButton}
-            />
+            {chosenHospitalPhone ? (
+              <Button
+                title=""
+                onPress={handleCall}
+                icon="phone"
+                iconSize={17}
+                variant="primary"
+                style={styles.callButton}
+              />
+            ) : null}
           </View>
         </View>
       </View>
@@ -712,7 +870,7 @@ const EnRouteScreen = () => {
               Finding Hospital Route
             </Text>
             <Text style={styles.modalSubtitle}>
-              Calculating fastest road to Civil Hospital...
+              Calculating fastest road to {chosenHospitalName}...
             </Text>
           </View>
         </View>
@@ -728,6 +886,100 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
+  },
+
+  // PATIENT TRIP CONTEXT BAR
+  patientContextBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    backgroundColor: colors.card,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+    shadowColor: colors.shadow,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 4,
+    elevation: 2,
+    zIndex: 2,
+  },
+
+  patientContextLeft: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginRight: 10,
+  },
+
+  patientIconWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: colors.danger,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 10,
+  },
+
+  patientContextInfo: {
+    flex: 1,
+  },
+
+  patientNameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+
+  patientName: {
+    fontFamily: 'GoogleSans-Bold',
+    fontSize: typography.fontSize.sm,
+    color: colors.textPrimary,
+    maxWidth: '70%',
+  },
+
+  emergencyBadge: {
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: 6,
+    backgroundColor: '#FEE2E2',
+  },
+
+  emergencyBadgeText: {
+    fontFamily: 'GoogleSans-Bold',
+    fontSize: 9,
+    color: colors.danger,
+    letterSpacing: 0.5,
+  },
+
+  patientAddressRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    marginTop: 2,
+  },
+
+  patientAddress: {
+    fontFamily: 'GoogleSans-Regular',
+    fontSize: typography.fontSize.xs,
+    color: colors.textSecondary,
+    flex: 1,
+  },
+
+  patientCallButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#10B981',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#10B981',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 3,
   },
 
   // MAP

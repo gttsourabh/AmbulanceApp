@@ -54,23 +54,44 @@ export function parseEmergencyTripPayload(data: any): EmergencyTripData | null {
         return null;
     }
 
-    const lat = parseFloat(payloadObj.LAT ?? payloadObj.lat ?? payloadObj.latitude ?? '0');
-    const lng = parseFloat(payloadObj.LNG ?? payloadObj.lng ?? payloadObj.longitude ?? '0');
-    const rawRequestId = payloadObj.REQUEST_ID ?? payloadObj.requestId ?? 0;
-    const earnings = payloadObj.ESTIMATED_EARNINGS ?? payloadObj.estimatedEarnings ?? payloadObj.FARE ?? payloadObj.fare ?? payloadObj.AMOUNT ?? payloadObj.amount;
-    const dest = payloadObj.DESTINATION ?? payloadObj.destination ?? payloadObj.HOSPITAL_NAME ?? payloadObj.hospitalName ?? 'Nearest Emergency Hospital';
+    const lat = parseFloat(
+        payloadObj.LAT ?? payloadObj.lat ?? payloadObj.latitude ?? payloadObj.pickup_latitude ?? payloadObj.pickupLatitude ?? '0'
+    );
+    const lng = parseFloat(
+        payloadObj.LNG ?? payloadObj.lng ?? payloadObj.longitude ?? payloadObj.pickup_longitude ?? payloadObj.pickupLongitude ?? '0'
+    );
+    const rawRequestId =
+        payloadObj.REQUEST_ID ?? payloadObj.request_id ?? payloadObj.requestId ?? payloadObj.id ?? payloadObj.trip_id ?? payloadObj.tripId ?? 0;
+
+    const rawPatientName =
+        payloadObj.PATIENT_NAME ?? payloadObj.patient_name ?? payloadObj.patientName ?? payloadObj.name ?? payloadObj.user_name ?? payloadObj.userName;
+
+    const rawContactNo =
+        payloadObj.CONTACT_NO ?? payloadObj.contact_no ?? payloadObj.contactNo ?? payloadObj.phone ?? payloadObj.phone_number ?? payloadObj.phoneNumber ?? payloadObj.mobile;
+
+    const rawAddress =
+        payloadObj.ADDRESS ?? payloadObj.address ?? payloadObj.pickup_address ?? payloadObj.pickupAddress ?? payloadObj.pickup_location ?? payloadObj.pickupLocation ?? payloadObj.location;
+
+    const rawEmergencyType =
+        payloadObj.EMERGENCY_TYPE ?? payloadObj.emergency_type ?? payloadObj.emergencyType ?? payloadObj.type;
+
+    const rawEarnings =
+        payloadObj.ESTIMATED_EARNINGS ?? payloadObj.estimated_earnings ?? payloadObj.estimatedEarnings ?? payloadObj.FARE ?? payloadObj.fare ?? payloadObj.AMOUNT ?? payloadObj.amount;
+
+    const rawDestination =
+        payloadObj.DESTINATION ?? payloadObj.destination ?? payloadObj.HOSPITAL_NAME ?? payloadObj.hospital_name ?? payloadObj.hospitalName ?? payloadObj.drop_location ?? payloadObj.dropLocation ?? payloadObj.drop_address ?? payloadObj.dropAddress;
 
     return {
         requestId: typeof rawRequestId === 'number' ? rawRequestId : parseInt(String(rawRequestId), 10) || 0,
-        patientName: payloadObj.PATIENT_NAME ?? payloadObj.patientName ?? 'Emergency Patient',
-        contactNo: String(payloadObj.CONTACT_NO ?? payloadObj.contactNo ?? ''),
+        patientName: rawPatientName ? String(rawPatientName) : 'Emergency Patient',
+        contactNo: rawContactNo ? String(rawContactNo) : '',
         latitude: isNaN(lat) ? 0 : lat,
         longitude: isNaN(lng) ? 0 : lng,
-        address: payloadObj.ADDRESS ?? payloadObj.address ?? 'Pickup location not specified',
-        emergencyType: payloadObj.EMERGENCY_TYPE ?? payloadObj.emergencyType ?? 'Medical',
+        address: rawAddress ? String(rawAddress) : 'Pickup location not specified',
+        emergencyType: rawEmergencyType ? String(rawEmergencyType) : 'Medical',
         ambulanceTrip: true,
-        estimatedEarnings: earnings ? String(earnings) : undefined,
-        destination: dest,
+        estimatedEarnings: rawEarnings ? String(rawEarnings) : undefined,
+        destination: rawDestination ? String(rawDestination) : 'Nearest Emergency Hospital',
         raw: payloadObj,
     };
 }

@@ -17,8 +17,10 @@ import Header from '../../components/Header/Header';
 import { SettingsScreenSkeleton } from '../../components/Skeleton';
 import { useAppDispatch } from '../../redux/hook';
 import { logout } from '../../redux/slices/authSlice';
+import { useNavigation, NavigationProp } from '@react-navigation/native';
 import { storage } from '../../storage/storage';
 import { resetToLogin } from '../../utils/navigationRef';
+import { ProfileStackParamList } from '../../Navigation/stacks/Profilestack';
 
 interface SettingItemProps {
   icon: string;
@@ -34,6 +36,7 @@ interface SettingItemProps {
 
 const SettingsScreen = () => {
   const dispatch = useAppDispatch();
+  const navigation = useNavigation<NavigationProp<ProfileStackParamList>>();
   const [isLoading, setIsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -64,15 +67,15 @@ const SettingsScreen = () => {
   };
 
   const handlePrivacyPolicy = () => {
-    console.log('Privacy Policy');
+    navigation.navigate('PrivacyPolicy');
   };
 
   const handleTerms = () => {
-    console.log('Terms & Conditions');
+    navigation.navigate('TermsConditions');
   };
 
   const handleHelp = () => {
-    console.log('Help & Support');
+    navigation.navigate('Help');
   };
 
   const handleLogout = () => {

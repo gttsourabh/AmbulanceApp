@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import {
     Image,
     ImageBackground,
@@ -22,9 +22,22 @@ import { HomeScreenSkeleton } from '../../components/Skeleton';
 import { useNavigation } from '@react-navigation/native';
 import { useAppSelector } from '../../redux/hook';
 import { requestLocationPermission, checkLocationPermission } from '../../utils/locationPermission';
-import { updateDriverOnlineStatus } from '../../api';
+import {
+    updateDriverOnlineStatus,
+    getDriverApi,
+    getRouteOverviewApi,
+    extractDriverFromResponse,
+    DriverProfileData,
+} from '../../api';
 import { storage } from '../../storage/storage';
 import { STORAGE_KEYS } from '../../storage/storageKeys';
+
+const getGreetingText = () => {
+    const hours = new Date().getHours();
+    if (hours < 12) return 'Good Morning';
+    if (hours < 17) return 'Good Afternoon';
+    return 'Good Evening';
+};
 
 const HomeScreen = () => {
     const user = useAppSelector(state => state.auth.user);
@@ -33,20 +46,17 @@ const HomeScreen = () => {
     const [isOnline, setIsOnline] = useState(true);
     const [isLoading, setIsLoading] = useState(false);
     const [refreshing, setRefreshing] = useState(false);
+    const [driverProfile, setDriverProfile] = useState<DriverProfileData | null>(null);
+    const [overviewData, setOverviewData] = useState<{
+        completed: string | number;
+        cancelled: string | number;
+        earnings: string | number;
+    }>({
+        completed: 0,
+        cancelled: 0,
+        earnings: 0,
+    });
     const initialStatusSentRef = useRef(false);
-
-    const handleRefresh = async () => {
-        setRefreshing(true);
-        setIsLoading(true);
-        const userId = await getEffectiveUserId();
-        if (userId || userId === 0) {
-            await sendStatusUpdate(isOnline);
-        }
-        setTimeout(() => {
-            setRefreshing(false);
-            setIsLoading(false);
-        }, 1000);
-    };
 
     // Helper to get userId from Redux or storage fallback
     const getEffectiveUserId = async (): Promise<number | string | null> => {
@@ -62,6 +72,64 @@ const HomeScreen = () => {
             // ignore
         }
         return null;
+    };
+
+    const fetchHomeData = useCallback(async (driverId: number | string) => {
+        try {
+            // 1. Fetch driver profile from /api/driver/get
+            console.log('📡 [HomeScreen] Calling /api/driver/get with id:', driverId);
+            const profilePromise = getDriverApi({
+                id: driverId,
+            }).then(res => {
+                console.log('📡 [HomeScreen] /api/driver/get response:', res?.data);
+                const fetched = extractDriverFromResponse(res);
+                console.log('✅ [HomeScreen] Extracted Driver Profile from API:', fetched);
+                if (fetched) {
+                    setDriverProfile(fetched);
+                }
+            }).catch(err => {
+                console.warn('❌ [HomeScreen] Error fetching driver profile:', err?.response?.data || err?.message || err);
+            });
+
+            // 2. Fetch route overview from /api/ambulance/getRouteOverview with driver_id
+            console.log('📡 [HomeScreen] Calling /api/ambulance/getRouteOverview with driver_id:', driverId);
+            const overviewPromise = getRouteOverviewApi({
+                driver_id: driverId,
+            }).then(res => {
+                console.log('📡 [HomeScreen] /api/ambulance/getRouteOverview response:', res?.data);
+                const raw = res?.data?.data !== undefined ? res.data.data : (res?.data?.result !== undefined ? res.data.result : res?.data);
+                if (raw) {
+                    let obj = raw;
+                    if (Array.isArray(raw) && raw.length > 0) {
+                        obj = raw[0];
+                    }
+                    console.log('✅ [HomeScreen] Parsed Route Overview Data:', obj);
+                    setOverviewData({
+                        completed: obj.completed ?? obj.completed_trips ?? obj.completed_count ?? obj.total_completed ?? 0,
+                        cancelled: obj.cancelled ?? obj.cancelled_trips ?? obj.cancelled_count ?? obj.rejected ?? 0,
+                        earnings: obj.earnings ?? obj.total_earnings ?? obj.today_earnings ?? obj.amount ?? obj.fare ?? 0,
+                    });
+                }
+            }).catch(err => {
+                console.warn('❌ [HomeScreen] Error fetching route overview:', err?.response?.data || err?.message || err);
+            });
+
+            await Promise.all([profilePromise, overviewPromise]);
+        } catch (err) {
+            console.warn('❌ [HomeScreen] Error in fetchHomeData:', err);
+        }
+    }, []);
+
+    const handleRefresh = async () => {
+        setRefreshing(true);
+        const userId = await getEffectiveUserId();
+        if (userId || userId === 0) {
+            await Promise.all([
+                sendStatusUpdate(isOnline),
+                fetchHomeData(userId),
+            ]);
+        }
+        setRefreshing(false);
     };
 
     const sendStatusUpdate = async (online: boolean) => {
@@ -82,33 +150,28 @@ const HomeScreen = () => {
         }
     };
 
-    // By default after login when user arrives on homescreen:
-    // 1. Set header status to ONLINE (isOnline = true)
-    // 2. Send PUT API call with is_online: true
-    // 3. Ensure location permission is requested/checked
     useEffect(() => {
         const initOnlineStatus = async () => {
-            // Check / request location permission
             checkLocationPermission().then(hasPermission => {
                 if (!hasPermission) {
                     requestLocationPermission();
                 }
             });
 
-            // Ensure header reflects ONLINE
             setIsOnline(true);
 
-            // Send API call with is_online: true once userId is available
             const userId = await getEffectiveUserId();
-            if ((userId || userId === 0) && !initialStatusSentRef.current) {
-                initialStatusSentRef.current = true;
-                await sendStatusUpdate(true);
+            if (userId || userId === 0) {
+                if (!initialStatusSentRef.current) {
+                    initialStatusSentRef.current = true;
+                    await sendStatusUpdate(true);
+                }
+                await fetchHomeData(userId);
             }
         };
 
         initOnlineStatus();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [user?.id]);
+    }, [fetchHomeData]);
 
     const handleToggleOnline = async (nextValue: boolean) => {
         setIsOnline(nextValue);
@@ -124,12 +187,6 @@ const HomeScreen = () => {
 
     const handleNotifications = () => {
         navigation.navigate('Notifications');
-    };
-    const handleEmergencyRequest = () => {
-        const parent1 = navigation.getParent();
-        const parent2 = parent1?.getParent();
-
-        parent2?.navigate('IncomingRequests');
     };
 
     return (
@@ -217,22 +274,44 @@ const HomeScreen = () => {
                         <View style={styles.greetingSection}>
                     <View style={styles.greetingContent}>
                         <Text style={styles.greeting}>
-                            Good Morning,
+                            {getGreetingText()},
                         </Text>
 
-                        <Text style={styles.userName}>
-                            {user?.name || 'Driver'}
+                        <Text style={styles.userName} numberOfLines={1}>
+                            {driverProfile?.name || driverProfile?.driver_name || ''}
                         </Text>
                     </View>
 
-                    <View style={styles.profileAvatar}>
-                        <AppIcon
-                            family="material"
-                            name="account"
-                            size={26}
-                            color={colors.textSecondary}
-                        />
-                    </View>
+                    <TouchableOpacity
+                        activeOpacity={0.7}
+                        onPress={() => navigation.navigate('Profile')}
+                        style={styles.profileAvatar}
+                    >
+                        {(() => {
+                            const avatarUri =
+                                driverProfile?.profile_image_url ||
+                                driverProfile?.profile_image ||
+                                driverProfile?.profile_photo ||
+                                driverProfile?.photo ||
+                                driverProfile?.image ||
+                                null;
+
+                            return avatarUri ? (
+                                <Image
+                                    source={{ uri: avatarUri }}
+                                    style={styles.avatarImage}
+                                    resizeMode="cover"
+                                />
+                            ) : (
+                                <AppIcon
+                                    family="material"
+                                    name="account"
+                                    size={26}
+                                    color={colors.primary}
+                                />
+                            );
+                        })()}
+                    </TouchableOpacity>
                 </View>
 
                 <View style={styles.emergencyCardOuterWrapper}>
@@ -326,7 +405,7 @@ const HomeScreen = () => {
                             </View>
 
                             <Text style={styles.rowValue}>
-                                04
+                                {String(overviewData.completed).padStart(2, '0')}
                             </Text>
                         </View>
 
@@ -357,7 +436,7 @@ const HomeScreen = () => {
                             </View>
 
                             <Text style={styles.rowValue}>
-                                01
+                                {String(overviewData.cancelled).padStart(2, '0')}
                             </Text>
                         </View>
 
@@ -391,28 +470,11 @@ const HomeScreen = () => {
                             </View>
 
                             <Text style={styles.rowValue}>
-                                ₹1,250
+                                ₹{Number(overviewData.earnings || 0).toLocaleString('en-IN')}
                             </Text>
                         </View>
                     </View>
                 </View>
-
-                <TouchableOpacity
-                    activeOpacity={0.75}
-                    style={styles.emergencyButton}
-                    onPress={handleEmergencyRequest}
-                >
-                    <AppIcon
-                        family="material"
-                        name="alert-circle-outline"
-                        size={20}
-                        color={colors.danger}
-                    />
-
-                    <Text style={styles.emergencyButtonText}>
-                        Emergency Request
-                    </Text>
-                </TouchableOpacity>
                     </>
                 )}
             </ScrollView>
@@ -519,6 +581,11 @@ const styles = StyleSheet.create({
         overflow: 'hidden',
         borderWidth: 1,
         borderColor: colors.border,
+    },
+
+    avatarImage: {
+        width: '100%',
+        height: '100%',
     },
 
     emergencyCardOuterWrapper: {
@@ -739,27 +806,4 @@ const styles = StyleSheet.create({
         color: colors.textPrimary,
         letterSpacing: 0.1,
     },
-
-    emergencyButton: {
-        minHeight: 46,
-        marginTop: 12,
-        paddingHorizontal: 16,
-        borderRadius: 13,
-        backgroundColor: colors.dangerLight,
-        borderWidth: 1,
-        borderColor: colors.danger,
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: 8,
-    },
-
-    emergencyButtonText: {
-        fontFamily: 'GoogleSans-Medium',
-        fontSize: 13.5,
-        lineHeight: 18,
-        includeFontPadding: false,
-        color: colors.danger,
-    },
-
 });

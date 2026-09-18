@@ -11,9 +11,14 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AppIcon } from '../../icons';
 import { colors, typography } from '../../theme';
-import { Skeleton, TripCardSkeleton } from '../../components/Skeleton';
+import { Skeleton, TripCardSkeleton, DateRangePickerModal, formatDisplayDate } from '../../components';
 import { useAppSelector } from '../../redux/hook';
-import { getAmbulanceRequestApi, AmbulanceRequestItem } from '../../api/driverApi';
+import {
+    getAmbulanceRequestApi,
+    AmbulanceRequestItem,
+    GetAmbulanceRequestPayload,
+    RequestFilterItem,
+} from '../../api/driverApi';
 import { storage } from '../../storage/storage';
 import { STORAGE_KEYS } from '../../storage/storageKeys';
 
@@ -54,103 +59,146 @@ const staticTrips: Trip[] = [
 const TripsScreen = () => {
     const user = useAppSelector(state => state.auth.user);
     const [selectedFilter, setSelectedFilter] = useState<FilterType>('All');
+    const currentYear = new Date().getFullYear();
+    const [startDate, setStartDate] = useState<string>(`${currentYear}-01-01`);
+    const [endDate, setEndDate] = useState<string>(`${currentYear}-12-31`);
+    const [isDatePickerVisible, setIsDatePickerVisible] = useState(false);
     const [trips, setTrips] = useState<Trip[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
 
-    const fetchTrips = useCallback(async (filter: FilterType = selectedFilter) => {
-        let driverId = user?.driver_id || user?.id || user?.userId;
-        if (!driverId && driverId !== 0) {
+    const fetchTrips = useCallback(
+        async (
+            filter: FilterType = selectedFilter,
+            start: string = startDate,
+            end: string = endDate,
+        ) => {
             try {
-                const storedUser = await storage.get<any>(STORAGE_KEYS.USER_DATA);
-                driverId = storedUser?.driver_id || storedUser?.id || storedUser?.userId;
-            } catch {
-                // ignore
-            }
-        }
+                console.log(`📡 [TRIPS API] Fetching trips with filter: ${filter}, dates: ${start} to ${end}`);
 
-        const effectiveDriverId = Number(driverId) || 1;
+                // 1. Status filter based on request: All, Completed, Cancelled
+                const statusFilter: RequestFilterItem =
+                    filter === 'Completed'
+                        ? { column: 'status', operator: '=', value: 'completed' }
+                        : filter === 'Cancelled'
+                            ? { column: 'status', operator: '=', value: 'cancelled' }
+                            : { column: 'status', operator: 'IN', value: ['completed', 'cancelled', "assigned", "dispatched", "arriving"] };
 
-        try {
-            console.log(`📡 [TRIPS API] Fetching trips for driver_id: ${effectiveDriverId}, filter: ${filter}`);
-            const statusParam =
-                filter === 'Completed'
-                    ? 'completed'
-                    : filter === 'Cancelled'
-                        ? 'cancelled'
-                        : undefined;
+                // 2. Date range filter for created_at (dynamic between dates from Date Picker)
+                const dateFilter: RequestFilterItem = {
+                    column: 'created_at',
+                    operator: 'BETWEEN',
+                    value: [start, end],
+                };
 
-            const res = await getAmbulanceRequestApi({
-                driver_id: effectiveDriverId,
-                status: statusParam,
-            });
-            console.log(res)
-            const dataItems: AmbulanceRequestItem[] = res?.data?.data || [];
-            console.log(`✅ [TRIPS API SUCCESS] Received ${dataItems.length} trips`);
+                // 3. Build payload in the requested format
+                const payload: GetAmbulanceRequestPayload = {
+                    pageIndex: 1,
+                    pageSize: 10,
+                    sortKey: 'created_at',
+                    sortValue: 'DESC',
+                    filters: [statusFilter, dateFilter],
+                };
 
-            const mapped: Trip[] = dataItems.map(item => {
-                const rawSt = String(item.status || 'requested').toLowerCase();
-                const isCancelled = rawSt.includes('cancel');
-                const isCompleted = rawSt.includes('complete');
+                console.log('📡 [TRIPS API PAYLOAD]:', JSON.stringify(payload, null, 2));
 
-                let dateCategory: 'Today' | 'Yesterday' | 'Earlier' = 'Earlier';
-                let timeStr = '--';
-                if (item.created_at) {
-                    const d = new Date(item.created_at);
-                    if (!isNaN(d.getTime())) {
-                        const now = new Date();
-                        const isToday = d.toDateString() === now.toDateString();
-                        const yesterday = new Date();
-                        yesterday.setDate(now.getDate() - 1);
-                        const isYesterday = d.toDateString() === yesterday.toDateString();
+                const res = await getAmbulanceRequestApi(payload);
+                console.log('📡 [TRIPS API RESPONSE]:', res?.data);
 
-                        dateCategory = isToday ? 'Today' : isYesterday ? 'Yesterday' : 'Earlier';
-                        timeStr = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
-                    }
+                let dataItems: AmbulanceRequestItem[] = [];
+                const rawData: any = res?.data?.data;
+                const rawRes: any = res?.data;
+                if (Array.isArray(rawData)) {
+                    dataItems = rawData;
+                } else if (Array.isArray(rawData?.records)) {
+                    dataItems = rawData.records;
+                } else if (Array.isArray(rawData?.items)) {
+                    dataItems = rawData.items;
+                } else if (Array.isArray(rawData?.rows)) {
+                    dataItems = rawData.rows;
+                } else if (Array.isArray(rawRes?.result)) {
+                    dataItems = rawRes.result;
+                } else if (Array.isArray(rawRes?.records)) {
+                    dataItems = rawRes.records;
+                } else if (Array.isArray(rawRes)) {
+                    dataItems = rawRes;
                 }
 
-                const pickupTimeStr = item.time || (item.eta_minutes ? `${item.eta_minutes} mins` : timeStr);
-                const distanceStr = item.distance ? `${item.distance} km` : '';
-                const amountStr = item.amount ? `₹${item.amount}` : item.fare ? `₹${item.fare}` : (isCancelled ? '₹0' : '₹350');
+                console.log(`✅ [TRIPS API SUCCESS] Received ${dataItems.length} trips`);
 
-                return {
-                    id: item.id,
-                    name: item.patient_name || 'Emergency Patient',
-                    time: timeStr,
-                    pickupTime: pickupTimeStr,
-                    distance: distanceStr,
-                    amount: amountStr,
-                    status: isCancelled ? 'Cancelled' : isCompleted ? 'Completed' : 'Active',
-                    rawStatus: rawSt,
-                    icon: isCancelled ? 'close-circle' : 'account',
-                    dateCategory,
-                    address: item.pickup_address || '',
-                    emergencyType: item.emergency_type || 'Medical',
-                };
-            });
+                const mapped: Trip[] = dataItems.map(item => {
+                    const rawSt = String(item.status || 'requested').toLowerCase();
+                    const isCancelled = rawSt.includes('cancel');
+                    const isCompleted = rawSt.includes('complete');
 
-            setTrips(mapped);
-        } catch (error) {
-            console.warn('❌ [TRIPS API ERROR]:', error);
-        } finally {
-            setIsLoading(false);
-            setRefreshing(false);
-        }
-    }, [user, selectedFilter]);
+                    let dateCategory: 'Today' | 'Yesterday' | 'Earlier' = 'Earlier';
+                    let timeStr = '--';
+                    if (item.created_at) {
+                        const d = new Date(item.created_at);
+                        if (!isNaN(d.getTime())) {
+                            const now = new Date();
+                            const isToday = d.toDateString() === now.toDateString();
+                            const yesterday = new Date();
+                            yesterday.setDate(now.getDate() - 1);
+                            const isYesterday = d.toDateString() === yesterday.toDateString();
+
+                            dateCategory = isToday ? 'Today' : isYesterday ? 'Yesterday' : 'Earlier';
+                            timeStr = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
+                        }
+                    }
+
+                    const pickupTimeStr = item.time || (item.eta_minutes ? `${item.eta_minutes} mins` : timeStr);
+                    const distanceStr = item.distance ? `${item.distance} km` : '';
+                    const amountStr = item.amount ? `₹${item.amount}` : item.fare ? `₹${item.fare}` : (isCancelled ? '₹0' : '₹350');
+
+                    return {
+                        id: item.id,
+                        name: item.patient_name || 'Emergency Patient',
+                        time: timeStr,
+                        pickupTime: pickupTimeStr,
+                        distance: distanceStr,
+                        amount: amountStr,
+                        status: isCancelled ? 'Cancelled' : isCompleted ? 'Completed' : 'Active',
+                        rawStatus: rawSt,
+                        icon: isCancelled ? 'close-circle' : 'account',
+                        dateCategory,
+                        address: item.pickup_address || '',
+                        emergencyType: item.emergency_type || 'Medical',
+                    };
+                });
+
+                setTrips(mapped);
+            } catch (error) {
+                console.warn('❌ [TRIPS API ERROR]:', error);
+            } finally {
+                setIsLoading(false);
+                setRefreshing(false);
+            }
+        },
+        [selectedFilter, startDate, endDate],
+    );
 
     useEffect(() => {
-        fetchTrips(selectedFilter);
-    }, [fetchTrips, selectedFilter]);
+        fetchTrips(selectedFilter, startDate, endDate);
+    }, [fetchTrips, selectedFilter, startDate, endDate]);
 
     const handleRefresh = () => {
         setRefreshing(true);
-        fetchTrips(selectedFilter);
+        fetchTrips(selectedFilter, startDate, endDate);
     };
 
     const handleFilterChange = (filter: FilterType) => {
         if (filter === selectedFilter) return;
         setSelectedFilter(filter);
         setIsLoading(true);
+        fetchTrips(filter, startDate, endDate);
+    };
+
+    const handleApplyDateRange = (newStart: string, newEnd: string) => {
+        setStartDate(newStart);
+        setEndDate(newEnd);
+        setIsLoading(true);
+        fetchTrips(selectedFilter, newStart, newEnd);
     };
 
     const filteredTrips = trips.filter(trip => {
@@ -285,24 +333,78 @@ const TripsScreen = () => {
       ===================================================== */}
 
             <View style={styles.header}>
-
                 <Text style={styles.headerTitle}>
                     Trip History
                 </Text>
 
-                <TouchableOpacity
-                    activeOpacity={0.7}
-                    style={styles.filterIconButton}
-                    onPress={handleRefresh}
-                >
-                    <AppIcon
-                        family="material"
-                        name="refresh"
-                        size={20}
-                        color={colors.primary}
-                    />
-                </TouchableOpacity>
+                <View style={styles.headerRightButtons}>
+                    <TouchableOpacity
+                        activeOpacity={0.7}
+                        style={styles.headerIconButton}
+                        onPress={() => setIsDatePickerVisible(true)}
+                    >
+                        <AppIcon
+                            family="material"
+                            name="calendar-month"
+                            size={20}
+                            color={colors.primary}
+                        />
+                    </TouchableOpacity>
 
+                    <TouchableOpacity
+                        activeOpacity={0.7}
+                        style={styles.headerIconButton}
+                        onPress={handleRefresh}
+                    >
+                        <AppIcon
+                            family="material"
+                            name="refresh"
+                            size={20}
+                            color={colors.primary}
+                        />
+                    </TouchableOpacity>
+                </View>
+            </View>
+
+            {/* =====================================================
+          DATE RANGE SELECTOR
+      ===================================================== */}
+
+            <View style={styles.dateBarContainer}>
+                <TouchableOpacity
+                    activeOpacity={0.8}
+                    style={styles.dateBarButton}
+                    onPress={() => setIsDatePickerVisible(true)}
+                >
+                    <View style={styles.dateBarLeft}>
+                        <View style={styles.calendarIconCircle}>
+                            <AppIcon
+                                family="material"
+                                name="calendar-range"
+                                size={17}
+                                color={colors.primary}
+                            />
+                        </View>
+                        <View style={styles.dateBarTexts}>
+                            <Text style={styles.dateBarLabel}>DATE RANGE (BETWEEN)</Text>
+                            <Text style={styles.dateBarValue}>
+                                {formatDisplayDate(startDate)} — {formatDisplayDate(endDate)}
+                            </Text>
+                        </View>
+                    </View>
+
+                    <View style={styles.dateBarRight}>
+                        <View style={styles.filterChip}>
+                            <Text style={styles.filterChipText}>Filter</Text>
+                            <AppIcon
+                                family="material"
+                                name="chevron-down"
+                                size={14}
+                                color={colors.primary}
+                            />
+                        </View>
+                    </View>
+                </TouchableOpacity>
             </View>
 
             {/* =====================================================
@@ -449,6 +551,14 @@ const TripsScreen = () => {
                 )}
 
             </ScrollView>
+
+            <DateRangePickerModal
+                visible={isDatePickerVisible}
+                initialStartDate={startDate}
+                initialEndDate={endDate}
+                onClose={() => setIsDatePickerVisible(false)}
+                onApply={handleApplyDateRange}
+            />
         </SafeAreaView>
     );
 };
@@ -471,12 +581,10 @@ const styles = StyleSheet.create({
 
     header: {
         height: 58,
-
         paddingHorizontal: 16,
-
         flexDirection: 'row',
         alignItems: 'center',
-        justifyContent: 'center',
+        justifyContent: 'space-between',
     },
 
     headerTitle: {
@@ -488,19 +596,105 @@ const styles = StyleSheet.create({
         letterSpacing: 0.1,
     },
 
-    filterIconButton: {
-        position: 'absolute',
-        right: 16,
+    headerRightButtons: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+    },
 
+    headerIconButton: {
         width: 38,
         height: 38,
-
         borderRadius: 12,
-
         alignItems: 'center',
         justifyContent: 'center',
-
         backgroundColor: colors.primaryLight,
+    },
+
+    // =====================================================
+    // DATE RANGE BAR
+    // =====================================================
+
+    dateBarContainer: {
+        paddingHorizontal: 16,
+        marginBottom: 8,
+    },
+
+    dateBarButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        backgroundColor: colors.card,
+        borderRadius: 16,
+        paddingVertical: 10,
+        paddingHorizontal: 14,
+        borderWidth: 1,
+        borderColor: '#E8EFF1',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.04,
+        shadowRadius: 8,
+        elevation: 2,
+    },
+
+    dateBarLeft: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 10,
+    },
+
+    calendarIconCircle: {
+        width: 34,
+        height: 34,
+        borderRadius: 17,
+        backgroundColor: colors.primaryLight,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+
+    dateBarTexts: {
+        justifyContent: 'center',
+    },
+
+    dateBarLabel: {
+        fontFamily: 'GoogleSans-Bold',
+        fontSize: 10,
+        fontWeight: '700',
+        color: colors.textSecondary,
+        letterSpacing: 0.5,
+        marginBottom: 2,
+        includeFontPadding: false,
+    },
+
+    dateBarValue: {
+        fontFamily: 'GoogleSans-Bold',
+        fontSize: 13,
+        fontWeight: '700',
+        color: colors.textPrimary,
+        includeFontPadding: false,
+    },
+
+    dateBarRight: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+
+    filterChip: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+        paddingHorizontal: 10,
+        paddingVertical: 5,
+        borderRadius: 12,
+        backgroundColor: colors.primaryLight,
+    },
+
+    filterChipText: {
+        fontFamily: 'GoogleSans-Bold',
+        fontSize: 12,
+        fontWeight: '700',
+        color: colors.primary,
+        includeFontPadding: false,
     },
 
     // =====================================================

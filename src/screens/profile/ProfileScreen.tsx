@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
     Alert,
     Image,
@@ -16,7 +16,8 @@ import { useAppDispatch, useAppSelector } from '../../redux/hook';
 import { logout } from '../../redux/slices/authSlice';
 import { storage } from '../../storage/storage';
 import { resetToLogin } from '../../utils/navigationRef';
-import { updateDriverOnlineStatus } from '../../api';
+import { updateDriverOnlineStatus, getDriverApi, DriverProfileData } from '../../api';
+import { STORAGE_KEYS } from '../../storage/storageKeys';
 import { unsubscribeFromTopic } from '../../services/notificationService';
 
 import {
@@ -51,23 +52,102 @@ const ProfileScreen = () => {
     const driverChannel = useAppSelector(state => state.auth.driverChannel);
     const userChannel = useAppSelector(state => state.auth.userChannel);
 
+    const [driverProfile, setDriverProfile] = useState<DriverProfileData | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
 
-    useEffect(() => {
-        const timer = setTimeout(() => {
+    const extractDriverFromResponse = (res: any): DriverProfileData | null => {
+        if (!res) return null;
+        const body = res?.data !== undefined ? res.data : res;
+        if (!body) return null;
+
+        if (Array.isArray(body)) {
+            return body.length > 0 ? body[0] : null;
+        }
+        if (Array.isArray(body.data)) {
+            return body.data.length > 0 ? body.data[0] : null;
+        }
+        if (body.data && typeof body.data === 'object' && !Array.isArray(body.data)) {
+            return body.data;
+        }
+        if (Array.isArray(body.result)) {
+            return body.result.length > 0 ? body.result[0] : null;
+        }
+        if (body.result && typeof body.result === 'object' && !Array.isArray(body.result)) {
+            return body.result;
+        }
+        if (Array.isArray(body.drivers)) {
+            return body.drivers.length > 0 ? body.drivers[0] : null;
+        }
+        if (body.driver && typeof body.driver === 'object' && !Array.isArray(body.driver)) {
+            return body.driver;
+        }
+        if (Array.isArray(body.records)) {
+            return body.records.length > 0 ? body.records[0] : null;
+        }
+        if (Array.isArray(body.rows)) {
+            return body.rows.length > 0 ? body.rows[0] : null;
+        }
+        if (
+            typeof body === 'object' &&
+            !Array.isArray(body) &&
+            (body.name || body.driver_name || body.full_name || body.mobile_no || body.mobile_number || body.phone || body.vehicle_no)
+        ) {
+            return body;
+        }
+        return null;
+    };
+
+    const fetchDriverProfile = useCallback(async (isPullToRefresh = false) => {
+        if (!isPullToRefresh) {
+            setIsLoading(true);
+        }
+
+        try {
+            let driverUserId = user?.id || user?.user_id || user?.userId || user?.driver_id;
+            if (!driverUserId && driverUserId !== 0) {
+                try {
+                    const storedUser = await storage.get<any>(STORAGE_KEYS.USER_DATA);
+                    driverUserId = storedUser?.id || storedUser?.user_id || storedUser?.userId || storedUser?.driver_id;
+                } catch {
+                    // ignore
+                }
+            }
+
+            if (!driverUserId && driverUserId !== 0) {
+                console.warn('⚠️ [DRIVER API] No driver ID found to fetch profile');
+                return;
+            }
+
+            console.log('📡 [DRIVER API] Calling /api/driver/get with id:', driverUserId);
+            const res = await getDriverApi({
+                id: driverUserId,
+            });
+
+            // Console log the response as requested
+            console.log('📡 [DRIVER API] Response from /api/driver/get:', res?.data);
+
+            const fetchedDriver = extractDriverFromResponse(res);
+            console.log('✅ [DRIVER API] Extracted Driver Profile from API:', fetchedDriver);
+
+            if (fetchedDriver) {
+                setDriverProfile(fetchedDriver);
+            }
+        } catch (err: any) {
+            console.warn('❌ [DRIVER API ERROR]:', err?.response?.data || err?.message || err);
+        } finally {
             setIsLoading(false);
-        }, 700);
-        return () => clearTimeout(timer);
-    }, []);
+            setRefreshing(false);
+        }
+    }, [user]);
+
+    useEffect(() => {
+        fetchDriverProfile();
+    }, [fetchDriverProfile]);
 
     const handleRefresh = () => {
         setRefreshing(true);
-        setIsLoading(true);
-        setTimeout(() => {
-            setRefreshing(false);
-            setIsLoading(false);
-        }, 1000);
+        fetchDriverProfile(true);
     };
 
     const handleLogout = () => {
@@ -115,7 +195,7 @@ const ProfileScreen = () => {
             iconFamily: 'material',
             iconBg: colors.primaryLight,
             iconColor: colors.primary,
-            onPress: () => navigation.navigate('UserInfo'),
+            onPress: () => navigation.navigate('UserInfo', { driverProfile }),
         },
         {
             title: 'Vehicle Information',
@@ -124,7 +204,7 @@ const ProfileScreen = () => {
             iconFamily: 'material',
             iconBg: colors.infoLight,
             iconColor: colors.info,
-            onPress: () => navigation.navigate('VehicleDocument'),
+            onPress: () => navigation.navigate('VehicleDocument', { driverProfile }),
         },
         {
             title: 'Settings',
@@ -179,12 +259,34 @@ const ProfileScreen = () => {
                         <View style={styles.profileSection}>
                             <View style={styles.profileImageRing}>
                                 <View style={styles.profileImageContainer}>
-                                    <Image
-                                        source={{
-                                            uri: 'https://i.pravatar.cc/300?img=12',
-                                        }}
-                                        style={styles.profileImage}
-                                    />
+                                    {(() => {
+                                        const avatarUri =
+                                            driverProfile?.profile_image_url ||
+                                            driverProfile?.profile_image ||
+                                            driverProfile?.profile_photo ||
+                                            driverProfile?.photo ||
+                                            driverProfile?.image ||
+                                            driverProfile?.avatar ||
+                                            driverProfile?.driver_image ||
+                                            driverProfile?.driver_photo ||
+                                            driverProfile?.image_url ||
+                                            driverProfile?.photo_url ||
+                                            null;
+
+                                        return avatarUri ? (
+                                            <Image
+                                                source={{ uri: avatarUri }}
+                                                style={styles.profileImage}
+                                            />
+                                        ) : (
+                                            <AppIcon
+                                                family="material"
+                                                name="account"
+                                                size={48}
+                                                color={colors.primary}
+                                            />
+                                        );
+                                    })()}
                                 </View>
 
                                 <View style={styles.editBadge}>
@@ -197,26 +299,73 @@ const ProfileScreen = () => {
                                 </View>
                             </View>
 
-                            <Text style={styles.profileName}>
-                                {user?.name || 'Ambulance Driver'}
-                            </Text>
+                            {(() => {
+                                const driverName =
+                                    driverProfile?.name ||
+                                    driverProfile?.driver_name ||
+                                    driverProfile?.full_name ||
+                                    (driverProfile?.first_name ? `${driverProfile.first_name} ${driverProfile.last_name || ''}`.trim() : '') ||
+                                    driverProfile?.username ||
+                                    driverProfile?.user_name ||
+                                    '';
 
-                            <Text style={styles.phoneNumber}>
-                                {user?.mobile_number ? `+91 ${user.mobile_number}` : (user?.phone ? `+91 ${user.phone}` : '+91 98765 43210')}
-                            </Text>
+                                return driverName ? (
+                                    <Text style={styles.profileName}>
+                                        {driverName}
+                                    </Text>
+                                ) : null;
+                            })()}
 
-                            <View style={styles.verifiedPill}>
-                                <AppIcon
-                                    family="material"
-                                    name="check-decagram"
-                                    size={13}
-                                    color={colors.successDark}
-                                />
+                            {(() => {
+                                const rawPhone =
+                                    driverProfile?.mobile_number ||
+                                    driverProfile?.mobile_no ||
+                                    driverProfile?.driver_mobile_no ||
+                                    driverProfile?.phone ||
+                                    driverProfile?.phone_number ||
+                                    driverProfile?.contact_no ||
+                                    driverProfile?.contact_number ||
+                                    '';
 
-                                <Text style={styles.verifiedText}>
-                                    Verified Driver
-                                </Text>
-                            </View>
+                                const displayPhone = rawPhone
+                                    ? (rawPhone.startsWith('+') ? rawPhone : `+91 ${rawPhone}`)
+                                    : '';
+
+                                return displayPhone ? (
+                                    <Text style={styles.phoneNumber}>
+                                        {displayPhone}
+                                    </Text>
+                                ) : null;
+                            })()}
+
+                            {(() => {
+                                const isVerified =
+                                    driverProfile?.is_verified === 1 ||
+                                    driverProfile?.is_verified === true ||
+                                    driverProfile?.is_verified === '1' ||
+                                    driverProfile?.status?.toLowerCase() === 'verified' ||
+                                    driverProfile?.status?.toLowerCase() === 'active' ||
+                                    driverProfile?.status?.toLowerCase() === 'approved';
+
+                                const statusLabel = driverProfile?.status
+                                    ? `${driverProfile.status.charAt(0).toUpperCase()}${driverProfile.status.slice(1)} Driver`
+                                    : (isVerified ? 'Verified Driver' : (driverProfile ? 'Driver' : ''));
+
+                                return statusLabel ? (
+                                    <View style={styles.verifiedPill}>
+                                        <AppIcon
+                                            family="material"
+                                            name="check-decagram"
+                                            size={13}
+                                            color={colors.successDark}
+                                        />
+
+                                        <Text style={styles.verifiedText}>
+                                            {statusLabel}
+                                        </Text>
+                                    </View>
+                                ) : null;
+                            })()}
                         </View>
 
                         {/* PROFILE OPTIONS */}

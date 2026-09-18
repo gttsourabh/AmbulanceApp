@@ -95,7 +95,26 @@ const OnTripScreen = () => {
   };
 
   const handleViewLiveMap = () => {
-    navigation.navigate('EnRoute' as never);
+    (navigation.navigate as any)('EnRoute', {
+      requestId: route?.params?.requestId || activeRequest?.id,
+      driverId: route?.params?.driverId || activeRequest?.driver_id,
+      patientName: route?.params?.patientName || activeRequest?.patient_name,
+      contactNo: route?.params?.contactNo || activeRequest?.contact_no,
+      address: route?.params?.address || activeRequest?.pickup_address,
+      patientAddress: route?.params?.patientAddress || route?.params?.address || activeRequest?.pickup_address,
+      pickupLocation: route?.params?.pickupLocation || route?.params?.patientLocation || (activeRequest?.pickup_lat ? { latitude: Number(activeRequest.pickup_lat), longitude: Number(activeRequest.pickup_lng) } : undefined),
+      patientLocation: route?.params?.patientLocation || route?.params?.pickupLocation || (activeRequest?.pickup_lat ? { latitude: Number(activeRequest.pickup_lat), longitude: Number(activeRequest.pickup_lng) } : undefined),
+      pickup_lat: route?.params?.pickup_lat || activeRequest?.pickup_lat,
+      pickup_lng: route?.params?.pickup_lng || activeRequest?.pickup_lng,
+      destination: route?.params?.destination || activeRequest?.drop_address,
+      hospitalName: route?.params?.hospitalName || route?.params?.destination || activeRequest?.drop_address,
+      hospitalAddress: route?.params?.hospitalAddress || activeRequest?.drop_address,
+      drop_lat: route?.params?.drop_lat || activeRequest?.drop_lat,
+      drop_lng: route?.params?.drop_lng || activeRequest?.drop_lng,
+      hospitalLocation: route?.params?.hospitalLocation || (activeRequest?.drop_lat ? { latitude: Number(activeRequest.drop_lat), longitude: Number(activeRequest.drop_lng) } : undefined),
+      emergencyType: route?.params?.emergencyType || activeRequest?.emergency_type,
+      autoStartTracking: true,
+    });
   };
 
   const handleReachedHospital = () => {

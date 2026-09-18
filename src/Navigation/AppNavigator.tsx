@@ -10,6 +10,7 @@ import OnTripScreen from '../screens/trips/Ongoingtrip/OnTripScreen';
 import TripCompletedScreen from '../screens/trips/Ongoingtrip/TripCompletedScreen';
 import IncomingRequestScreen from '../screens/trips/Ongoingtrip/IncomingRequestScreen';
 import NavigationToPickup from '../screens/trips/Ongoingtrip/NavigationToPickup';
+import ChooseHospitalScreen from '../screens/trips/Ongoingtrip/ChooseHospitalScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -50,6 +51,11 @@ const AppNavigator = () => {
             <Stack.Screen
                 name="NavigationToPickup"
                 component={NavigationToPickup}
+            />
+
+            <Stack.Screen
+                name="ChooseHospital"
+                component={ChooseHospitalScreen}
             />
 
             <Stack.Screen

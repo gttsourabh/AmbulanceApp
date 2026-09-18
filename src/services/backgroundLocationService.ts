@@ -93,7 +93,7 @@ export interface BackgroundTrackingOptions {
 }
 
 /**
- * Updates the navigation tracking type dynamically ('np' = nav to patient, 'pd' = patient to doctor).
+ * Updates the navigation tracking type dynamically ('np' = nav to patient, 'ph' = patient to hospital).
  */
 export function updateTrackingType(type: TripNavigationType) {
     currentTrackingType = type;

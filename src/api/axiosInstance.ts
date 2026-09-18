@@ -2,8 +2,8 @@ import axios from 'axios';
 import { store } from '../redux/store';
 
 const axiosInstance = axios.create({
-    // baseURL: 'https://6mcr9zjh-8867.inc1.devtunnels.ms',
-    baseURL: 'https://98769p8r-8867.inc1.devtunnels.ms',  // pranali madam 
+    baseURL: 'https://6mcr9zjh-8867.inc1.devtunnels.ms',
+    // baseURL: 'https://98769p8r-8867.inc1.devtunnels.ms',  // pranali madam 
     timeout: 15000,  //Automatically inject Bearer token from Redux auth state
 
     headers: {

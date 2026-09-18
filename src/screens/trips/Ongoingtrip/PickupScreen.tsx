@@ -24,14 +24,20 @@ const PickupScreen = () => {
   const handleStartTrip = () => {
     Keyboard.dismiss();
 
-    // Forward dynamic trip parameters to EnRoute
-    (navigation.navigate as any)('EnRoute', {
+    // Forward dynamic trip parameters to ChooseHospital
+    const pickupLoc = route?.params?.pickupLocation || route?.params?.patientLocation;
+    (navigation.navigate as any)('ChooseHospital', {
       requestId: route?.params?.requestId,
       driverId: route?.params?.driverId,
       patientName: route?.params?.patientName,
       contactNo: route?.params?.contactNo,
       address: route?.params?.address,
-      pickupLocation: route?.params?.pickupLocation,
+      pickupAddress: route?.params?.address,
+      patientAddress: route?.params?.address,
+      pickupLocation: pickupLoc,
+      patientLocation: pickupLoc,
+      pickup_lat: pickupLoc?.latitude || route?.params?.pickup_lat,
+      pickup_lng: pickupLoc?.longitude || route?.params?.pickup_lng,
       destination: route?.params?.destination,
       emergencyType: route?.params?.emergencyType,
     });

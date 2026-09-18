@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
+    Image,
     RefreshControl,
     ScrollView,
     StyleSheet,
@@ -8,12 +9,17 @@ import {
     View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useRoute, RouteProp } from '@react-navigation/native';
 
 import { colors, typography, shadows } from '../../theme';
 import { AppIcon } from '../../icons';
 import Header from '../../components/Header/Header';
 import { UserInfoSkeleton } from '../../components/Skeleton';
 import { useAppSelector } from '../../redux/hook';
+import { ProfileStackParamList } from '../../Navigation/stacks/Profilestack';
+import { getDriverApi, DriverProfileData } from '../../api';
+import { storage } from '../../storage/storage';
+import { STORAGE_KEYS } from '../../storage/storageKeys';
 
 interface InfoItemProps {
     icon: string;
@@ -25,25 +31,112 @@ interface InfoItemProps {
     onPress?: () => void;
 }
 
+type UserInfoRouteProp = RouteProp<ProfileStackParamList, 'UserInfo'>;
+
 const UserInfo = () => {
+    const route = useRoute<UserInfoRouteProp>();
     const user = useAppSelector(state => state.auth.user);
-    const [isLoading, setIsLoading] = useState(true);
+    const [driverProfile, setDriverProfile] = useState<DriverProfileData | null>(
+        route.params?.driverProfile || null
+    );
+    const [isLoading, setIsLoading] = useState(!route.params?.driverProfile);
     const [refreshing, setRefreshing] = useState(false);
 
-    useEffect(() => {
-        const timer = setTimeout(() => {
+    const extractDriverFromResponse = (res: any): DriverProfileData | null => {
+        if (!res) return null;
+        const body = res?.data !== undefined ? res.data : res;
+        if (!body) return null;
+
+        if (Array.isArray(body)) {
+            return body.length > 0 ? body[0] : null;
+        }
+        if (Array.isArray(body.data)) {
+            return body.data.length > 0 ? body.data[0] : null;
+        }
+        if (body.data && typeof body.data === 'object' && !Array.isArray(body.data)) {
+            return body.data;
+        }
+        if (Array.isArray(body.result)) {
+            return body.result.length > 0 ? body.result[0] : null;
+        }
+        if (body.result && typeof body.result === 'object' && !Array.isArray(body.result)) {
+            return body.result;
+        }
+        if (Array.isArray(body.drivers)) {
+            return body.drivers.length > 0 ? body.drivers[0] : null;
+        }
+        if (body.driver && typeof body.driver === 'object' && !Array.isArray(body.driver)) {
+            return body.driver;
+        }
+        if (Array.isArray(body.records)) {
+            return body.records.length > 0 ? body.records[0] : null;
+        }
+        if (Array.isArray(body.rows)) {
+            return body.rows.length > 0 ? body.rows[0] : null;
+        }
+        if (
+            typeof body === 'object' &&
+            !Array.isArray(body) &&
+            (body.name || body.driver_name || body.full_name || body.mobile_no || body.mobile_number || body.phone || body.vehicle_no)
+        ) {
+            return body;
+        }
+        return null;
+    };
+
+    const fetchDriverProfile = useCallback(async (isPullToRefresh = false) => {
+        if (!isPullToRefresh && !driverProfile) {
+            setIsLoading(true);
+        }
+
+        try {
+            let driverUserId = user?.id || user?.user_id || user?.userId || user?.driver_id;
+            if (!driverUserId && driverUserId !== 0) {
+                try {
+                    const storedUser = await storage.get<any>(STORAGE_KEYS.USER_DATA);
+                    driverUserId = storedUser?.id || storedUser?.user_id || storedUser?.userId || storedUser?.driver_id;
+                } catch {
+                    // ignore
+                }
+            }
+
+            if (!driverUserId && driverUserId !== 0) {
+                console.warn('⚠️ [USER INFO] No driver ID found to fetch profile');
+                return;
+            }
+
+            console.log('📡 [USER INFO] Calling /api/driver/get with id:', driverUserId);
+            const res = await getDriverApi({
+                id: driverUserId,
+            });
+
+            console.log('📡 [USER INFO] Response from /api/driver/get:', res?.data);
+
+            const fetchedDriver = extractDriverFromResponse(res);
+            console.log('✅ [USER INFO] Extracted Driver Profile from API:', fetchedDriver);
+
+            if (fetchedDriver) {
+                setDriverProfile(fetchedDriver);
+            }
+        } catch (err: any) {
+            console.warn('❌ [USER INFO DRIVER API ERROR]:', err?.response?.data || err?.message || err);
+        } finally {
             setIsLoading(false);
-        }, 700);
-        return () => clearTimeout(timer);
+            setRefreshing(false);
+        }
+    }, [user, driverProfile]);
+
+    useEffect(() => {
+        if (!route.params?.driverProfile) {
+            fetchDriverProfile();
+        } else {
+            setIsLoading(false);
+        }
     }, []);
 
     const handleRefresh = () => {
         setRefreshing(true);
-        setIsLoading(true);
-        setTimeout(() => {
-            setRefreshing(false);
-            setIsLoading(false);
-        }, 1000);
+        fetchDriverProfile(true);
     };
 
     const handleVehicle = () => {
@@ -155,24 +248,79 @@ const UserInfo = () => {
                     <>
                         {/* ================= PROFILE ================= */}
 
+                        {/* ================= PROFILE ================= */}
+
                         <View style={styles.profileSection}>
 
                             <View style={styles.avatarContainer}>
-                                <AppIcon
-                                    family="material"
-                                    name="account"
-                                    size={40}
-                                    color={colors.primary}
-                                />
+                                {(() => {
+                                    const avatarUri =
+                                        driverProfile?.profile_image_url ||
+                                        driverProfile?.profile_image ||
+                                        driverProfile?.profile_photo ||
+                                        driverProfile?.photo ||
+                                        driverProfile?.image ||
+                                        driverProfile?.avatar ||
+                                        driverProfile?.driver_image ||
+                                        driverProfile?.driver_photo ||
+                                        driverProfile?.image_url ||
+                                        driverProfile?.photo_url ||
+                                        null;
+
+                                    return avatarUri ? (
+                                        <Image
+                                            source={{ uri: avatarUri }}
+                                            style={styles.avatarImage}
+                                        />
+                                    ) : (
+                                        <AppIcon
+                                            family="material"
+                                            name="account"
+                                            size={40}
+                                            color={colors.primary}
+                                        />
+                                    );
+                                })()}
                             </View>
 
-                            <Text style={styles.userName}>
-                                {user?.name || 'Ambulance Driver'}
-                            </Text>
+                            {(() => {
+                                const driverName =
+                                    driverProfile?.name ||
+                                    driverProfile?.driver_name ||
+                                    driverProfile?.full_name ||
+                                    (driverProfile?.first_name ? `${driverProfile.first_name} ${driverProfile.last_name || ''}`.trim() : '') ||
+                                    driverProfile?.username ||
+                                    driverProfile?.user_name ||
+                                    '';
 
-                            <Text style={styles.phoneNumber}>
-                                {user?.mobile_number ? `+91 ${user.mobile_number}` : (user?.phone ? `+91 ${user.phone}` : '+91 98765 43210')}
-                            </Text>
+                                return driverName ? (
+                                    <Text style={styles.userName}>
+                                        {driverName}
+                                    </Text>
+                                ) : null;
+                            })()}
+
+                            {(() => {
+                                const rawPhone =
+                                    driverProfile?.mobile_number ||
+                                    driverProfile?.mobile_no ||
+                                    driverProfile?.driver_mobile_no ||
+                                    driverProfile?.phone ||
+                                    driverProfile?.phone_number ||
+                                    driverProfile?.contact_no ||
+                                    driverProfile?.contact_number ||
+                                    '';
+
+                                const displayPhone = rawPhone
+                                    ? (rawPhone.startsWith('+') ? rawPhone : `+91 ${rawPhone}`)
+                                    : '';
+
+                                return displayPhone ? (
+                                    <Text style={styles.phoneNumber}>
+                                        {displayPhone}
+                                    </Text>
+                                ) : null;
+                            })()}
 
                         </View>
 
@@ -182,47 +330,71 @@ const UserInfo = () => {
                             Driver Details
                         </Text>
 
-                <View style={styles.infoCard}>
+                        <View style={styles.infoCard}>
 
-                    {/* VEHICLE */}
+                            {/* VEHICLE */}
 
-                    {renderInfoItem({
-                        icon: 'car-outline',
-                        title: 'Vehicle Info',
-                        value: 'KA 01 AB 1234',
-                        iconBg: colors.primaryLight,
-                        iconColor: colors.primary,
-                        onPress: handleVehicle,
-                    })}
+                            {renderInfoItem({
+                                icon: 'car-outline',
+                                title: 'Vehicle Info',
+                                value: driverProfile?.vehicle_number || driverProfile?.vehicle_no || driverProfile?.ambulance_no || 'Not Assigned',
+                                iconBg: colors.primaryLight,
+                                iconColor: colors.primary,
+                                onPress: handleVehicle,
+                            })}
 
-                    <View style={styles.divider} />
+                            <View style={styles.divider} />
 
-                    {/* EXPERIENCE */}
+                            {/* EXPERIENCE */}
 
-                    {renderInfoItem({
-                        icon: 'briefcase-outline',
-                        title: 'Experience',
-                        value: '3 Years',
-                        iconBg: colors.warningLight,
-                        iconColor: colors.warning,
-                        onPress: handleExperience,
-                    })}
+                            {renderInfoItem({
+                                icon: 'briefcase-outline',
+                                title: 'Experience',
+                                value: driverProfile?.experience ? `${driverProfile.experience} Years` : '3 Years',
+                                iconBg: colors.warningLight,
+                                iconColor: colors.warning,
+                                onPress: handleExperience,
+                            })}
 
-                    <View style={styles.divider} />
+                            <View style={styles.divider} />
 
-                    {/* DOCUMENTS */}
+                            {/* DOCUMENTS */}
 
-                    {renderInfoItem({
-                        icon: 'file-document-outline',
-                        title: 'Documents',
-                        value: 'Verified',
-                        valueColor: colors.successDark,
-                        iconBg: colors.successLight,
-                        iconColor: colors.successDark,
-                        onPress: handleDocuments,
-                    })}
+                            {renderInfoItem({
+                                icon: 'file-document-outline',
+                                title: 'Documents',
+                                value: (driverProfile?.document_status?.toLowerCase() === 'verified' || driverProfile?.is_verified === 1 || driverProfile?.is_verified === true)
+                                    ? 'Verified'
+                                    : (driverProfile?.document_status ? (driverProfile.document_status.charAt(0).toUpperCase() + driverProfile.document_status.slice(1)) : 'Pending'),
+                                valueColor: (driverProfile?.document_status?.toLowerCase() === 'verified' || driverProfile?.is_verified === 1 || driverProfile?.is_verified === true)
+                                    ? colors.successDark
+                                    : colors.warning,
+                                iconBg: (driverProfile?.document_status?.toLowerCase() === 'verified' || driverProfile?.is_verified === 1 || driverProfile?.is_verified === true)
+                                    ? colors.successLight
+                                    : colors.warningLight,
+                                iconColor: (driverProfile?.document_status?.toLowerCase() === 'verified' || driverProfile?.is_verified === 1 || driverProfile?.is_verified === true)
+                                    ? colors.successDark
+                                    : colors.warning,
+                                onPress: handleDocuments,
+                            })}
 
-                </View>
+                            {driverProfile?.email_id ? (
+                                <>
+                                    <View style={styles.divider} />
+
+                                    {/* EMAIL */}
+
+                                    {renderInfoItem({
+                                        icon: 'email-outline',
+                                        title: 'Email',
+                                        value: driverProfile.email_id,
+                                        iconBg: colors.infoLight,
+                                        iconColor: colors.info,
+                                    })}
+                                </>
+                            ) : null}
+
+                        </View>
                     </>
                 )}
             </ScrollView>
@@ -276,6 +448,12 @@ const styles = StyleSheet.create({
         borderColor: colors.border,
 
         marginBottom: 8,
+    },
+
+    avatarImage: {
+        width: '100%',
+        height: '100%',
+        resizeMode: 'cover',
     },
 
     userName: {

@@ -48,8 +48,6 @@ const IncomingRequestScreen = () => {
 
   const handleReject = async () => {
     if (isSubmitting) return;
-    // Commented static fallback:
-    // const requestId = Number(emergencyData?.requestId) || 38;
     const requestId = Number(emergencyData?.requestId);
     if (!requestId) {
       Alert.alert('Invalid Request', 'No valid emergency request ID found.');
@@ -95,8 +93,6 @@ const IncomingRequestScreen = () => {
 
   const handleAccept = async () => {
     if (isSubmitting) return;
-    // Commented static fallback:
-    // const requestId = Number(emergencyData?.requestId) || 38;
     const requestId = Number(emergencyData?.requestId);
     if (!requestId) {
       Alert.alert('Invalid Request', 'No valid emergency request ID found to accept.');
@@ -124,33 +120,19 @@ const IncomingRequestScreen = () => {
       // ONLY navigate to next page if backend succeeds!
       await storage.remove(STORAGE_KEYS.PENDING_EMERGENCY_REQUEST);
 
-      /* Commented static navigation parameters:
-      (navigation.navigate as any)('NavigationToPickup', {
-        pickupLocation: {
-          latitude: emergencyData?.latitude || 21.1458,
-          longitude: emergencyData?.longitude || 79.088155,
-        },
-        patientName: emergencyData?.patientName || 'Omkar Bhosale',
-        contactNo: emergencyData?.contactNo || '9373962355',
-        address: emergencyData?.address || '2496, Baba Farid Nagar, 4783Chitnis NagarNagpur, Sitabuldi, Nagpur, Maharashtra 440001, India',
-        requestId: emergencyData?.requestId || 38,
-        emergencyType: emergencyData?.emergencyType || 'cardiac',
-      });
-      */
-
       // Dynamic navigation parameters
       (navigation.navigate as any)('NavigationToPickup', {
         pickupLocation: {
           latitude: emergencyData?.latitude || 0,
           longitude: emergencyData?.longitude || 0,
         },
-        patientName: emergencyData?.patientName || 'Patient',
+        patientName: emergencyData?.patientName || 'Emergency Patient',
         contactNo: emergencyData?.contactNo || '',
         address: emergencyData?.address || 'Pickup Location',
         requestId: requestId,
         emergencyType: emergencyData?.emergencyType || 'Emergency',
         destination: emergencyData?.destination || 'Nearest Emergency Hospital',
-        estimatedEarnings: emergencyData?.estimatedEarnings || '450',
+        estimatedEarnings: emergencyData?.estimatedEarnings ? String(emergencyData.estimatedEarnings) : '',
       });
     } catch (err: any) {
       console.warn('⚠️ Failed to send accept response to server:', err);
@@ -170,8 +152,6 @@ const IncomingRequestScreen = () => {
   // =====================================================
 
   const handleCall = () => {
-    // Commented static phone fallback:
-    // const phone = emergencyData?.contactNo || '9373962355';
     const phone = emergencyData?.contactNo;
     if (phone) {
       Linking.openURL(`tel:${phone}`);
@@ -183,6 +163,35 @@ const IncomingRequestScreen = () => {
   // =====================================================
   // SCREEN
   // =====================================================
+
+  if (!emergencyData) {
+    return (
+      <View style={styles.overlay}>
+        <View style={styles.requestCardShadowWrap}>
+          <View style={[styles.requestCard, { paddingVertical: 32, alignItems: 'center' }]}>
+            <AppIcon
+              family="material"
+              name="alert-circle-outline"
+              size={44}
+              color={colors.textLight}
+            />
+            <Text style={[styles.value, { marginTop: 12, textAlign: 'center' }]}>
+              No Active Request
+            </Text>
+            <Text style={[styles.secondaryValue, { textAlign: 'center', marginTop: 4, marginBottom: 18 }]}>
+              Emergency requests will appear here automatically when dispatched via notification.
+            </Text>
+            <Button
+              title="Close"
+              onPress={() => navigation.goBack()}
+              variant="secondary"
+              style={{ width: 130, height: 44 }}
+            />
+          </View>
+        </View>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.overlay}>
@@ -211,7 +220,6 @@ const IncomingRequestScreen = () => {
 
             <View style={styles.patientRow}>
               <View>
-                {/* Static fallback commented: {emergencyData?.patientName || 'Omkar Bhosale'} */}
                 <Text style={styles.value}>
                   {emergencyData?.patientName || 'Emergency Patient'}
                 </Text>
@@ -222,14 +230,16 @@ const IncomingRequestScreen = () => {
                 ) : null}
               </View>
 
-              <Button
-                title=""
-                onPress={handleCall}
-                icon="phone"
-                iconSize={17}
-                variant="primary"
-                style={styles.callButton}
-              />
+              {emergencyData?.contactNo ? (
+                <Button
+                  title=""
+                  onPress={handleCall}
+                  icon="phone"
+                  iconSize={17}
+                  variant="primary"
+                  style={styles.callButton}
+                />
+              ) : null}
             </View>
           </View>
 
@@ -251,7 +261,6 @@ const IncomingRequestScreen = () => {
               </Text>
             </View>
 
-            {/* Static fallback commented: {emergencyData?.address || '2496, Baba Farid Nagar, 4783Chitnis NagarNagpur, Sitabuldi, Nagpur, Maharashtra 440001, India'} */}
             <Text style={styles.value} numberOfLines={2}>
               {emergencyData?.address || 'Pickup location not specified'}
             </Text>
@@ -313,7 +322,6 @@ const IncomingRequestScreen = () => {
                   color={colors.danger}
                 />
 
-                {/* Static fallback commented: emergencyData?.emergencyType ? emergencyData.emergencyType.toUpperCase() : 'CARDIAC' */}
                 <Text style={styles.typeText}>
                   {emergencyData?.emergencyType
                     ? emergencyData.emergencyType.toUpperCase()
@@ -329,9 +337,8 @@ const IncomingRequestScreen = () => {
                 ESTIMATED EARNINGS
               </Text>
 
-              {/* Static earning commented: ₹ 450 */}
               <Text style={styles.earningValue}>
-                {emergencyData?.estimatedEarnings ? `₹ ${emergencyData.estimatedEarnings}` : '₹ 450'}
+                {emergencyData?.estimatedEarnings ? `₹ ${emergencyData.estimatedEarnings}` : 'Standard Fare'}
               </Text>
             </View>
           </View>

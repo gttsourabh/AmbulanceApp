@@ -33,7 +33,7 @@ import { getDrivingRoutesWithAlternatives, RouteResult, LatLng } from '../../../
 import Geolocation from '@react-native-community/geolocation';
 import { requestLocationPermission } from '../../../utils/locationPermission';
 import { snapToRoutePolyline, getDistanceMeters } from '../../../utils/geoUtils';
-import { updateDriverLocation } from '../../../api';
+import { updateDriverLocation, updateAmbulanceStatusApi } from '../../../api';
 import {
     startBackgroundLocationTracking,
     stopBackgroundLocationTracking,
@@ -63,7 +63,64 @@ const NavigationToPickup = () => {
     const [alternativeCoordinates, setAlternativeCoordinates] = useState<Array<{ latitude: number; longitude: number }>>([]);
     const [selectedRouteType, setSelectedRouteType] = useState<'nearest' | 'alternative'>('nearest');
     const [isNavigating, setIsNavigating] = useState(false);
+    const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
     const isNavigatingRef = useRef(isNavigating);
+
+    // Computes the shortest distance to patient from Google Routes API (comparing primary and alternative routes)
+    const getShortestNpDistance = (): string => {
+        let shortestMeters = 0;
+        if (primaryRouteInfo && altRouteInfo) {
+            shortestMeters = Math.min(
+                primaryRouteInfo.distanceMeters,
+                altRouteInfo.distanceMeters
+            );
+        } else if (primaryRouteInfo) {
+            shortestMeters = primaryRouteInfo.distanceMeters;
+        } else {
+            shortestMeters = getDistanceMeters(driverLocation, pickupLocation);
+        }
+        return (shortestMeters / 1000).toFixed(1);
+    };
+
+    const handleToggleNavigation = async () => {
+        if (isNavigating) {
+            setIsNavigating(false);
+            stopBackgroundLocationTracking();
+            return;
+        }
+
+        setIsUpdatingStatus(true);
+        const npDistance = getShortestNpDistance();
+        console.log(`📡 [START NAVIGATION] Shortest Google Routes distance (np_distance): ${npDistance} km`);
+
+        try {
+            console.log('📡 [POST /api/ambulance/update-status] Updating status to dispatched:', {
+                request_id: ambulanceRequestId,
+                status: 'dispatched',
+                np_distance: npDistance,
+            });
+
+            const statusRes = await updateAmbulanceStatusApi({
+                request_id: ambulanceRequestId,
+                status: 'dispatched',
+                np_distance: npDistance,
+            });
+
+            console.log('✅ [/api/ambulance/update-status SUCCESS]:', statusRes?.data);
+        } catch (statusErr: any) {
+            console.warn('⚠️ [/api/ambulance/update-status FAILED]:', statusErr?.response?.data || statusErr?.message);
+        } finally {
+            setIsUpdatingStatus(false);
+        }
+
+        setIsNavigating(true);
+        mapRef.current?.animateCamera({
+            center: driverLocation,
+            pitch: 45,
+            heading: driverHeading,
+            zoom: 17,
+        });
+    };
 
     useEffect(() => {
         isNavigatingRef.current = isNavigating;
@@ -114,11 +171,24 @@ const NavigationToPickup = () => {
     //     longitude: 74.6010,
     // };
     const pickupLocation: LatLng = (route?.params?.pickupLocation?.latitude && route?.params?.pickupLocation?.longitude)
-        ? route.params.pickupLocation
+        ? {
+            latitude: Number(route.params.pickupLocation.latitude),
+            longitude: Number(route.params.pickupLocation.longitude),
+          }
+        : (route?.params?.patientLocation?.latitude && route?.params?.patientLocation?.longitude)
+        ? {
+            latitude: Number(route.params.patientLocation.latitude),
+            longitude: Number(route.params.patientLocation.longitude),
+          }
+        : (route?.params?.pickup_lat && route?.params?.pickup_lng)
+        ? {
+            latitude: Number(route.params.pickup_lat),
+            longitude: Number(route.params.pickup_lng),
+          }
         : {
             latitude: driverLocation.latitude,
             longitude: driverLocation.longitude,
-        };
+          };
 
     // Fallback direct road polyline if offline/loading
     const fallbackRoute = [
@@ -436,14 +506,19 @@ const NavigationToPickup = () => {
 
     const handleArrived = () => {
         stopBackgroundLocationTracking();
-        // Forward dynamic trip parameters directly to EnRoute screen (OTP screen removed after reaching patient)
-        (navigation.navigate as any)('EnRoute', {
+        // Forward dynamic trip parameters to ChooseHospital screen
+        (navigation.navigate as any)('ChooseHospital', {
             requestId: ambulanceRequestId,
             driverId: dynamicDriverId,
-            patientName: route?.params?.patientName || 'Patient',
+            patientName: route?.params?.patientName || 'Emergency Patient',
             contactNo: route?.params?.contactNo || '',
             address: route?.params?.address || 'Pickup Location',
+            pickupAddress: route?.params?.address || 'Pickup Location',
+            patientAddress: route?.params?.address || 'Pickup Location',
             pickupLocation: pickupLocation,
+            patientLocation: pickupLocation,
+            pickup_lat: pickupLocation.latitude,
+            pickup_lng: pickupLocation.longitude,
             destination: route?.params?.destination || 'Nearest Emergency Hospital',
             emergencyType: route?.params?.emergencyType || 'Emergency',
         });
@@ -738,23 +813,12 @@ const NavigationToPickup = () => {
             <View style={styles.bottomContainer}>
                 <View style={styles.bottomButtonsRow}>
                     <Button
-                        title={isNavigating ? "Navigating..." : "Start Navigation"}
-                        onPress={() => {
-                            const nextState = !isNavigating;
-                            setIsNavigating(nextState);
-                            if (nextState) {
-                                // Fit to current driver pos & heading
-                                mapRef.current?.animateCamera({
-                                    center: driverLocation,
-                                    pitch: 45,
-                                    heading: driverHeading,
-                                    zoom: 17,
-                                });
-                            }
-                        }}
+                        title={isUpdatingStatus ? "Starting..." : isNavigating ? "Navigating..." : "Start Navigation"}
+                        onPress={handleToggleNavigation}
                         icon={isNavigating ? "navigation" : "navigation-variant"}
                         variant={isNavigating ? "secondary" : "primary"}
                         style={styles.startButton}
+                        disabled={isUpdatingStatus}
                     />
 
                     <Button
