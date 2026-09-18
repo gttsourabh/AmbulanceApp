@@ -9,6 +9,7 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useNavigation } from '@react-navigation/native';
 
 import { colors, typography, shadows } from '../../theme';
 import { AppIcon } from '../../icons';
@@ -22,6 +23,7 @@ interface HelpItemProps {
 }
 
 const HelpScreen = () => {
+  const navigation = useNavigation<any>();
   const [isLoading, setIsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -59,6 +61,14 @@ const HelpScreen = () => {
 
   const handleEmergencyCall = () => {
     Linking.openURL('tel:+918012345678');
+  };
+
+  const handlePrivacyPolicy = () => {
+    navigation.navigate('PrivacyPolicy');
+  };
+
+  const handleTerms = () => {
+    navigation.navigate('TermsConditions');
   };
 
   const renderHelpItem = ({
@@ -221,6 +231,30 @@ const HelpScreen = () => {
                 />
               </TouchableOpacity>
             </View>
+
+            {/* ================= LEGAL & POLICIES ================= */}
+
+            <Text style={styles.sectionHeading} numberOfLines={1}>
+              Legal & Policies
+            </Text>
+
+            <View style={styles.helpCard}>
+              {/* PRIVACY POLICY */}
+              {renderHelpItem({
+                icon: 'lock-outline',
+                title: 'Privacy Policy',
+                onPress: handlePrivacyPolicy,
+              })}
+
+              <View style={styles.divider} />
+
+              {/* TERMS & CONDITIONS */}
+              {renderHelpItem({
+                icon: 'file-document-outline',
+                title: 'Terms & Conditions',
+                onPress: handleTerms,
+              })}
+            </View>
           </>
         )}
       </ScrollView>
@@ -258,6 +292,21 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
     letterSpacing: 0.1,
 
+    marginBottom: 8,
+  },
+
+  // =====================================================
+  // SECTION HEADING
+  // =====================================================
+
+  sectionHeading: {
+    fontFamily: 'GoogleSans-Bold',
+    fontSize: typography.fontSize.md,
+    lineHeight: 18,
+    includeFontPadding: false,
+    color: colors.textPrimary,
+    letterSpacing: 0.1,
+    marginTop: 18,
     marginBottom: 8,
   },
 

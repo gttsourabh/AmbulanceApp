@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState, useMemo } from 'react';
+import React, { useRef, useEffect, useState, useMemo, useCallback } from 'react';
 import {
   StyleSheet,
   Text,
@@ -62,6 +62,7 @@ const EnRouteScreen = () => {
     'Pickup Location';
   const emergencyType = route?.params?.emergencyType || 'Emergency';
 
+  // Patient Location (only if coordinates were actually provided in trip params)
   const patientLat = Number(
     route?.params?.patientLocation?.latitude ??
     route?.params?.pickupLocation?.latitude ??
@@ -75,11 +76,11 @@ const EnRouteScreen = () => {
     0
   );
 
-  const patientLocation: LatLng = useMemo(() => {
+  const patientLocation: LatLng | null = useMemo(() => {
     if (patientLat && patientLng) {
       return { latitude: patientLat, longitude: patientLng };
     }
-    return { latitude: 16.8524, longitude: 74.5815 };
+    return null;
   }, [patientLat, patientLng]);
 
   // =====================================================
@@ -131,19 +132,27 @@ const EnRouteScreen = () => {
   }, [isNavigating]);
 
   // =====================================================
-  // AMBULANCE LIVE LOCATION (Initialized to Patient Pickup Location)
+  // AMBULANCE LIVE LOCATION (Driver GPS - Never static Sangli!)
   // =====================================================
-  const [ambulanceLocation, setAmbulanceLocation] = useState<LatLng>(patientLocation);
-  const [ambulanceHeading, setAmbulanceHeading] = useState<number>(135);
-  const ambulanceLocationRef = useRef<LatLng>(ambulanceLocation);
+  const passedDriverLat = Number(
+    route?.params?.driverLocation?.latitude ??
+    route?.params?.driver_lat ??
+    0
+  );
+  const passedDriverLng = Number(
+    route?.params?.driverLocation?.longitude ??
+    route?.params?.driver_lng ??
+    0
+  );
 
-  // Sync ambulance location if patient coordinates change
-  useEffect(() => {
-    if (patientLat && patientLng) {
-      setAmbulanceLocation({ latitude: patientLat, longitude: patientLng });
-      ambulanceLocationRef.current = { latitude: patientLat, longitude: patientLng };
-    }
-  }, [patientLat, patientLng]);
+  const initialDriverLoc: LatLng | null = (passedDriverLat && passedDriverLng)
+    ? { latitude: passedDriverLat, longitude: passedDriverLng }
+    : null;
+
+  const [ambulanceLocation, setAmbulanceLocation] = useState<LatLng | null>(initialDriverLoc);
+  const [ambulanceHeading, setAmbulanceHeading] = useState<number>(0);
+  const ambulanceLocationRef = useRef<LatLng | null>(ambulanceLocation);
+  const hasRealDriverGpsRef = useRef<boolean>(Boolean(initialDriverLoc));
 
   // Keep ref in sync for 10s interval logging & API updates
   useEffect(() => {
@@ -154,13 +163,13 @@ const EnRouteScreen = () => {
   useEffect(() => {
     if (isNavigating) {
       console.log(
-        `🚀 [EN-ROUTE NAVIGATION STARTED] Ambulance Live Location -> Lat: ${ambulanceLocationRef.current.latitude.toFixed(6)}, Lng: ${ambulanceLocationRef.current.longitude.toFixed(6)} | Request ID: ${ambulanceRequestId} | Driver ID: ${dynamicDriverId}`
+        `🚀 [EN-ROUTE NAVIGATION STARTED] Ambulance Live Location -> Lat: ${ambulanceLocationRef.current?.latitude?.toFixed(6) ?? 'N/A'}, Lng: ${ambulanceLocationRef.current?.longitude?.toFixed(6) ?? 'N/A'} | Request ID: ${ambulanceRequestId} | Driver ID: ${dynamicDriverId}`
       );
       startBackgroundLocationTracking({
         ambulanceRequestId: ambulanceRequestId,
         driverId: dynamicDriverId,
         type: 'ph',
-        getCoordinates: () => ambulanceLocationRef.current,
+        getCoordinates: () => ambulanceLocationRef.current || { latitude: 0, longitude: 0 },
       });
     } else {
       stopBackgroundLocationTracking();
@@ -171,29 +180,44 @@ const EnRouteScreen = () => {
     };
   }, [isNavigating, ambulanceRequestId, dynamicDriverId]);
 
-  // Fallback road coordinates connecting Patient and Hospital
-  const fallbackRoute = useMemo(() => [
-    patientLocation,
-    hospitalLocation,
-  ], [patientLocation, hospitalLocation]);
+  // Fallback road coordinates connecting Ambulance/Driver and Hospital
+  const fallbackRoute = useMemo(() => {
+    if (ambulanceLocation) {
+      return [ambulanceLocation, hospitalLocation];
+    }
+    if (patientLocation) {
+      return [patientLocation, hospitalLocation];
+    }
+    return [hospitalLocation];
+  }, [ambulanceLocation, patientLocation, hospitalLocation]);
 
-  // Initial Region framing both Patient and Hospital
+  // Initial Region framing Ambulance/Driver and Hospital
   const initialRegion: Region = useMemo(() => {
-    const minLat = Math.min(patientLocation.latitude, hospitalLocation.latitude);
-    const maxLat = Math.max(patientLocation.latitude, hospitalLocation.latitude);
-    const minLng = Math.min(patientLocation.longitude, hospitalLocation.longitude);
-    const maxLng = Math.max(patientLocation.longitude, hospitalLocation.longitude);
+    const origin = ambulanceLocation || patientLocation;
+    if (origin) {
+      const minLat = Math.min(origin.latitude, hospitalLocation.latitude);
+      const maxLat = Math.max(origin.latitude, hospitalLocation.latitude);
+      const minLng = Math.min(origin.longitude, hospitalLocation.longitude);
+      const maxLng = Math.max(origin.longitude, hospitalLocation.longitude);
 
-    const latDelta = Math.max(0.04, (maxLat - minLat) * 1.6);
-    const lngDelta = Math.max(0.04, (maxLng - minLng) * 1.6);
+      const latDelta = Math.max(0.04, (maxLat - minLat) * 1.6);
+      const lngDelta = Math.max(0.04, (maxLng - minLng) * 1.6);
+
+      return {
+        latitude: (minLat + maxLat) / 2,
+        longitude: (minLng + maxLng) / 2,
+        latitudeDelta: latDelta,
+        longitudeDelta: lngDelta,
+      };
+    }
 
     return {
-      latitude: (minLat + maxLat) / 2,
-      longitude: (minLng + maxLng) / 2,
-      latitudeDelta: latDelta,
-      longitudeDelta: lngDelta,
+      latitude: hospitalLocation.latitude,
+      longitude: hospitalLocation.longitude,
+      latitudeDelta: 0.05,
+      longitudeDelta: 0.05,
     };
-  }, [patientLocation, hospitalLocation]);
+  }, [ambulanceLocation, patientLocation, hospitalLocation]);
 
   const currentRegionRef = useRef<Region>(initialRegion);
   const lastRouteFetchLoc = useRef<LatLng | null>(null);
@@ -204,7 +228,7 @@ const EnRouteScreen = () => {
     setIsRouteLoading(true);
     try {
       console.log(
-        `📡 [EN ROUTE] Calculating road route from origin (${currentAmbulancePos.latitude.toFixed(5)}, ${currentAmbulancePos.longitude.toFixed(5)}) to hospital (${hospitalLocation.latitude.toFixed(5)}, ${hospitalLocation.longitude.toFixed(5)})`
+        `📡 [EN ROUTE] Calculating road route from live driver GPS (${currentAmbulancePos.latitude.toFixed(5)}, ${currentAmbulancePos.longitude.toFixed(5)}) to hospital (${hospitalLocation.latitude.toFixed(5)}, ${hospitalLocation.longitude.toFixed(5)})`
       );
       const routes = await getDrivingRoutesWithAlternatives(currentAmbulancePos, hospitalLocation);
       if (routes?.primaryRoute && routes.primaryRoute.coordinates.length > 0) {
@@ -223,7 +247,7 @@ const EnRouteScreen = () => {
         if (!hasInitialFit.current) {
           hasInitialFit.current = true;
           mapRef.current?.fitToCoordinates(
-            [patientLocation, hospitalLocation, ...routes.primaryRoute.coordinates],
+            [currentAmbulancePos, hospitalLocation, ...routes.primaryRoute.coordinates],
             {
               edgePadding: { top: 90, right: 60, bottom: 140, left: 60 },
               animated: true,
@@ -231,10 +255,11 @@ const EnRouteScreen = () => {
           );
         }
       } else {
-        setActiveCoordinates(fallbackRoute);
+        const directLine = [currentAmbulancePos, hospitalLocation];
+        setActiveCoordinates(directLine);
         if (!hasInitialFit.current) {
           hasInitialFit.current = true;
-          mapRef.current?.fitToCoordinates([patientLocation, hospitalLocation], {
+          mapRef.current?.fitToCoordinates(directLine, {
             edgePadding: { top: 90, right: 60, bottom: 140, left: 60 },
             animated: true,
           });
@@ -242,16 +267,73 @@ const EnRouteScreen = () => {
       }
     } catch (routeErr) {
       console.warn('Driving route error in EnRoute:', routeErr);
-      setActiveCoordinates(fallbackRoute);
+      setActiveCoordinates([currentAmbulancePos, hospitalLocation]);
     } finally {
       setIsRouteLoading(false);
     }
   };
 
-  // WATCH POSITION: High-precision real-time GPS tracking for Ambulance
+  // WATCH POSITION: High-precision real-time GPS tracking for Driver
   useEffect(() => {
     let watchId: number | null = null;
     let isMounted = true;
+
+    const applyDriverLocation = (rawCoords: LatLng, heading?: number) => {
+      if (!isMounted) return;
+
+      const isFirstFix = !hasRealDriverGpsRef.current;
+      hasRealDriverGpsRef.current = true;
+
+      setAmbulanceLocation(rawCoords);
+      ambulanceLocationRef.current = rawCoords;
+
+      if (heading !== undefined && heading >= 0) {
+        setAmbulanceHeading(heading);
+      }
+
+      if (isFirstFix) {
+        console.log(
+          `📍 [DRIVER LIVE GPS ACQUIRED]: ${rawCoords.latitude.toFixed(6)}, ${rawCoords.longitude.toFixed(6)}`
+        );
+        lastRouteFetchLoc.current = rawCoords;
+        updateHospitalRoute(rawCoords);
+
+        // Center camera directly on driver's real device position
+        mapRef.current?.animateCamera({
+          center: rawCoords,
+          zoom: 16,
+          pitch: 35,
+        }, { duration: 600 });
+        return;
+      }
+
+      // Ignore small GPS jitter/drift when stationary (< 2.5 meters)
+      if (
+        lastRouteFetchLoc.current &&
+        getDistanceMeters(lastRouteFetchLoc.current, rawCoords) < 2.5
+      ) {
+        return;
+      }
+
+      // If navigation mode is active, smoothly follow ambulance with camera
+      if (isNavigatingRef.current) {
+        mapRef.current?.animateCamera({
+          center: rawCoords,
+          pitch: 45,
+          heading: heading ?? ambulanceHeading,
+          zoom: 17,
+        }, { duration: 600 });
+      }
+
+      // Check distance from last route calculation (> 40 meters)
+      if (
+        !lastRouteFetchLoc.current ||
+        getDistanceMeters(lastRouteFetchLoc.current, rawCoords) > 40
+      ) {
+        lastRouteFetchLoc.current = rawCoords;
+        updateHospitalRoute(rawCoords);
+      }
+    };
 
     const startLocationTracking = async () => {
       const hasPermission = await requestLocationPermission();
@@ -268,87 +350,46 @@ const EnRouteScreen = () => {
         console.warn('Geolocation config warning:', cfgErr);
       }
 
-      const onLocationSuccess = (position: any) => {
-        if (!isMounted) return;
-        const rawCoords: LatLng = {
-          latitude: position.coords.latitude,
-          longitude: position.coords.longitude,
-        };
+      // If initial driver location was passed from previous screen, start route calculation immediately
+      if (initialDriverLoc) {
+        lastRouteFetchLoc.current = initialDriverLoc;
+        updateHospitalRoute(initialDriverLoc);
+      }
 
-        // Ignore small GPS jitter/drift when stationary (< 2.5 meters)
-        if (
-          lastRouteFetchLoc.current &&
-          getDistanceMeters(lastRouteFetchLoc.current, rawCoords) < 2.5
-        ) {
-          return;
-        }
-
-        // Snap to active driving route polyline (within 35 meters)
-        const currentPolyline = activeCoordinates.length > 0 ? activeCoordinates : fallbackRoute;
-        const snapResult = snapToRoutePolyline(rawCoords, currentPolyline, 35);
-        const finalCoords = snapResult.point;
-
-        setAmbulanceLocation(finalCoords);
-
-        // If road bearing is available from snapping, use it; otherwise use GPS heading
-        const currentBearing = snapResult.roadBearing !== undefined
-          ? snapResult.roadBearing
-          : (position.coords.heading && position.coords.heading >= 0 ? position.coords.heading : undefined);
-
-        if (currentBearing !== undefined) {
-          setAmbulanceHeading(currentBearing);
-        }
-
-        // If navigation mode is active, smoothly follow ambulance with camera
-        if (isNavigatingRef.current) {
-          mapRef.current?.animateCamera({
-            center: finalCoords,
-            pitch: 45,
-            heading: currentBearing ?? ambulanceHeading,
-            zoom: 17,
-          }, { duration: 600 });
-        }
-
-        // Check distance from last route calculation (> 40 meters)
-        if (
-          !lastRouteFetchLoc.current ||
-          getDistanceMeters(lastRouteFetchLoc.current, rawCoords) > 40
-        ) {
-          lastRouteFetchLoc.current = rawCoords;
-          updateHospitalRoute(rawCoords);
-        }
-      };
-
-      const onLocationError = (error: any) => {
-        console.warn('EnRoute Geolocation error:', error?.code, error?.message);
-        Geolocation.getCurrentPosition(
-          onLocationSuccess,
-          (err2) => {
-            console.warn('Fallback low-accuracy location error:', err2?.message);
-          },
-          { enableHighAccuracy: false, timeout: 20000, maximumAge: 10000 }
-        );
-      };
-
-      // 1. Fetch initial route immediately with current ambulance position (so screen loads instantly!)
-      updateHospitalRoute(ambulanceLocation);
-
-      // 2. Get quick GPS fix
+      // 1. Instant low-accuracy / cached fix (< 200ms)
       Geolocation.getCurrentPosition(
-        onLocationSuccess,
-        onLocationError,
-        {
-          enableHighAccuracy: true,
-          timeout: 8000,
-          maximumAge: 10000,
-        }
+        pos => {
+          applyDriverLocation({
+            latitude: pos.coords.latitude,
+            longitude: pos.coords.longitude,
+          }, pos.coords.heading ?? undefined);
+        },
+        err => console.log('Fast cached GPS info:', err?.message),
+        { enableHighAccuracy: false, timeout: 4000, maximumAge: 60000 }
       );
 
-      // 3. Real-time watchPosition for continuous tracking
+      // 2. High-accuracy GPS fix from device GPS hardware
+      Geolocation.getCurrentPosition(
+        pos => {
+          applyDriverLocation({
+            latitude: pos.coords.latitude,
+            longitude: pos.coords.longitude,
+          }, pos.coords.heading ?? undefined);
+        },
+        err => console.warn('High-accuracy GPS fix error:', err?.message),
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 5000 }
+      );
+
+      // 3. Continuous real-time tracking
       watchId = Geolocation.watchPosition(
-        onLocationSuccess,
-        (watchErr) => {
-          console.warn('EnRoute Geolocation watchPosition error:', watchErr?.message);
+        pos => {
+          applyDriverLocation({
+            latitude: pos.coords.latitude,
+            longitude: pos.coords.longitude,
+          }, pos.coords.heading ?? undefined);
+        },
+        watchErr => {
+          console.warn('EnRoute watchPosition error:', watchErr?.message);
         },
         {
           enableHighAccuracy: true,
@@ -395,9 +436,12 @@ const EnRouteScreen = () => {
   // =====================================================
 
   const handleBackToRoute = () => {
+    const origin = ambulanceLocation || patientLocation;
+    if (!origin) return;
+
     const coordsToFit = activeCoordinates.length > 0
-      ? [patientLocation, ambulanceLocation, hospitalLocation, ...activeCoordinates]
-      : [patientLocation, ambulanceLocation, hospitalLocation];
+      ? [origin, hospitalLocation, ...activeCoordinates]
+      : [origin, hospitalLocation];
 
     mapRef.current?.fitToCoordinates(coordsToFit, {
       edgePadding: { top: 90, right: 60, bottom: 140, left: 60 },
@@ -458,9 +502,58 @@ const EnRouteScreen = () => {
     }
   };
 
-  const handleReachedHospital = () => {
+  // =====================================================
+  // MANUAL REACHED HOSPITAL HANDLER (200m cap removed for manual control)
+  // =====================================================
+  const isProcessingReachedRef = useRef(false);
+
+  const handleReachedHospital = useCallback(() => {
+    if (isProcessingReachedRef.current) return;
+    isProcessingReachedRef.current = true;
+
+    const parseNum = (str: any): number => {
+      if (!str) return 0;
+      const n = parseFloat(String(str).replace(/[^0-9.]/g, ''));
+      return isNaN(n) ? 0 : n;
+    };
+
+    const resolvedPickup = patientLocation || ambulanceLocation || hospitalLocation;
+
+    // Calculate Leg 2 distance (Pickup -> Hospital)
+    const phKm = (() => {
+      if (primaryRouteInfo?.distanceMeters) {
+        return (primaryRouteInfo.distanceMeters / 1000).toFixed(1);
+      }
+      const fromText = parseNum(distanceText);
+      if (fromText > 0) return fromText.toFixed(1);
+      const fromParam = parseNum(route?.params?.ph_distance || route?.params?.phDistance);
+      if (fromParam > 0) return fromParam.toFixed(1);
+      if (resolvedPickup && hospitalLocation) {
+        return (getDistanceMeters(resolvedPickup, hospitalLocation) / 1000).toFixed(1);
+      }
+      return '0.0';
+    })();
+
+    // Retrieve Leg 1 distance (Driver -> Pickup)
+    const npKm = (() => {
+      const fromParam = parseNum(route?.params?.np_distance || route?.params?.npDistance || route?.params?.pickup_distance);
+      if (fromParam > 0) return fromParam.toFixed(1);
+      if (route?.params?.initialDriverLocation && resolvedPickup) {
+        return (getDistanceMeters(route.params.initialDriverLocation, resolvedPickup) / 1000).toFixed(1);
+      }
+      return '0.0';
+    })();
+
+    const npVal = parseFloat(npKm) || 0;
+    const phVal = parseFloat(phKm) || 0;
+    const totalVal = npVal + phVal > 0 ? (npVal + phVal).toFixed(1) : phVal.toFixed(1);
+
+    console.log(`📍 [MANUAL REACHED HOSPITAL] Driver confirmed arrival at hospital. Trip Distances: Pickup Leg = ${npKm} km, Hospital Leg = ${phKm} km, Whole Trip Total = ${totalVal} km`);
+
     stopBackgroundLocationTracking();
-    (navigation.navigate as any)('OnTrip', {
+    setIsNavigating(false);
+
+    (navigation.navigate as any)('TripCompleted', {
       requestId: ambulanceRequestId,
       driverId: dynamicDriverId,
       patientName: patientName,
@@ -468,20 +561,45 @@ const EnRouteScreen = () => {
       address: patientAddress,
       pickupAddress: patientAddress,
       patientAddress: patientAddress,
-      patientLocation: patientLocation,
-      pickupLocation: patientLocation,
-      pickup_lat: patientLocation.latitude,
-      pickup_lng: patientLocation.longitude,
+      patientLocation: resolvedPickup,
+      pickupLocation: resolvedPickup,
+      pickup_lat: resolvedPickup?.latitude,
+      pickup_lng: resolvedPickup?.longitude,
       destination: chosenHospitalName,
       hospitalName: chosenHospitalName,
       hospitalAddress: chosenHospitalAddress,
+      dropAddress: chosenHospitalAddress,
       hospitalPhone: chosenHospitalPhone,
       drop_lat: hospitalLocation.latitude,
       drop_lng: hospitalLocation.longitude,
       hospitalLocation: hospitalLocation,
+      // Whole trip and individual leg distances
+      np_distance: `${npVal.toFixed(1)} km`,
+      ph_distance: `${phVal.toFixed(1)} km`,
+      total_distance: `${totalVal} km`,
+      whole_trip_distance: `${totalVal} km`,
+      distance: `${totalVal} km`,
       emergencyType: emergencyType,
+      initialDriverLocation: route?.params?.initialDriverLocation,
     });
-  };
+  }, [
+    patientLocation,
+    ambulanceLocation,
+    hospitalLocation,
+    ambulanceRequestId,
+    dynamicDriverId,
+    patientName,
+    patientPhone,
+    patientAddress,
+    chosenHospitalName,
+    chosenHospitalAddress,
+    chosenHospitalPhone,
+    distanceText,
+    primaryRouteInfo,
+    route?.params,
+    emergencyType,
+    navigation,
+  ]);
 
   return (
     <SafeAreaView
@@ -551,7 +669,8 @@ const EnRouteScreen = () => {
           provider={Platform.OS === 'android' ? PROVIDER_GOOGLE : PROVIDER_DEFAULT}
           initialRegion={initialRegion}
           mapType={mapType}
-          showsUserLocation={false}
+          showsUserLocation={true}
+          showsMyLocationButton={true}
           showsCompass={true}
           showsScale={true}
           loadingEnabled={true}
@@ -599,22 +718,26 @@ const EnRouteScreen = () => {
             />
           )}
 
-          {/* Patient Pickup Origin Marker */}
-          <LocationMarker
-            coordinate={patientLocation}
-            type="pickup"
-            title={`${patientName} (Pickup)`}
-            description={patientAddress}
-            label="Pickup"
-          />
+          {/* Patient Pickup Origin Marker (rendered only if valid coordinates passed) */}
+          {patientLocation && (
+            <LocationMarker
+              coordinate={patientLocation}
+              type="pickup"
+              title={`${patientName} (Pickup)`}
+              description={patientAddress}
+              label="Pickup"
+            />
+          )}
 
-          {/* Ambulance Live Location */}
-          <AmbulanceMarker
-            coordinate={ambulanceLocation}
-            title="Ambulance (In Transit)"
-            description={`Heading to ${chosenHospitalName}`}
-            heading={ambulanceHeading}
-          />
+          {/* Ambulance Live Location Marker */}
+          {ambulanceLocation && (
+            <AmbulanceMarker
+              coordinate={ambulanceLocation}
+              title="Ambulance (My Location)"
+              description={`Heading to ${chosenHospitalName}`}
+              heading={ambulanceHeading}
+            />
+          )}
 
           {/* Hospital Destination Marker */}
           <LocationMarker
@@ -820,9 +943,9 @@ const EnRouteScreen = () => {
             onPress={() => {
               const nextState = !isNavigating;
               setIsNavigating(nextState);
-              if (nextState) {
+              if (nextState && (ambulanceLocation || hospitalLocation)) {
                 mapRef.current?.animateCamera({
-                  center: ambulanceLocation,
+                  center: ambulanceLocation || hospitalLocation,
                   pitch: 45,
                   heading: ambulanceHeading,
                   zoom: 17,

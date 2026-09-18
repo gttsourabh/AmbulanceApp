@@ -277,20 +277,13 @@ export interface GetRouteOverviewResponse {
  * Body: { driver_id }
  */
 export const getRouteOverviewApi = async (
-    payload: GetRouteOverviewPayload
+    _payload?: GetRouteOverviewPayload
 ) => {
     try {
-        return await axiosInstance.post<GetRouteOverviewResponse>(
-            '/api/ambulance/getRouteOverview',
-            payload
+        return await axiosInstance.get<GetRouteOverviewResponse>(
+            '/api/ambulance/getRouteOverview'
         );
     } catch (err: any) {
-        if (err?.response?.status === 405 || err?.response?.status === 404) {
-            return await axiosInstance.get<GetRouteOverviewResponse>(
-                '/api/ambulance/getRouteOverview',
-                { params: payload }
-            );
-        }
         throw err;
     }
 };

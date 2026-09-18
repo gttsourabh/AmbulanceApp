@@ -66,14 +66,6 @@ const SettingsScreen = () => {
     console.log('Language');
   };
 
-  const handlePrivacyPolicy = () => {
-    navigation.navigate('PrivacyPolicy');
-  };
-
-  const handleTerms = () => {
-    navigation.navigate('TermsConditions');
-  };
-
   const handleHelp = () => {
     navigation.navigate('Help');
   };
@@ -253,35 +245,13 @@ const SettingsScreen = () => {
 
             {/* ================= ABOUT ================= */}
 
+            {/* ================= SUPPORT ================= */}
+
             <Text style={styles.sectionHeading} numberOfLines={1}>
-              About
+              Support
             </Text>
 
             <View style={styles.settingsCard}>
-              {/* PRIVACY */}
-
-              {renderSettingItem({
-                icon: 'lock-outline',
-                title: 'Privacy Policy',
-                iconBg: colors.primaryLight,
-                iconColor: colors.primary,
-                onPress: handlePrivacyPolicy,
-              })}
-
-              <View style={styles.divider} />
-
-              {/* TERMS */}
-
-              {renderSettingItem({
-                icon: 'file-document-outline',
-                title: 'Terms & Conditions',
-                iconBg: colors.primaryLight,
-                iconColor: colors.primary,
-                onPress: handleTerms,
-              })}
-
-              <View style={styles.divider} />
-
               {/* HELP */}
 
               {renderSettingItem({

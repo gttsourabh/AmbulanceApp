@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useRef, useEffect, useState, useMemo, useCallback } from 'react';
 import {
     StyleSheet,
     Text,
@@ -76,7 +76,7 @@ const NavigationToPickup = () => {
             );
         } else if (primaryRouteInfo) {
             shortestMeters = primaryRouteInfo.distanceMeters;
-        } else {
+        } else if (driverLocation) {
             shortestMeters = getDistanceMeters(driverLocation, pickupLocation);
         }
         return (shortestMeters / 1000).toFixed(1);
@@ -114,12 +114,14 @@ const NavigationToPickup = () => {
         }
 
         setIsNavigating(true);
-        mapRef.current?.animateCamera({
-            center: driverLocation,
-            pitch: 45,
-            heading: driverHeading,
-            zoom: 17,
-        });
+        if (driverLocation) {
+            mapRef.current?.animateCamera({
+                center: driverLocation,
+                pitch: 45,
+                heading: driverHeading,
+                zoom: 17,
+            });
+        }
     };
 
     useEffect(() => {
@@ -130,13 +132,26 @@ const NavigationToPickup = () => {
     // LIVE DRIVER GPS LOCATION & PATIENT PICKUP LOCATION
     // =====================================================
 
-    // Default to Sangli City center as initial fallback until GPS responds
-    const [driverLocation, setDriverLocation] = useState<LatLng>({
-        latitude: 16.8524,
-        longitude: 74.5815,
-    });
-    const [driverHeading, setDriverHeading] = useState<number>(45);
-    const driverLocationRef = useRef<LatLng>(driverLocation);
+    // Check passed driver coordinates from previous screen (Never static Sangli!)
+    const passedDriverLat = Number(
+        route?.params?.driverLocation?.latitude ??
+        route?.params?.driver_lat ??
+        0
+    );
+    const passedDriverLng = Number(
+        route?.params?.driverLocation?.longitude ??
+        route?.params?.driver_lng ??
+        0
+    );
+
+    const initialDriverLoc: LatLng | null = (passedDriverLat && passedDriverLng)
+        ? { latitude: passedDriverLat, longitude: passedDriverLng }
+        : null;
+
+    const [driverLocation, setDriverLocation] = useState<LatLng | null>(initialDriverLoc);
+    const [driverHeading, setDriverHeading] = useState<number>(0);
+    const driverLocationRef = useRef<LatLng | null>(driverLocation);
+    const hasRealDriverGpsRef = useRef<boolean>(Boolean(initialDriverLoc));
 
     // Keep ref in sync for 10s interval logging & API updates
     useEffect(() => {
@@ -147,13 +162,13 @@ const NavigationToPickup = () => {
     useEffect(() => {
         if (isNavigating) {
             console.log(
-                `🚀 [NAVIGATION STARTED] Driver Current Location -> Lat: ${driverLocationRef.current.latitude.toFixed(6)}, Lng: ${driverLocationRef.current.longitude.toFixed(6)} | Request ID: ${ambulanceRequestId} | Driver ID: ${dynamicDriverId}`
+                `🚀 [NAVIGATION STARTED] Driver Live Location -> Lat: ${driverLocationRef.current?.latitude?.toFixed(6) ?? 'N/A'}, Lng: ${driverLocationRef.current?.longitude?.toFixed(6) ?? 'N/A'} | Request ID: ${ambulanceRequestId} | Driver ID: ${dynamicDriverId}`
             );
             startBackgroundLocationTracking({
                 ambulanceRequestId: ambulanceRequestId,
                 driverId: dynamicDriverId,
                 type: 'np',
-                getCoordinates: () => driverLocationRef.current,
+                getCoordinates: () => driverLocationRef.current || { latitude: 0, longitude: 0 },
             });
         } else {
             stopBackgroundLocationTracking();
@@ -165,53 +180,101 @@ const NavigationToPickup = () => {
     }, [isNavigating, ambulanceRequestId, dynamicDriverId]);
 
     // Patient Pickup Location: from navigation params
-    // Commented static Sangli fallback:
-    // const pickupLocation: LatLng = route?.params?.pickupLocation || {
-    //     latitude: 16.8455,
-    //     longitude: 74.6010,
-    // };
-    const pickupLocation: LatLng = (route?.params?.pickupLocation?.latitude && route?.params?.pickupLocation?.longitude)
-        ? {
-            latitude: Number(route.params.pickupLocation.latitude),
-            longitude: Number(route.params.pickupLocation.longitude),
-          }
-        : (route?.params?.patientLocation?.latitude && route?.params?.patientLocation?.longitude)
-        ? {
-            latitude: Number(route.params.patientLocation.latitude),
-            longitude: Number(route.params.patientLocation.longitude),
-          }
-        : (route?.params?.pickup_lat && route?.params?.pickup_lng)
-        ? {
-            latitude: Number(route.params.pickup_lat),
-            longitude: Number(route.params.pickup_lng),
-          }
-        : {
-            latitude: driverLocation.latitude,
-            longitude: driverLocation.longitude,
-          };
+    const pickupLocation: LatLng = useMemo(() => {
+        if (route?.params?.pickupLocation?.latitude && route?.params?.pickupLocation?.longitude) {
+            return {
+                latitude: Number(route.params.pickupLocation.latitude),
+                longitude: Number(route.params.pickupLocation.longitude),
+            };
+        }
+        if (route?.params?.patientLocation?.latitude && route?.params?.patientLocation?.longitude) {
+            return {
+                latitude: Number(route.params.patientLocation.latitude),
+                longitude: Number(route.params.patientLocation.longitude),
+            };
+        }
+        if (route?.params?.pickup_lat && route?.params?.pickup_lng) {
+            return {
+                latitude: Number(route.params.pickup_lat),
+                longitude: Number(route.params.pickup_lng),
+            };
+        }
+        if (driverLocation) {
+            return {
+                latitude: driverLocation.latitude,
+                longitude: driverLocation.longitude,
+            };
+        }
+        return {
+            latitude: 0,
+            longitude: 0,
+        };
+    }, [route?.params, driverLocation]);
 
     // Fallback direct road polyline if offline/loading
-    const fallbackRoute = [
-        driverLocation,
-        pickupLocation,
-    ];
+    const fallbackRoute = useMemo(() => {
+        if (driverLocation && pickupLocation.latitude && pickupLocation.longitude) {
+            return [driverLocation, pickupLocation];
+        }
+        if (pickupLocation.latitude && pickupLocation.longitude) {
+            return [pickupLocation];
+        }
+        return [];
+    }, [driverLocation, pickupLocation]);
 
-    const initialRegion: Region = {
-        latitude: (driverLocation.latitude + pickupLocation.latitude) / 2,
-        longitude: (driverLocation.longitude + pickupLocation.longitude) / 2,
-        latitudeDelta: 0.03,
-        longitudeDelta: 0.03,
-    };
+    const initialRegion: Region = useMemo(() => {
+        if (driverLocation && pickupLocation.latitude && pickupLocation.longitude) {
+            const minLat = Math.min(driverLocation.latitude, pickupLocation.latitude);
+            const maxLat = Math.max(driverLocation.latitude, pickupLocation.latitude);
+            const minLng = Math.min(driverLocation.longitude, pickupLocation.longitude);
+            const maxLng = Math.max(driverLocation.longitude, pickupLocation.longitude);
+
+            const latDelta = Math.max(0.04, (maxLat - minLat) * 1.6);
+            const lngDelta = Math.max(0.04, (maxLng - minLng) * 1.6);
+
+            return {
+                latitude: (minLat + maxLat) / 2,
+                longitude: (minLng + maxLng) / 2,
+                latitudeDelta: latDelta,
+                longitudeDelta: lngDelta,
+            };
+        }
+
+        if (pickupLocation.latitude && pickupLocation.longitude) {
+            return {
+                latitude: pickupLocation.latitude,
+                longitude: pickupLocation.longitude,
+                latitudeDelta: 0.05,
+                longitudeDelta: 0.05,
+            };
+        }
+
+        if (driverLocation) {
+            return {
+                latitude: driverLocation.latitude,
+                longitude: driverLocation.longitude,
+                latitudeDelta: 0.05,
+                longitudeDelta: 0.05,
+            };
+        }
+
+        return {
+            latitude: 19.0760,
+            longitude: 72.8777,
+            latitudeDelta: 0.08,
+            longitudeDelta: 0.08,
+        };
+    }, [driverLocation, pickupLocation]);
 
     const currentRegionRef = useRef<Region>(initialRegion);
     const lastRouteFetchLoc = useRef<LatLng | null>(null);
-    const initialRouteFetchedRef = useRef(false);
 
     const [isInitialRouteLoading, setIsInitialRouteLoading] = useState(true);
     const [isUpdatingRoute, setIsUpdatingRoute] = useState(false);
 
     // Route fetcher from current driver position to pickup destination
     const updateDrivingRoute = async (currentDriverPos: LatLng, isInitial: boolean = false) => {
+        if (!pickupLocation.latitude || !pickupLocation.longitude) return;
         if (isInitial) {
             setIsInitialRouteLoading(true);
         } else {
@@ -234,10 +297,13 @@ const NavigationToPickup = () => {
 
                 if (!hasInitialFit.current) {
                     hasInitialFit.current = true;
-                    mapRef.current?.fitToCoordinates(routes.primaryRoute.coordinates, {
-                        edgePadding: { top: 70, right: 40, bottom: 210, left: 40 },
-                        animated: true,
-                    });
+                    mapRef.current?.fitToCoordinates(
+                        [currentDriverPos, pickupLocation, ...routes.primaryRoute.coordinates],
+                        {
+                            edgePadding: { top: 90, right: 50, bottom: 200, left: 50 },
+                            animated: true,
+                        }
+                    );
                 }
             } else {
                 const directLine = [currentDriverPos, pickupLocation];
@@ -245,11 +311,14 @@ const NavigationToPickup = () => {
                 if (!hasInitialFit.current) {
                     hasInitialFit.current = true;
                     mapRef.current?.fitToCoordinates(directLine, {
-                        edgePadding: { top: 70, right: 40, bottom: 210, left: 40 },
+                        edgePadding: { top: 90, right: 50, bottom: 200, left: 50 },
                         animated: true,
                     });
                 }
             }
+        } catch (routeErr) {
+            console.warn('Driving route error in NavigationToPickup:', routeErr);
+            setActiveCoordinates([currentDriverPos, pickupLocation]);
         } finally {
             if (isInitial) {
                 setIsInitialRouteLoading(false);
@@ -259,22 +328,84 @@ const NavigationToPickup = () => {
         }
     };
 
-    // WATCH POSITION: High-precision real-time GPS tracking
+    // WATCH POSITION: High-precision real-time GPS tracking for Driver
     useEffect(() => {
         let watchId: number | null = null;
         let isMounted = true;
-        let fallbackTimer: ReturnType<typeof setTimeout> | null = null;
+
+        const applyDriverLocation = (rawCoords: LatLng, heading?: number) => {
+            if (!isMounted) return;
+
+            const isFirstFix = !hasRealDriverGpsRef.current;
+            hasRealDriverGpsRef.current = true;
+
+            // Snap to active driving route polyline if available
+            let finalCoords = rawCoords;
+            let currentBearing = heading;
+
+            if (activeCoordinates.length > 0) {
+                const snapResult = snapToRoutePolyline(rawCoords, activeCoordinates, 35);
+                finalCoords = snapResult.point;
+                if (snapResult.roadBearing !== undefined) {
+                    currentBearing = snapResult.roadBearing;
+                }
+            }
+
+            setDriverLocation(finalCoords);
+            driverLocationRef.current = finalCoords;
+
+            if (currentBearing !== undefined && currentBearing >= 0) {
+                setDriverHeading(currentBearing);
+            }
+
+            // 1. First GPS fix: compute initial route from driver's REAL position to pickup
+            if (isFirstFix) {
+                console.log(
+                    `📍 [DRIVER LIVE GPS ACQUIRED in NavigationToPickup]: ${finalCoords.latitude.toFixed(6)}, ${finalCoords.longitude.toFixed(6)}`
+                );
+                lastRouteFetchLoc.current = finalCoords;
+                updateDrivingRoute(finalCoords, true);
+
+                // Smoothly focus camera on driver's live position
+                mapRef.current?.animateCamera({
+                    center: finalCoords,
+                    zoom: 16,
+                    pitch: 35,
+                }, { duration: 600 });
+                return;
+            }
+
+            // 2. Ignore small GPS jitter/drift when stationary (< 2.5 meters)
+            if (
+                lastRouteFetchLoc.current &&
+                getDistanceMeters(lastRouteFetchLoc.current, rawCoords) < 2.5
+            ) {
+                return;
+            }
+
+            // 3. If navigation mode is active, smoothly follow driver with camera
+            if (isNavigatingRef.current) {
+                mapRef.current?.animateCamera({
+                    center: finalCoords,
+                    pitch: 45,
+                    heading: currentBearing ?? driverHeading,
+                    zoom: 17,
+                }, { duration: 600 });
+            }
+
+            // 4. Recalculate route if driver moved > 40 meters from last calculation point
+            if (
+                !lastRouteFetchLoc.current ||
+                getDistanceMeters(lastRouteFetchLoc.current, rawCoords) > 40
+            ) {
+                lastRouteFetchLoc.current = rawCoords;
+                updateDrivingRoute(rawCoords, false);
+            }
+        };
 
         const startLocationTracking = async () => {
             const hasPermission = await requestLocationPermission();
-            if (!hasPermission || !isMounted) {
-                // If permission denied, use fallback coordinates once so user is not blocked
-                if (!initialRouteFetchedRef.current) {
-                    initialRouteFetchedRef.current = true;
-                    updateDrivingRoute(driverLocation, true);
-                }
-                return;
-            }
+            if (!hasPermission || !isMounted) return;
 
             // Configure Geolocation to use playServices / high accuracy hardware GPS
             try {
@@ -288,125 +419,51 @@ const NavigationToPickup = () => {
                 console.warn('Geolocation config warning:', cfgErr);
             }
 
-            const onLocationSuccess = (position: any) => {
-                if (!isMounted) return;
-                const rawCoords: LatLng = {
-                    latitude: position.coords.latitude,
-                    longitude: position.coords.longitude,
-                };
+            // If initial driver location was passed in params, compute initial route immediately
+            if (initialDriverLoc) {
+                lastRouteFetchLoc.current = initialDriverLoc;
+                updateDrivingRoute(initialDriverLoc, true);
+            }
 
-                // Clear safety fallback timer once GPS fixes
-                if (fallbackTimer) {
-                    clearTimeout(fallbackTimer);
-                    fallbackTimer = null;
-                }
-
-                // 1. First GPS fix: calculate initial route ONCE with real driver coordinates!
-                if (!initialRouteFetchedRef.current) {
-                    initialRouteFetchedRef.current = true;
-                    lastRouteFetchLoc.current = rawCoords;
-                    setDriverLocation(rawCoords);
-                    if (position.coords.heading && position.coords.heading >= 0) {
-                        setDriverHeading(position.coords.heading);
-                    }
-                    updateDrivingRoute(rawCoords, true);
-                    return;
-                }
-
-                // 2. Ignore small GPS jitter/drift when stationary (< 2.5 meters)
-                if (
-                    lastRouteFetchLoc.current &&
-                    getDistanceMeters(lastRouteFetchLoc.current, rawCoords) < 2.5
-                ) {
-                    return;
-                }
-
-                // Snap to active driving route polyline (within 35 meters)
-                const currentPolyline = activeCoordinates.length > 0 ? activeCoordinates : fallbackRoute;
-                const snapResult = snapToRoutePolyline(rawCoords, currentPolyline, 35);
-                const finalCoords = snapResult.point;
-
-                setDriverLocation(finalCoords);
-
-                // If road bearing is available from snapping, use it; otherwise use GPS heading
-                const currentBearing = snapResult.roadBearing !== undefined
-                    ? snapResult.roadBearing
-                    : (position.coords.heading && position.coords.heading >= 0 ? position.coords.heading : undefined);
-
-                if (currentBearing !== undefined) {
-                    setDriverHeading(currentBearing);
-                }
-
-                // If navigation mode is active, smoothly follow driver with camera
-                if (isNavigatingRef.current) {
-                    mapRef.current?.animateCamera({
-                        center: finalCoords,
-                        pitch: 45,
-                        heading: currentBearing ?? driverHeading,
-                        zoom: 17,
-                    }, { duration: 600 });
-                }
-
-                // Check distance from last route calculation (> 40 meters)
-                if (
-                    !lastRouteFetchLoc.current ||
-                    getDistanceMeters(lastRouteFetchLoc.current, rawCoords) > 40
-                ) {
-                    lastRouteFetchLoc.current = rawCoords;
-                    updateDrivingRoute(rawCoords, false);
-                }
-            };
-
-            const onLocationError = (error: any) => {
-                console.warn('Geolocation error:', error?.code, error?.message);
-                if (!initialRouteFetchedRef.current) {
-                    // If high accuracy fails/times out, try low accuracy once
-                    Geolocation.getCurrentPosition(
-                        (pos) => onLocationSuccess(pos),
-                        (err2) => {
-                            console.warn('Fallback low-accuracy location error:', err2?.message);
-                            if (isMounted && !initialRouteFetchedRef.current) {
-                                initialRouteFetchedRef.current = true;
-                                lastRouteFetchLoc.current = driverLocation;
-                                updateDrivingRoute(driverLocation, true);
-                            }
-                        },
-                        { enableHighAccuracy: false, timeout: 5000, maximumAge: 30000 }
-                    );
-                }
-            };
-
-            // Set safety timer: if GPS fix takes > 6.5s, calculate with fallback so UI doesn't hang
-            fallbackTimer = setTimeout(() => {
-                if (isMounted && !initialRouteFetchedRef.current) {
-                    console.warn('GPS fix timed out, computing initial route with fallback location');
-                    initialRouteFetchedRef.current = true;
-                    lastRouteFetchLoc.current = driverLocation;
-                    updateDrivingRoute(driverLocation, true);
-                }
-            }, 6500);
-
-            // Fetch high-accuracy GPS fix first (with 30s cache so recent GPS is returned immediately)
+            // 1. Instant low-accuracy / cached fix (< 200ms) - Gets driver's real location immediately
             Geolocation.getCurrentPosition(
-                onLocationSuccess,
-                onLocationError,
-                {
-                    enableHighAccuracy: true,
-                    timeout: 6000,
-                    maximumAge: 30000,
-                }
+                pos => {
+                    applyDriverLocation({
+                        latitude: pos.coords.latitude,
+                        longitude: pos.coords.longitude,
+                    }, pos.coords.heading ?? undefined);
+                },
+                err => console.log('Fast cached GPS info in NavigationToPickup:', err?.message),
+                { enableHighAccuracy: false, timeout: 4000, maximumAge: 60000 }
             );
 
-            // Real-time watchPosition for continuous tracking as driver moves
+            // 2. Fresh high-accuracy GPS fix from device GPS hardware
+            Geolocation.getCurrentPosition(
+                pos => {
+                    applyDriverLocation({
+                        latitude: pos.coords.latitude,
+                        longitude: pos.coords.longitude,
+                    }, pos.coords.heading ?? undefined);
+                },
+                err => console.warn('High-accuracy GPS fix error in NavigationToPickup:', err?.message),
+                { enableHighAccuracy: true, timeout: 10000, maximumAge: 5000 }
+            );
+
+            // 3. Continuous real-time tracking as driver moves
             watchId = Geolocation.watchPosition(
-                onLocationSuccess,
-                (watchErr) => {
-                    console.warn('Geolocation watchPosition error:', watchErr?.message);
+                pos => {
+                    applyDriverLocation({
+                        latitude: pos.coords.latitude,
+                        longitude: pos.coords.longitude,
+                    }, pos.coords.heading ?? undefined);
+                },
+                watchErr => {
+                    console.warn('NavigationToPickup watchPosition error:', watchErr?.message);
                 },
                 {
                     enableHighAccuracy: true,
                     distanceFilter: 3, // update every 3 meters
-                    interval: 2000, // 2 seconds
+                    interval: 2000,    // 2 seconds
                     fastestInterval: 1000,
                     useSignificantChanges: false,
                 }
@@ -417,9 +474,6 @@ const NavigationToPickup = () => {
 
         return () => {
             isMounted = false;
-            if (fallbackTimer) {
-                clearTimeout(fallbackTimer);
-            }
             if (watchId !== null) {
                 Geolocation.clearWatch(watchId);
             }
@@ -451,9 +505,10 @@ const NavigationToPickup = () => {
     // =====================================================
 
     const handleBackToRoute = () => {
+        const fallback = driverLocation ? [driverLocation, pickupLocation] : [pickupLocation];
         const coordsToFit = activeCoordinates.length > 0
             ? activeCoordinates
-            : [driverLocation, pickupLocation];
+            : fallback;
 
         mapRef.current?.fitToCoordinates(coordsToFit, {
             edgePadding: { top: 70, right: 40, bottom: 210, left: 40 },
@@ -504,8 +559,33 @@ const NavigationToPickup = () => {
         }
     };
 
-    const handleArrived = () => {
+    // =====================================================
+    // MANUAL ARRIVAL HANDLER (200m cap removed for manual control)
+    // =====================================================
+    const isProcessingArrivalRef = useRef(false);
+
+    const handleArrived = useCallback(() => {
+        if (isProcessingArrivalRef.current) return;
+        isProcessingArrivalRef.current = true;
+
+        const npDistanceKm = (() => {
+            if (primaryRouteInfo?.distanceMeters) {
+                return (primaryRouteInfo.distanceMeters / 1000).toFixed(1);
+            }
+            const shortest = getShortestNpDistance();
+            const num = parseFloat(shortest);
+            if (!isNaN(num) && num > 0) return num.toFixed(1);
+            if (driverLocation && pickupLocation.latitude) {
+                return (getDistanceMeters(driverLocation, pickupLocation) / 1000).toFixed(1);
+            }
+            return '0.0';
+        })();
+
+        console.log(`📍 [MANUAL ARRIVED AT PICKUP] Driver confirmed arrival at pickup location. Pickup leg distance (np_distance): ${npDistanceKm} km`);
+
         stopBackgroundLocationTracking();
+        setIsNavigating(false);
+
         // Forward dynamic trip parameters to ChooseHospital screen
         (navigation.navigate as any)('ChooseHospital', {
             requestId: ambulanceRequestId,
@@ -519,10 +599,25 @@ const NavigationToPickup = () => {
             patientLocation: pickupLocation,
             pickup_lat: pickupLocation.latitude,
             pickup_lng: pickupLocation.longitude,
+            driverLocation: driverLocation,
+            driver_lat: driverLocation?.latitude,
+            driver_lng: driverLocation?.longitude,
             destination: route?.params?.destination || 'Nearest Emergency Hospital',
             emergencyType: route?.params?.emergencyType || 'Emergency',
+            np_distance: `${npDistanceKm} km`,
+            npDistance: `${npDistanceKm} km`,
+            pickup_distance: `${npDistanceKm} km`,
+            initialDriverLocation: driverLocation,
         });
-    };
+    }, [
+        ambulanceRequestId,
+        dynamicDriverId,
+        route?.params,
+        pickupLocation,
+        driverLocation,
+        primaryRouteInfo,
+        navigation,
+    ]);
 
     return (
         <SafeAreaView
@@ -540,7 +635,8 @@ const NavigationToPickup = () => {
                     provider={Platform.OS === 'android' ? PROVIDER_GOOGLE : PROVIDER_DEFAULT}
                     initialRegion={initialRegion}
                     mapType={mapType}
-                    showsUserLocation={false}
+                    showsUserLocation={true}
+                    showsMyLocationButton={true}
                     showsCompass={true}
                     showsScale={true}
                     loadingEnabled={true}
@@ -589,25 +685,25 @@ const NavigationToPickup = () => {
                     )}
 
                     {/* Driver Vehicle Marker */}
-                    <AmbulanceMarker
-                        coordinate={driverLocation}
-                        title="Ambulance"
-                        description="Your current location"
-                        heading={driverHeading}
-                    />
+                    {driverLocation ? (
+                        <AmbulanceMarker
+                            coordinate={driverLocation}
+                            title="Ambulance"
+                            description="Your current location"
+                            heading={driverHeading}
+                        />
+                    ) : null}
 
                     {/* Patient Pickup Destination Marker */}
-                    {/* Commented static fallback:
-                    title={route?.params?.patientName ? `${route.params.patientName} (Patient)` : 'Omkar Bhosale (Patient)'}
-                    description={route?.params?.address || 'Near Ganapati Temple, Vishrambag, Sangli'}
-                    */}
-                    <LocationMarker
-                        coordinate={pickupLocation}
-                        type="pickup"
-                        title={route?.params?.patientName ? `${route.params.patientName} (Patient)` : 'Patient Pickup'}
-                        description={route?.params?.address || 'Pickup Location'}
-                        label="Patient Pickup"
-                    />
+                    {pickupLocation.latitude && pickupLocation.longitude ? (
+                        <LocationMarker
+                            coordinate={pickupLocation}
+                            type="pickup"
+                            title={route?.params?.patientName ? `${route.params.patientName} (Patient)` : 'Patient Pickup'}
+                            description={route?.params?.address || 'Pickup Location'}
+                            label="Patient Pickup"
+                        />
+                    ) : null}
                 </MapView>
 
                 {/* FLOATING MAP CONTROLS (SATELLITE, BACK TO ROUTE, ZOOM) */}

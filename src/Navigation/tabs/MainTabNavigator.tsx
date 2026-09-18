@@ -50,13 +50,13 @@ const TABS: TabConfig[] = [
         activeIcon: 'ambulance',
         inactiveIcon: 'ambulance',
     },
-    {
-        name: 'Earnings',
-        label: 'Earnings',
-        iconFamily: 'ionicons',
-        activeIcon: 'wallet',
-        inactiveIcon: 'wallet-outline',
-    },
+    // {
+    //     name: 'Earnings',
+    //     label: 'Earnings',
+    //     iconFamily: 'ionicons',
+    //     activeIcon: 'wallet',
+    //     inactiveIcon: 'wallet-outline',
+    // },
     {
         name: 'Profile',
         label: 'Profile',
@@ -252,7 +252,7 @@ const MainTabNavigator = () => {
         >
             <Tab.Screen name="Home" component={HomeStack} />
             <Tab.Screen name="Trips" component={TripsScreen} />
-            <Tab.Screen name="Earnings" component={EarningsScreen} />
+            {/* <Tab.Screen name="Earnings" component={EarningsScreen} /> */}
             <Tab.Screen name="Profile" component={ProfileStack} />
         </Tab.Navigator>
     );

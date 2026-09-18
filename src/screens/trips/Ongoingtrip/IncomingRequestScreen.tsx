@@ -1,8 +1,9 @@
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 
 import {
   Alert,
+  Animated,
   Linking,
   StyleSheet,
   Text,
@@ -21,6 +22,7 @@ import { EmergencyTripData } from '../../../utils/emergencyNotificationHandler';
 import { storage } from '../../../storage/storage';
 import { STORAGE_KEYS } from '../../../storage/storageKeys';
 import { respondToEmergencyRequest } from '../../../api';
+import Geolocation from '@react-native-community/geolocation';
 
 const IncomingRequestScreen = () => {
   const navigation = useNavigation();
@@ -29,7 +31,105 @@ const IncomingRequestScreen = () => {
   const [emergencyData, setEmergencyData] = useState<EmergencyTripData | null>(
     route?.params?.requestData || null
   );
+  const [driverLocation, setDriverLocation] = useState<{ latitude: number; longitude: number } | null>(null);
   const [isSubmitting, setIsSubmitting] = useState<'accept' | 'reject' | null>(null);
+
+  // Circular Emergency Alert overlay state (default true for fresh alerts)
+  const [showCircularAlert, setShowCircularAlert] = useState<boolean>(
+    route?.params?.showCircularAlert ?? true
+  );
+
+  // Pulsing radar animations for circular emergency alert
+  const pulseAnim = useRef(new Animated.Value(1)).current;
+  const pulseAnimSecondary = useRef(new Animated.Value(1)).current;
+  const pulseOpacityAnim = useRef(new Animated.Value(0.7)).current;
+  const alertFadeAnim = useRef(new Animated.Value(1)).current;
+  const alertScaleAnim = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    if (showCircularAlert) {
+      const pulseLoop = Animated.loop(
+        Animated.parallel([
+          Animated.sequence([
+            Animated.timing(pulseAnim, {
+              toValue: 1.22,
+              duration: 1100,
+              useNativeDriver: true,
+            }),
+            Animated.timing(pulseAnim, {
+              toValue: 1,
+              duration: 1100,
+              useNativeDriver: true,
+            }),
+          ]),
+          Animated.sequence([
+            Animated.timing(pulseAnimSecondary, {
+              toValue: 1.42,
+              duration: 1500,
+              useNativeDriver: true,
+            }),
+            Animated.timing(pulseAnimSecondary, {
+              toValue: 1,
+              duration: 1500,
+              useNativeDriver: true,
+            }),
+          ]),
+          Animated.sequence([
+            Animated.timing(pulseOpacityAnim, {
+              toValue: 0.2,
+              duration: 1100,
+              useNativeDriver: true,
+            }),
+            Animated.timing(pulseOpacityAnim, {
+              toValue: 0.7,
+              duration: 1100,
+              useNativeDriver: true,
+            }),
+          ]),
+        ])
+      );
+      pulseLoop.start();
+
+      return () => {
+        pulseLoop.stop();
+      };
+    }
+  }, [showCircularAlert]);
+
+  const handleViewRequest = () => {
+    Animated.parallel([
+      Animated.timing(alertFadeAnim, {
+        toValue: 0,
+        duration: 200,
+        useNativeDriver: true,
+      }),
+      Animated.timing(alertScaleAnim, {
+        toValue: 0.8,
+        duration: 200,
+        useNativeDriver: true,
+      }),
+    ]).start(() => {
+      setShowCircularAlert(false);
+    });
+  };
+
+  const handleDismissAlert = () => {
+    navigation.goBack();
+  };
+
+  // Pre-fetch driver's current GPS location so NavigationToPickup has real location immediately
+  useEffect(() => {
+    Geolocation.getCurrentPosition(
+      pos => {
+        setDriverLocation({
+          latitude: pos.coords.latitude,
+          longitude: pos.coords.longitude,
+        });
+      },
+      () => {},
+      { enableHighAccuracy: false, timeout: 4000, maximumAge: 60000 }
+    );
+  }, []);
 
   // If requestData wasn't in route params, restore from storage fallback
   useEffect(() => {
@@ -122,6 +222,9 @@ const IncomingRequestScreen = () => {
 
       // Dynamic navigation parameters
       (navigation.navigate as any)('NavigationToPickup', {
+        driverLocation: driverLocation,
+        driver_lat: driverLocation?.latitude,
+        driver_lng: driverLocation?.longitude,
         pickupLocation: {
           latitude: emergencyData?.latitude || 0,
           longitude: emergencyData?.longitude || 0,
@@ -196,7 +299,110 @@ const IncomingRequestScreen = () => {
   return (
     <View style={styles.overlay}>
       {/* =====================================================
-          REQUEST CARD
+          CIRCULAR EMERGENCY ALERT (DISMISSIBLE TO REVEAL MAIN CARD)
+      ===================================================== */}
+      {showCircularAlert && (
+        <Animated.View
+          style={[
+            styles.circularAlertOverlay,
+            {
+              opacity: alertFadeAnim,
+            },
+          ]}
+        >
+          <View style={styles.circularBackdropTouch}>
+            {/* Outer Pulsing Halo Ring 2 */}
+            <Animated.View
+              style={[
+                styles.pulseRingSecondary,
+                {
+                  transform: [{ scale: pulseAnimSecondary }],
+                  opacity: pulseOpacityAnim,
+                },
+              ]}
+            />
+
+            {/* Outer Pulsing Halo Ring 1 */}
+            <Animated.View
+              style={[
+                styles.pulseRing,
+                {
+                  transform: [{ scale: pulseAnim }],
+                  opacity: pulseOpacityAnim,
+                },
+              ]}
+            />
+
+            {/* Main Circular Emergency Alert Disc */}
+            <Animated.View
+              style={[
+                styles.circularAlertCard,
+                {
+                  transform: [{ scale: alertScaleAnim }],
+                },
+              ]}
+            >
+              {/* Close / Dismiss Button */}
+              <TouchableOpacity
+                style={styles.circularCloseBtn}
+                onPress={handleDismissAlert}
+                hitSlop={{ top: 12, right: 12, bottom: 12, left: 12 }}
+                activeOpacity={0.7}
+              >
+                <AppIcon family="material" name="close" size={16} color="rgba(255,255,255,0.8)" />
+              </TouchableOpacity>
+
+              {/* Siren Icon in glowing bubble */}
+              <View style={styles.circularIconHub}>
+                <AppIcon
+                  family="material"
+                  name="alarm-light"
+                  size={32}
+                  color={colors.white}
+                />
+              </View>
+
+              {/* Emergency Type Badge */}
+              <View style={styles.circularAlertBadge}>
+                <View style={styles.blinkingDot} />
+                <Text style={styles.circularAlertBadgeText}>
+                  {emergencyData?.emergencyType
+                    ? emergencyData.emergencyType.toUpperCase()
+                    : 'EMERGENCY TRIP'}
+                </Text>
+              </View>
+
+              {/* Patient Name */}
+              <Text style={styles.circularPatientName} numberOfLines={1}>
+                {emergencyData?.patientName || 'Emergency Patient'}
+              </Text>
+
+              {/* Pickup Address Snippet */}
+              <Text style={styles.circularAddressText} numberOfLines={1}>
+                {emergencyData?.address || 'Pickup location specified'}
+              </Text>
+
+              {/* View Request Button */}
+              <TouchableOpacity
+                style={styles.circularViewBtn}
+                onPress={handleViewRequest}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.circularViewBtnText}>View Request</Text>
+                <AppIcon
+                  family="material"
+                  name="arrow-right"
+                  size={16}
+                  color={colors.white}
+                />
+              </TouchableOpacity>
+            </Animated.View>
+          </View>
+        </Animated.View>
+      )}
+
+      {/* =====================================================
+          REQUEST CARD (MAIN MODEL BEHIND CIRCULAR ALERT)
       ===================================================== */}
 
       <View style={styles.requestCardShadowWrap}>
@@ -571,6 +777,148 @@ const styles = StyleSheet.create({
     flex: 1.4,
     height: 52,
     borderRadius: 14,
+  },
+
+  // =====================================================
+  // CIRCULAR ALERT MODAL STYLES
+  // =====================================================
+
+  circularAlertOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(15, 23, 42, 0.76)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 999,
+  },
+
+  circularBackdropTouch: {
+    width: '100%',
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+
+  pulseRing: {
+    position: 'absolute',
+    width: 296,
+    height: 296,
+    borderRadius: 148,
+    borderWidth: 3,
+    borderColor: 'rgba(239, 68, 68, 0.55)',
+    backgroundColor: 'rgba(239, 68, 68, 0.12)',
+  },
+
+  pulseRingSecondary: {
+    position: 'absolute',
+    width: 342,
+    height: 342,
+    borderRadius: 171,
+    borderWidth: 2,
+    borderColor: 'rgba(239, 68, 68, 0.26)',
+  },
+
+  circularAlertCard: {
+    width: 284,
+    height: 284,
+    borderRadius: 142,
+    backgroundColor: '#DC2626',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 22,
+    paddingVertical: 18,
+    borderWidth: 4,
+    borderColor: '#FECACA',
+    elevation: 16,
+    shadowColor: '#EF4444',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.5,
+    shadowRadius: 20,
+  },
+
+  circularCloseBtn: {
+    position: 'absolute',
+    top: 18,
+    right: 26,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: 'rgba(0, 0, 0, 0.35)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 10,
+  },
+
+  circularIconHub: {
+    width: 58,
+    height: 58,
+    borderRadius: 29,
+    backgroundColor: 'rgba(255, 255, 255, 0.22)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 8,
+  },
+
+  circularAlertBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.32)',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    marginBottom: 6,
+  },
+
+  blinkingDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#FEF08A',
+    marginRight: 6,
+  },
+
+  circularAlertBadgeText: {
+    fontFamily: 'GoogleSans-Bold',
+    fontSize: 10,
+    color: '#FEF08A',
+    letterSpacing: 0.8,
+  },
+
+  circularPatientName: {
+    fontFamily: 'GoogleSans-Bold',
+    fontSize: 16,
+    color: colors.white,
+    textAlign: 'center',
+    maxWidth: 210,
+    marginBottom: 2,
+  },
+
+  circularAddressText: {
+    fontFamily: 'GoogleSans-Regular',
+    fontSize: 11,
+    color: 'rgba(255, 255, 255, 0.88)',
+    textAlign: 'center',
+    maxWidth: 210,
+    marginBottom: 12,
+  },
+
+  circularViewBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#1E293B',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 22,
+    elevation: 4,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.25)',
+  },
+
+  circularViewBtnText: {
+    fontFamily: 'GoogleSans-Bold',
+    fontSize: 12,
+    color: colors.white,
+    letterSpacing: 0.3,
   },
 
 });

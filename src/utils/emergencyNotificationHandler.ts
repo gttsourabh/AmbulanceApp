@@ -1,4 +1,3 @@
-import { Alert } from 'react-native';
 import { navigate, navigationRef } from './navigationRef';
 import { storage } from '../storage/storage';
 import { STORAGE_KEYS } from '../storage/storageKeys';
@@ -119,19 +118,20 @@ export async function handleEmergencyTripNotification(
     // Cache latest pending emergency request in local storage
     await storage.set(STORAGE_KEYS.PENDING_EMERGENCY_REQUEST, emergencyData);
 
-    const openEmergencyModal = () => {
+    const openEmergencyModal = (showCircularAlert: boolean = false) => {
+        const navParams = {
+            requestData: emergencyData,
+            showCircularAlert: showCircularAlert,
+        };
+
         if (navigationRef.isReady()) {
-            navigate('IncomingRequests', {
-                requestData: emergencyData,
-            });
+            navigate('IncomingRequests', navParams);
         } else {
             // If navigation container isn't ready yet (e.g. app cold-booting), retry shortly
             const retryInterval = setInterval(() => {
                 if (navigationRef.isReady()) {
                     clearInterval(retryInterval);
-                    navigate('IncomingRequests', {
-                        requestData: emergencyData,
-                    });
+                    navigate('IncomingRequests', navParams);
                 }
             }, 300);
             setTimeout(() => clearInterval(retryInterval), 5000);
@@ -139,30 +139,11 @@ export async function handleEmergencyTripNotification(
     };
 
     if (isForeground) {
-        // Show emergency alert notification with the provided data
-        Alert.alert(
-            `🚨 EMERGENCY TRIP: ${emergencyData.emergencyType.toUpperCase()}`,
-            `Patient: ${emergencyData.patientName}\n` +
-            `Address: ${emergencyData.address}\n` +
-            `Contact: ${emergencyData.contactNo}`,
-            [
-                {
-                    text: 'Dismiss',
-                    style: 'cancel',
-                },
-                {
-                    text: 'View Request',
-                    onPress: openEmergencyModal,
-                },
-            ],
-            { cancelable: false }
-        );
-
-        // Also automatically present the modal bottom sheet
-        openEmergencyModal();
+        // Automatically present IncomingRequests with the custom circular emergency alert on top
+        openEmergencyModal(true);
     } else {
-        // Background tap or cold-launch tap
-        openEmergencyModal();
+        // Background notification tap or cold-launch tap
+        openEmergencyModal(false);
     }
 
     return true;
