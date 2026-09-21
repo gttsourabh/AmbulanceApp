@@ -279,8 +279,8 @@ const styles = StyleSheet.create({
 
         borderTopLeftRadius: 24,
         borderTopRightRadius: 24,
-        borderBottomLeftRadius: 8,
-        borderBottomRightRadius: 8,
+        borderBottomLeftRadius: 24,
+        borderBottomRightRadius: 24,
 
         backgroundColor: colors.card,
 

@@ -637,8 +637,8 @@ const ChooseHospitalScreen = () => {
                     customMapStyle={mapType === 'standard' ? medicalMapStyle : undefined}
                     showsCompass={true}
                     loadingEnabled={true}
-                    showsUserLocation={true}
-                    showsMyLocationButton={true}
+                    showsUserLocation={false}
+                    showsMyLocationButton={false}
                 >
                     {/* Patient Pickup Location Marker */}
                     <AmbulanceMarker

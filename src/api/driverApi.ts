@@ -245,9 +245,11 @@ export interface GetRouteOverviewPayload {
 }
 
 export interface RouteOverviewData {
+    total_count?: number | string;
+    assigned_count?: number | string;
+    completed_count?: number | string;
     completed?: number | string;
     completed_trips?: number | string;
-    completed_count?: number | string;
     total_completed?: number | string;
     cancelled?: number | string;
     cancelled_trips?: number | string;
@@ -370,6 +372,32 @@ export const updateAmbulanceStatusApi = async (
                 payload
             );
         }
+        throw err;
+    }
+};
+
+export interface ActiveTripResponse {
+    code?: number;
+    message?: string;
+    has_active_trip?: boolean;
+    data?: AmbulanceRequestItem | any | null;
+    [key: string]: any;
+}
+
+/**
+ * GET /api/ambulance/driver/active-trip
+ * Fetches the currently ongoing / active trip for the driver.
+ */
+export const getActiveTripApi = async (params?: {
+    driver_id?: number | string;
+    [key: string]: any;
+}) => {
+    try {
+        return await axiosInstance.get<ActiveTripResponse>(
+            '/api/ambulance/driver/active-trip',
+            { params }
+        );
+    } catch (err: any) {
         throw err;
     }
 };

@@ -12,7 +12,7 @@ import {
 } from 'react-native';
 
 import { useNavigation, useRoute } from '@react-navigation/native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import Header from '../../../components/Header/Header';
 import { colors, typography } from '../../../theme';
@@ -27,6 +27,7 @@ import Geolocation from '@react-native-community/geolocation';
 const IncomingRequestScreen = () => {
   const navigation = useNavigation();
   const route = useRoute<any>();
+  const insets = useSafeAreaInsets();
 
   const [emergencyData, setEmergencyData] = useState<EmergencyTripData | null>(
     route?.params?.requestData || null
@@ -45,6 +46,10 @@ const IncomingRequestScreen = () => {
   const pulseOpacityAnim = useRef(new Animated.Value(0.7)).current;
   const alertFadeAnim = useRef(new Animated.Value(1)).current;
   const alertScaleAnim = useRef(new Animated.Value(1)).current;
+
+  // Slide & fade animations for request card modal
+  const cardSlideAnim = useRef(new Animated.Value(route?.params?.showCircularAlert ? 320 : 0)).current;
+  const cardFadeAnim = useRef(new Animated.Value(route?.params?.showCircularAlert ? 0 : 1)).current;
 
   useEffect(() => {
     if (showCircularAlert) {
@@ -100,16 +105,31 @@ const IncomingRequestScreen = () => {
     Animated.parallel([
       Animated.timing(alertFadeAnim, {
         toValue: 0,
-        duration: 200,
+        duration: 220,
         useNativeDriver: true,
       }),
       Animated.timing(alertScaleAnim, {
         toValue: 0.8,
-        duration: 200,
+        duration: 220,
         useNativeDriver: true,
       }),
     ]).start(() => {
       setShowCircularAlert(false);
+      cardSlideAnim.setValue(260);
+      cardFadeAnim.setValue(0);
+      Animated.parallel([
+        Animated.spring(cardSlideAnim, {
+          toValue: 0,
+          useNativeDriver: true,
+          tension: 65,
+          friction: 9,
+        }),
+        Animated.timing(cardFadeAnim, {
+          toValue: 1,
+          duration: 250,
+          useNativeDriver: true,
+        }),
+      ]).start();
     });
   };
 
@@ -299,7 +319,7 @@ const IncomingRequestScreen = () => {
   return (
     <View style={styles.overlay}>
       {/* =====================================================
-          CIRCULAR EMERGENCY ALERT (DISMISSIBLE TO REVEAL MAIN CARD)
+          CIRCULAR EMERGENCY ALERT (ONLY SHOWN WHEN ACTIVE)
       ===================================================== */}
       {showCircularAlert && (
         <Animated.View
@@ -402,181 +422,203 @@ const IncomingRequestScreen = () => {
       )}
 
       {/* =====================================================
-          REQUEST CARD (MAIN MODEL BEHIND CIRCULAR ALERT)
+          REQUEST CARD MODAL (SHOWN EXCLUSIVELY WHEN ALERT IS DISMISSED)
       ===================================================== */}
-
-      <View style={styles.requestCardShadowWrap}>
-        <View style={styles.requestCard}>
-
-          {/* PATIENT DETAILS */}
-
-          <View style={styles.section}>
-            <View style={styles.labelRowBetween}>
-              <Text style={styles.label}>
-                PATIENT DETAILS
-              </Text>
-              {emergencyData?.requestId ? (
-                <View style={styles.requestIdBadge}>
-                  <Text style={styles.requestIdText}>
-                    REQ #{emergencyData.requestId}
-                  </Text>
+      {!showCircularAlert && (
+        <Animated.View
+          style={[
+            styles.requestCardShadowWrap,
+            {
+              transform: [{ translateY: cardSlideAnim }],
+              opacity: cardFadeAnim,
+            },
+          ]}
+        >
+          <View
+            style={[
+              styles.requestCard,
+              { paddingBottom: Math.max(insets.bottom + 14, 22) },
+            ]}
+          >
+            {/* TOP EMERGENCY HEADER BAR */}
+            <View style={styles.emergencyHeaderBar}>
+              <View style={styles.emergencyHeaderLeft}>
+                <View style={styles.sirenIconPulse}>
+                  <AppIcon
+                    family="material"
+                    name="alarm-light"
+                    size={20}
+                    color="#DC2626"
+                  />
                 </View>
-              ) : null}
+                <View>
+                  <Text style={styles.emergencyHeaderText}>EMERGENCY DISPATCH</Text>
+                  <Text style={styles.emergencySubheaderText}>Immediate response required</Text>
+                </View>
+              </View>
+              <View style={styles.headerRightBadges}>
+                {emergencyData?.requestId ? (
+                  <View style={styles.requestIdBadge}>
+                    <Text style={styles.requestIdText}>
+                      REQ #{emergencyData.requestId}
+                    </Text>
+                  </View>
+                ) : null}
+                <TouchableOpacity
+                  onPress={() => navigation.goBack()}
+                  style={styles.cardCloseBtn}
+                  hitSlop={{ top: 10, right: 10, bottom: 10, left: 10 }}
+                >
+                  <AppIcon family="material" name="close" size={16} color={colors.textLight} />
+                </TouchableOpacity>
+              </View>
             </View>
 
-            <View style={styles.patientRow}>
-              <View>
-                <Text style={styles.value}>
-                  {emergencyData?.patientName || 'Emergency Patient'}
+            {/* PATIENT DETAILS */}
+            <View style={styles.section}>
+              <View style={styles.labelRowBetween}>
+                <Text style={styles.label}>
+                  PATIENT DETAILS
                 </Text>
-                {emergencyData?.contactNo ? (
-                  <Text style={styles.secondaryValue}>
-                    {emergencyData.contactNo}
+              </View>
+
+              <View style={styles.patientRow}>
+                <View style={{ flex: 1, marginRight: 8 }}>
+                  <Text style={styles.value} numberOfLines={1}>
+                    {emergencyData?.patientName || 'Emergency Patient'}
                   </Text>
+                  {emergencyData?.contactNo ? (
+                    <Text style={styles.secondaryValue}>
+                      {emergencyData.contactNo}
+                    </Text>
+                  ) : null}
+                </View>
+
+                {emergencyData?.contactNo ? (
+                  <Button
+                    title=""
+                    onPress={handleCall}
+                    icon="phone"
+                    iconSize={17}
+                    variant="primary"
+                    style={styles.callButton}
+                  />
                 ) : null}
               </View>
+            </View>
 
-              {emergencyData?.contactNo ? (
-                <Button
-                  title=""
-                  onPress={handleCall}
-                  icon="phone"
-                  iconSize={17}
-                  variant="primary"
-                  style={styles.callButton}
+            <View style={styles.divider} />
+
+            {/* PICKUP LOCATION */}
+            <View style={styles.section}>
+              <View style={styles.labelRow}>
+                <View
+                  style={[
+                    styles.dot,
+                    { backgroundColor: colors.primary },
+                  ]}
                 />
+
+                <Text style={styles.label}>
+                  PICKUP LOCATION
+                </Text>
+              </View>
+
+              <Text style={styles.value} numberOfLines={2}>
+                {emergencyData?.address || 'Pickup location not specified'}
+              </Text>
+
+              {emergencyData?.latitude && emergencyData?.longitude ? (
+                <Text style={styles.secondaryValue}>
+                  GPS: {emergencyData.latitude.toFixed(6)}, {emergencyData.longitude.toFixed(6)}
+                </Text>
               ) : null}
             </View>
-          </View>
 
-          <View style={styles.divider} />
+            <View style={styles.divider} />
 
-          {/* PICKUP LOCATION */}
-
-          <View style={styles.section}>
-            <View style={styles.labelRow}>
-              <View
-                style={[
-                  styles.dot,
-                  { backgroundColor: colors.primary },
-                ]}
-              />
-
-              <Text style={styles.label}>
-                PICKUP LOCATION
-              </Text>
-            </View>
-
-            <Text style={styles.value} numberOfLines={2}>
-              {emergencyData?.address || 'Pickup location not specified'}
-            </Text>
-
-            {emergencyData?.latitude && emergencyData?.longitude ? (
-              <Text style={styles.secondaryValue}>
-                GPS: {emergencyData.latitude.toFixed(6)}, {emergencyData.longitude.toFixed(6)}
-              </Text>
-            ) : null}
-          </View>
-
-          <View style={styles.divider} />
-
-          {/* DESTINATION */}
-
-          <View style={styles.section}>
-            <View style={styles.labelRow}>
-              <View
-                style={[
-                  styles.dot,
-                  { backgroundColor: colors.danger },
-                ]}
-              />
-
-              <Text style={styles.label}>
-                DESTINATION
-              </Text>
-            </View>
-
-            {/* Dynamic destination */}
-            <Text style={styles.value}>
-              {emergencyData?.destination || 'Nearest Emergency Hospital'}
-            </Text>
-
-            <Text style={styles.secondaryValue}>
-              Ready for immediate dispatch
-            </Text>
-          </View>
-
-          <View style={styles.divider} />
-
-          {/* EMERGENCY TYPE + EARNINGS */}
-
-          <View style={styles.metaRow}>
-            <View style={styles.metaItem}>
-              <Text style={styles.label}>
-                EMERGENCY TYPE
-              </Text>
-
-              <View style={styles.typePill}>
-                <AppIcon
-                  family="material"
-                  name={
-                    emergencyData?.emergencyType?.toLowerCase().includes('cardiac')
-                      ? 'heart-pulse'
-                      : 'medical-bag'
-                  }
-                  size={13}
-                  color={colors.danger}
+            {/* DESTINATION */}
+            <View style={styles.section}>
+              <View style={styles.labelRow}>
+                <View
+                  style={[
+                    styles.dot,
+                    { backgroundColor: colors.danger },
+                  ]}
                 />
 
-                <Text style={styles.typeText}>
-                  {emergencyData?.emergencyType
-                    ? emergencyData.emergencyType.toUpperCase()
-                    : 'EMERGENCY'}
+                <Text style={styles.label}>
+                  DESTINATION
+                </Text>
+              </View>
+
+              <Text style={styles.value} numberOfLines={2}>
+                {emergencyData?.destination || 'Nearest Emergency Hospital'}
+              </Text>
+
+              <Text style={styles.secondaryValue}>
+                Ready for immediate dispatch
+              </Text>
+            </View>
+
+            <View style={styles.divider} />
+
+            {/* EMERGENCY TYPE + EARNINGS */}
+            <View style={styles.metaRow}>
+              <View style={styles.metaItem}>
+                <Text style={styles.label}>
+                  EMERGENCY TYPE
+                </Text>
+
+                <View style={styles.typePill}>
+                  <AppIcon
+                    family="material"
+                    name={
+                      emergencyData?.emergencyType?.toLowerCase().includes('cardiac')
+                        ? 'heart-pulse'
+                        : 'medical-bag'
+                    }
+                    size={13}
+                    color={colors.danger}
+                  />
+
+                  <Text style={styles.typeText}>
+                    {emergencyData?.emergencyType
+                      ? emergencyData.emergencyType.toUpperCase()
+                      : 'EMERGENCY'}
+                  </Text>
+                </View>
+              </View>
+
+              <View style={styles.metaDivider} />
+
+              <View style={styles.metaItem}>
+                <Text style={styles.label}>
+                  ESTIMATED EARNINGS
+                </Text>
+
+                <Text style={styles.earningValue}>
+                  {emergencyData?.estimatedEarnings ? `₹ ${emergencyData.estimatedEarnings}` : 'Standard Fare'}
                 </Text>
               </View>
             </View>
 
-            <View style={styles.metaDivider} />
-
-            <View style={styles.metaItem}>
-              <Text style={styles.label}>
-                ESTIMATED EARNINGS
-              </Text>
-
-              <Text style={styles.earningValue}>
-                {emergencyData?.estimatedEarnings ? `₹ ${emergencyData.estimatedEarnings}` : 'Standard Fare'}
-              </Text>
+            {/* ACTION BUTTON: ACCEPT ONLY */}
+            <View style={styles.actionRow}>
+              <Button
+                title="Accept Emergency Request"
+                onPress={handleAccept}
+                icon="check"
+                iconSize={18}
+                variant="primary"
+                style={styles.acceptButton}
+                loading={isSubmitting === 'accept'}
+                disabled={isSubmitting !== null}
+              />
             </View>
           </View>
-
-          {/* =====================================================
-              ACTION BUTTONS
-          ===================================================== */}
-
-          <View style={styles.actionRow}>
-            <Button
-              title="Reject"
-              onPress={handleReject}
-              variant="danger"
-              style={styles.rejectButton}
-              loading={isSubmitting === 'reject'}
-              disabled={isSubmitting !== null}
-            />
-
-            <Button
-              title="Accept"
-              onPress={handleAccept}
-              icon="check"
-              iconSize={17}
-              variant="primary"
-              style={styles.acceptButton}
-              loading={isSubmitting === 'accept'}
-              disabled={isSubmitting !== null}
-            />
-          </View>
-
-        </View>
-      </View>
+        </Animated.View>
+      )}
     </View>
   );
 };
@@ -590,7 +632,65 @@ const styles = StyleSheet.create({
 
   overlay: {
     flex: 1,
-    backgroundColor: "rgba(255,255,255,0.1)"
+    backgroundColor: 'rgba(15, 23, 42, 0.72)',
+    justifyContent: 'flex-end',
+  },
+
+  // =====================================================
+  // EMERGENCY HEADER BAR
+  // =====================================================
+
+  emergencyHeaderBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingBottom: 10,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: colors.divider,
+    marginBottom: 8,
+  },
+
+  emergencyHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+
+  sirenIconPulse: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: '#FEE2E2',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  emergencyHeaderText: {
+    fontFamily: 'GoogleSans-Bold',
+    fontSize: 13,
+    letterSpacing: 0.5,
+    color: '#DC2626',
+  },
+
+  emergencySubheaderText: {
+    fontFamily: 'GoogleSans-Regular',
+    fontSize: 11,
+    color: colors.textSecondary,
+  },
+
+  headerRightBadges: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+
+  cardCloseBtn: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: '#F1F5F9',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 
   // =====================================================
@@ -598,14 +698,14 @@ const styles = StyleSheet.create({
   // =====================================================
 
   requestCardShadowWrap: {
-    marginTop: 'auto',
+    width: '100%',
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
-    shadowColor: colors.shadow,
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: -8 },
-    shadowOpacity: 0.14,
+    shadowOpacity: 0.22,
     shadowRadius: 24,
-    elevation: 10,
+    elevation: 12,
   },
 
   requestCard: {
@@ -613,8 +713,7 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     paddingHorizontal: 16,
-    paddingTop: 12,
-    paddingBottom: 12,
+    paddingTop: 14,
     borderWidth: 1,
     borderColor: colors.border,
     borderBottomWidth: 0,
@@ -763,18 +862,11 @@ const styles = StyleSheet.create({
 
   actionRow: {
     flexDirection: 'row',
-    gap: 8,
     marginTop: 8,
   },
 
-  rejectButton: {
-    flex: 1,
-    height: 52,
-    borderRadius: 14,
-  },
-
   acceptButton: {
-    flex: 1.4,
+    flex: 1,
     height: 52,
     borderRadius: 14,
   },

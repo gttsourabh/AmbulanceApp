@@ -61,10 +61,14 @@ const NavigationToPickup = () => {
     const [altRouteInfo, setAltRouteInfo] = useState<RouteResult | null>(null);
     const [activeCoordinates, setActiveCoordinates] = useState<Array<{ latitude: number; longitude: number }>>([]);
     const [alternativeCoordinates, setAlternativeCoordinates] = useState<Array<{ latitude: number; longitude: number }>>([]);
+    const initialTripStatus = String(route?.params?.status || '').toLowerCase();
     const [selectedRouteType, setSelectedRouteType] = useState<'nearest' | 'alternative'>('nearest');
-    const [isNavigating, setIsNavigating] = useState(false);
+    const [isNavigating, setIsNavigating] = useState(
+        initialTripStatus.includes('dispatch') || route?.params?.isNavigating === true
+    );
     const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
     const isNavigatingRef = useRef(isNavigating);
+    const isStartingNavRef = useRef(false);
 
     // Computes the shortest distance to patient from Google Routes API (comparing primary and alternative routes)
     const getShortestNpDistance = (): string => {
@@ -83,12 +87,12 @@ const NavigationToPickup = () => {
     };
 
     const handleToggleNavigation = async () => {
-        if (isNavigating) {
-            setIsNavigating(false);
-            stopBackgroundLocationTracking();
+        // Prevent multiple clicks / double taps or starting if already navigating
+        if (isNavigating || isUpdatingStatus || isStartingNavRef.current) {
             return;
         }
 
+        isStartingNavRef.current = true;
         setIsUpdatingStatus(true);
         const npDistance = getShortestNpDistance();
         console.log(`📡 [START NAVIGATION] Shortest Google Routes distance (np_distance): ${npDistance} km`);
@@ -107,20 +111,21 @@ const NavigationToPickup = () => {
             });
 
             console.log('✅ [/api/ambulance/update-status SUCCESS]:', statusRes?.data);
+            setIsNavigating(true);
+            if (driverLocation) {
+                mapRef.current?.animateCamera({
+                    center: driverLocation,
+                    pitch: 45,
+                    heading: driverHeading,
+                    zoom: 17,
+                });
+            }
         } catch (statusErr: any) {
             console.warn('⚠️ [/api/ambulance/update-status FAILED]:', statusErr?.response?.data || statusErr?.message);
+            // Allow retry if API failed
+            isStartingNavRef.current = false;
         } finally {
             setIsUpdatingStatus(false);
-        }
-
-        setIsNavigating(true);
-        if (driverLocation) {
-            mapRef.current?.animateCamera({
-                center: driverLocation,
-                pitch: 45,
-                heading: driverHeading,
-                zoom: 17,
-            });
         }
     };
 
@@ -635,8 +640,8 @@ const NavigationToPickup = () => {
                     provider={Platform.OS === 'android' ? PROVIDER_GOOGLE : PROVIDER_DEFAULT}
                     initialRegion={initialRegion}
                     mapType={mapType}
-                    showsUserLocation={true}
-                    showsMyLocationButton={true}
+                    showsUserLocation={false}
+                    showsMyLocationButton={false}
                     showsCompass={true}
                     showsScale={true}
                     loadingEnabled={true}
@@ -909,12 +914,13 @@ const NavigationToPickup = () => {
             <View style={styles.bottomContainer}>
                 <View style={styles.bottomButtonsRow}>
                     <Button
-                        title={isUpdatingStatus ? "Starting..." : isNavigating ? "Navigating..." : "Start Navigation"}
+                        title={isUpdatingStatus ? "Starting..." : isNavigating ? "Navigating" : "Start Navigation"}
                         onPress={handleToggleNavigation}
                         icon={isNavigating ? "navigation" : "navigation-variant"}
                         variant={isNavigating ? "secondary" : "primary"}
                         style={styles.startButton}
-                        disabled={isUpdatingStatus}
+                        disabled={isUpdatingStatus || isNavigating}
+                        loading={isUpdatingStatus}
                     />
 
                     <Button

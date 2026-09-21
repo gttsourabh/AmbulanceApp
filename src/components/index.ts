@@ -5,3 +5,5 @@ export { default as Button } from './Button/Button';
 export { default as Loader } from './Loader/Loader';
 export { default as DateRangePickerModal } from './DateRangePickerModal';
 export * from './DateRangePickerModal';
+export { default as PermissionModal } from './Modal/PermissionModal';
+export * from './Modal/PermissionModal';

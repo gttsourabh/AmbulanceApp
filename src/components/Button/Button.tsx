@@ -47,8 +47,8 @@ const Button: React.FC<ButtonProps> = ({
             style={[
                 styles.button,
                 styles[`${variant}Button`],
-                isDisabled && styles.disabledButton,
                 style,
+                isDisabled && styles.disabledButton,
             ]}
         >
             {loading ? (

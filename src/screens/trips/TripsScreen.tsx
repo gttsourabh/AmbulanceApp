@@ -30,8 +30,8 @@ interface Trip {
     time: string;
     pickupTime: string;
     distance: string;
-    amount: string;
-    status: 'Completed' | 'Cancelled' | 'Active';
+    amount?: string;
+    status: string;
     rawStatus: string;
     icon: string;
     dateCategory: 'Today' | 'Yesterday' | 'Earlier';
@@ -130,6 +130,17 @@ const TripsScreen = () => {
                     const rawSt = String(item.status || 'requested').toLowerCase();
                     const isCancelled = rawSt.includes('cancel');
                     const isCompleted = rawSt.includes('complete');
+                    const isAssigned = rawSt.includes('assign');
+                    const isDispatched = rawSt.includes('dispatch');
+                    const isArriving = rawSt.includes('arriv');
+
+                    let displayStatus = 'Active';
+                    if (isCancelled) displayStatus = 'Cancelled';
+                    else if (isCompleted) displayStatus = 'Completed';
+                    else if (isArriving) displayStatus = 'Arriving';
+                    else if (isDispatched) displayStatus = 'Dispatched';
+                    else if (isAssigned) displayStatus = 'Assigned';
+                    else displayStatus = rawSt.charAt(0).toUpperCase() + rawSt.slice(1);
 
                     let dateCategory: 'Today' | 'Yesterday' | 'Earlier' = 'Earlier';
                     let timeStr = '--';
@@ -147,23 +158,30 @@ const TripsScreen = () => {
                         }
                     }
 
+                    // Format ETA / pickup time
                     const pickupTimeStr = item.time || (item.eta_minutes ? `${item.eta_minutes} mins` : timeStr);
-                    const distanceStr = item.distance ? `${item.distance} km` : '';
-                    const amountStr = item.amount ? `₹${item.amount}` : item.fare ? `₹${item.fare}` : (isCancelled ? '₹0' : '₹350');
+
+                    // Real distance from np_distance or ph_distance or distance
+                    const rawDist = item.np_distance || item.ph_distance || item.distance;
+                    let distanceStr = '';
+                    if (rawDist) {
+                        const num = parseFloat(String(rawDist));
+                        distanceStr = !isNaN(num) ? `${num.toFixed(1)} km` : `${rawDist} km`;
+                    }
 
                     return {
                         id: item.id,
-                        name: item.patient_name || 'Emergency Patient',
+                        name: item.patient_name ? item.patient_name.trim() : 'Emergency Patient',
                         time: timeStr,
                         pickupTime: pickupTimeStr,
                         distance: distanceStr,
-                        amount: amountStr,
-                        status: isCancelled ? 'Cancelled' : isCompleted ? 'Completed' : 'Active',
+                        amount: '',
+                        status: displayStatus,
                         rawStatus: rawSt,
-                        icon: isCancelled ? 'close-circle' : 'account',
+                        icon: isCancelled ? 'close-circle' : isCompleted ? 'check-circle' : 'ambulance',
                         dateCategory,
                         address: item.pickup_address || '',
-                        emergencyType: item.emergency_type || 'Medical',
+                        emergencyType: item.emergency_type ? item.emergency_type.trim() : '',
                     };
                 });
 
@@ -214,6 +232,8 @@ const TripsScreen = () => {
 
     const renderTrip = (trip: Trip) => {
         const isCancelled = trip.status === 'Cancelled';
+        const isCompleted = trip.status === 'Completed';
+        const isAssigned = trip.status === 'Assigned';
 
         return (
             <View
@@ -229,7 +249,11 @@ const TripsScreen = () => {
                         styles.tripIcon,
                         isCancelled
                             ? styles.rejectedIcon
-                            : styles.acceptedIcon,
+                            : isCompleted
+                            ? styles.completedIcon
+                            : isAssigned
+                            ? styles.assignedIcon
+                            : styles.dispatchedIcon,
                     ]}
                 >
                     <AppIcon
@@ -239,6 +263,10 @@ const TripsScreen = () => {
                         color={
                             isCancelled
                                 ? colors.danger
+                                : isCompleted
+                                ? colors.successDark
+                                : isAssigned
+                                ? colors.warning
                                 : colors.primary
                         }
                     />
@@ -249,15 +277,25 @@ const TripsScreen = () => {
         ===================================================== */}
 
                 <View style={styles.tripInfo}>
-
-                    <Text
-                        style={styles.passengerName}
-                        numberOfLines={1}
-                    >
-                        {trip.name}
-                    </Text>
+                    <View style={styles.passengerNameRow}>
+                        <Text
+                            style={styles.passengerName}
+                            numberOfLines={1}
+                        >
+                            {trip.name}
+                        </Text>
+                        <Text style={styles.tripIdBadge}>#{trip.id}</Text>
+                    </View>
 
                     <View style={styles.tripDetailsRow}>
+                        {trip.emergencyType ? (
+                            <>
+                                <Text style={styles.emergencyTypeText} numberOfLines={1}>
+                                    {trip.emergencyType}
+                                </Text>
+                                <View style={styles.dotSeparator} />
+                            </>
+                        ) : null}
 
                         <AppIcon
                             family="material"
@@ -273,29 +311,21 @@ const TripsScreen = () => {
                         {trip.distance ? (
                             <>
                                 <View style={styles.dotSeparator} />
-
                                 <Text style={styles.distance}>
                                     {trip.distance}
                                 </Text>
                             </>
                         ) : null}
-
                     </View>
-
                 </View>
 
                 {/* =====================================================
-            RIGHT
+            RIGHT (Time + Status Pill, NO EARNINGS)
         ===================================================== */}
 
                 <View style={styles.tripRight}>
-
                     <Text style={styles.tripTime}>
                         {trip.time}
-                    </Text>
-
-                    <Text style={styles.amount}>
-                        {trip.amount}
                     </Text>
 
                     <View
@@ -303,7 +333,11 @@ const TripsScreen = () => {
                             styles.statusPill,
                             isCancelled
                                 ? styles.rejectedPill
-                                : styles.acceptedPill,
+                                : isCompleted
+                                ? styles.acceptedPill
+                                : isAssigned
+                                ? styles.assignedPill
+                                : styles.dispatchedPill,
                         ]}
                     >
                         <Text
@@ -311,13 +345,16 @@ const TripsScreen = () => {
                                 styles.status,
                                 isCancelled
                                     ? styles.rejectedStatus
-                                    : styles.acceptedStatus,
+                                    : isCompleted
+                                    ? styles.acceptedStatus
+                                    : isAssigned
+                                    ? styles.assignedStatus
+                                    : styles.dispatchedStatus,
                             ]}
                         >
                             {trip.status}
                         </Text>
                     </View>
-
                 </View>
             </View>
         );
@@ -832,6 +869,18 @@ const styles = StyleSheet.create({
         backgroundColor: colors.infoLight,
     },
 
+    completedIcon: {
+        backgroundColor: colors.successLight,
+    },
+
+    assignedIcon: {
+        backgroundColor: colors.warningLight,
+    },
+
+    dispatchedIcon: {
+        backgroundColor: colors.infoLight,
+    },
+
     rejectedIcon: {
         backgroundColor: colors.dangerLight,
     },
@@ -848,6 +897,13 @@ const styles = StyleSheet.create({
         paddingRight: 6,
     },
 
+    passengerNameRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+        marginBottom: 3,
+    },
+
     passengerName: {
         fontFamily: 'GoogleSans-Medium',
         fontSize: 13.5,
@@ -855,8 +911,22 @@ const styles = StyleSheet.create({
         includeFontPadding: false,
         color: colors.textPrimary,
         letterSpacing: 0.1,
+    },
 
-        marginBottom: 4,
+    tripIdBadge: {
+        fontFamily: 'GoogleSans-Medium',
+        fontSize: 11,
+        lineHeight: 14,
+        includeFontPadding: false,
+        color: colors.textLight,
+    },
+
+    emergencyTypeText: {
+        fontFamily: 'GoogleSans-Medium',
+        fontSize: 11.5,
+        lineHeight: 15,
+        includeFontPadding: false,
+        color: colors.danger,
     },
 
     tripDetailsRow: {
@@ -897,9 +967,10 @@ const styles = StyleSheet.create({
     // =====================================================
 
     tripRight: {
-        minWidth: 80,
+        minWidth: 72,
 
         alignItems: 'flex-end',
+        justifyContent: 'center',
     },
 
     tripTime: {
@@ -908,16 +979,6 @@ const styles = StyleSheet.create({
         lineHeight: 14,
         includeFontPadding: false,
         color: colors.textLight,
-
-        marginBottom: 3,
-    },
-
-    amount: {
-        fontFamily: 'GoogleSans-Bold',
-        fontSize: 14.5,
-        lineHeight: 18,
-        includeFontPadding: false,
-        color: colors.textPrimary,
 
         marginBottom: 4,
     },
@@ -931,6 +992,14 @@ const styles = StyleSheet.create({
 
     acceptedPill: {
         backgroundColor: colors.successLight,
+    },
+
+    assignedPill: {
+        backgroundColor: colors.warningLight,
+    },
+
+    dispatchedPill: {
+        backgroundColor: colors.infoLight,
     },
 
     rejectedPill: {
@@ -947,6 +1016,14 @@ const styles = StyleSheet.create({
 
     acceptedStatus: {
         color: colors.successDark,
+    },
+
+    assignedStatus: {
+        color: colors.warning,
+    },
+
+    dispatchedStatus: {
+        color: colors.primary,
     },
 
     rejectedStatus: {

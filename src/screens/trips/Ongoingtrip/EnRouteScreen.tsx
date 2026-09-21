@@ -669,8 +669,8 @@ const EnRouteScreen = () => {
           provider={Platform.OS === 'android' ? PROVIDER_GOOGLE : PROVIDER_DEFAULT}
           initialRegion={initialRegion}
           mapType={mapType}
-          showsUserLocation={true}
-          showsMyLocationButton={true}
+          showsUserLocation={false}
+          showsMyLocationButton={false}
           showsCompass={true}
           showsScale={true}
           loadingEnabled={true}
@@ -939,22 +939,12 @@ const EnRouteScreen = () => {
       <View style={styles.bottomContainer}>
         <View style={styles.bottomButtonsRow}>
           <Button
-            title={isNavigating ? "Navigating..." : "Start Navigation"}
-            onPress={() => {
-              const nextState = !isNavigating;
-              setIsNavigating(nextState);
-              if (nextState && (ambulanceLocation || hospitalLocation)) {
-                mapRef.current?.animateCamera({
-                  center: ambulanceLocation || hospitalLocation,
-                  pitch: 45,
-                  heading: ambulanceHeading,
-                  zoom: 17,
-                });
-              }
-            }}
-            icon={isNavigating ? "navigation" : "navigation-variant"}
-            variant={isNavigating ? "secondary" : "primary"}
+            title="Navigating"
+            onPress={() => {}}
+            icon="navigation"
+            variant="secondary"
             style={styles.startButton}
+            disabled={true}
           />
 
           <Button

@@ -84,6 +84,7 @@ const RootNavigator = () => {
                     setTimeout(() => {
                         navigate('IncomingRequests', {
                             requestData: pending,
+                            showCircularAlert: false,
                         });
                     }, 600);
                 }
