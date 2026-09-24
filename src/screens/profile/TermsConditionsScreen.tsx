@@ -3,9 +3,7 @@ import {
     ScrollView,
     StyleSheet,
     Text,
-    TouchableOpacity,
     View,
-    Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -119,10 +117,6 @@ const TERMS_SECTIONS: TermsSection[] = [
 ];
 
 const TermsConditionsScreen = () => {
-    const handleCallHelpline = () => {
-        Linking.openURL('tel:+918012345678');
-    };
-
     return (
         <SafeAreaView style={styles.container} edges={['top']}>
             {/* Header */}
@@ -202,39 +196,6 @@ const TermsConditionsScreen = () => {
                         )}
                     </View>
                 ))}
-
-                {/* Emergency Contact Card */}
-                <View style={styles.emergencyCard}>
-                    <View style={styles.emergencyLeft}>
-                        <View style={styles.emergencyIconCircle}>
-                            <AppIcon
-                                family="material"
-                                name="phone-classic"
-                                size={22}
-                                color={colors.primary}
-                            />
-                        </View>
-                        <View style={styles.emergencyTextWrap}>
-                            <Text style={styles.emergencyTitle}>24x7 Operations Support</Text>
-                            <Text style={styles.emergencyNumber}>+91 80 1234 5678</Text>
-                            <Text style={styles.emergencySub}>For dispatch, route, or safety assistance</Text>
-                        </View>
-                    </View>
-
-                    <TouchableOpacity
-                        style={styles.callNowButton}
-                        onPress={handleCallHelpline}
-                        activeOpacity={0.8}
-                    >
-                        <AppIcon
-                            family="material"
-                            name="phone"
-                            size={16}
-                            color="#FFFFFF"
-                        />
-                        <Text style={styles.callNowText}>Call Now</Text>
-                    </TouchableOpacity>
-                </View>
 
                 {/* Footer copyright */}
                 <View style={styles.footerContainer}>
@@ -380,76 +341,7 @@ const styles = StyleSheet.create({
         lineHeight: 19,
         color: colors.textPrimary,
     },
-    emergencyCard: {
-        backgroundColor: '#FFFFFF',
-        borderRadius: 18,
-        padding: 16,
-        marginTop: 6,
-        marginBottom: 16,
-        borderWidth: 1.5,
-        borderColor: colors.primaryLight,
-        shadowColor: colors.primary,
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.08,
-        shadowRadius: 12,
-        elevation: 3,
-    },
-    emergencyLeft: {
-        flexDirection: 'row',
-        alignItems: 'flex-start',
-        gap: 12,
-        marginBottom: 14,
-    },
-    emergencyIconCircle: {
-        width: 44,
-        height: 44,
-        borderRadius: 22,
-        backgroundColor: colors.primaryLight,
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    emergencyTextWrap: {
-        flex: 1,
-    },
-    emergencyTitle: {
-        fontFamily: typography.fontFamily.bold,
-        fontSize: 15,
-        fontWeight: '700',
-        color: colors.textPrimary,
-        marginBottom: 2,
-    },
-    emergencyNumber: {
-        fontFamily: typography.fontFamily.bold,
-        fontSize: 16,
-        fontWeight: '800',
-        color: colors.primary,
-        marginBottom: 2,
-    },
-    emergencySub: {
-        fontFamily: typography.fontFamily.regular,
-        fontSize: 12,
-        color: colors.textSecondary,
-    },
-    callNowButton: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: 8,
-        backgroundColor: colors.primary,
-        paddingVertical: 11,
-        borderRadius: 12,
-        shadowColor: colors.primary,
-        shadowOffset: { width: 0, height: 3 },
-        shadowOpacity: 0.2,
-        shadowRadius: 6,
-        elevation: 2,
-    },
-    callNowText: {
-        fontFamily: typography.fontFamily.bold,
-        fontSize: 14,
-        fontWeight: '700',
-        color: '#FFFFFF',
-    },
+
     footerContainer: {
         alignItems: 'center',
         paddingVertical: 12,

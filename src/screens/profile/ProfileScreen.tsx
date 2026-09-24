@@ -19,6 +19,7 @@ import { resetToLogin } from '../../utils/navigationRef';
 import { updateDriverOnlineStatus, getDriverApi, DriverProfileData } from '../../api';
 import { STORAGE_KEYS } from '../../storage/storageKeys';
 import { unsubscribeFromTopic } from '../../services/notificationService';
+import { getProfileImageUrl, normalizeDriverProfile } from '../../utils/imageUtils';
 
 import {
     colors,
@@ -61,41 +62,33 @@ const ProfileScreen = () => {
         const body = res?.data !== undefined ? res.data : res;
         if (!body) return null;
 
+        let rawDriver: any = null;
         if (Array.isArray(body)) {
-            return body.length > 0 ? body[0] : null;
-        }
-        if (Array.isArray(body.data)) {
-            return body.data.length > 0 ? body.data[0] : null;
-        }
-        if (body.data && typeof body.data === 'object' && !Array.isArray(body.data)) {
-            return body.data;
-        }
-        if (Array.isArray(body.result)) {
-            return body.result.length > 0 ? body.result[0] : null;
-        }
-        if (body.result && typeof body.result === 'object' && !Array.isArray(body.result)) {
-            return body.result;
-        }
-        if (Array.isArray(body.drivers)) {
-            return body.drivers.length > 0 ? body.drivers[0] : null;
-        }
-        if (body.driver && typeof body.driver === 'object' && !Array.isArray(body.driver)) {
-            return body.driver;
-        }
-        if (Array.isArray(body.records)) {
-            return body.records.length > 0 ? body.records[0] : null;
-        }
-        if (Array.isArray(body.rows)) {
-            return body.rows.length > 0 ? body.rows[0] : null;
-        }
-        if (
+            rawDriver = body.length > 0 ? body[0] : null;
+        } else if (Array.isArray(body.data)) {
+            rawDriver = body.data.length > 0 ? body.data[0] : null;
+        } else if (body.data && typeof body.data === 'object' && !Array.isArray(body.data)) {
+            rawDriver = body.data;
+        } else if (Array.isArray(body.result)) {
+            rawDriver = body.result.length > 0 ? body.result[0] : null;
+        } else if (body.result && typeof body.result === 'object' && !Array.isArray(body.result)) {
+            rawDriver = body.result;
+        } else if (Array.isArray(body.drivers)) {
+            rawDriver = body.drivers.length > 0 ? body.drivers[0] : null;
+        } else if (body.driver && typeof body.driver === 'object' && !Array.isArray(body.driver)) {
+            rawDriver = body.driver;
+        } else if (Array.isArray(body.records)) {
+            rawDriver = body.records.length > 0 ? body.records[0] : null;
+        } else if (Array.isArray(body.rows)) {
+            rawDriver = body.rows.length > 0 ? body.rows[0] : null;
+        } else if (
             typeof body === 'object' &&
             !Array.isArray(body) &&
             (body.name || body.driver_name || body.full_name || body.mobile_no || body.mobile_number || body.phone || body.vehicle_no)
         ) {
-            return body;
+            rawDriver = body;
         }
-        return null;
+        return rawDriver ? normalizeDriverProfile(rawDriver) : null;
     };
 
     const fetchDriverProfile = useCallback(async (isPullToRefresh = false) => {
@@ -207,22 +200,22 @@ const ProfileScreen = () => {
             onPress: () => navigation.navigate('VehicleDocument', { driverProfile }),
         },
         {
-            title: 'Settings',
-            subtitle: 'Manage app preferences',
-            icon: 'settings-outline',
-            iconFamily: 'ionicons',
+            title: 'Privacy Policy',
+            subtitle: 'View privacy policy & data practices',
+            icon: 'shield-check-outline',
+            iconFamily: 'material',
             iconBg: colors.warningLight,
             iconColor: colors.warning,
-            onPress: () => navigation.navigate('Settings'),
+            onPress: () => navigation.navigate('PrivacyPolicy'),
         },
         {
-            title: 'Help & Support',
-            subtitle: 'Get help or contact support',
-            icon: 'help-circle-outline',
-            iconFamily: 'ionicons',
+            title: 'Terms & Conditions',
+            subtitle: 'View driver terms & service conditions',
+            icon: 'file-document-outline',
+            iconFamily: 'material',
             iconBg: colors.successLight,
             iconColor: colors.successDark,
-            onPress: () => navigation.navigate('Help'),
+            onPress: () => navigation.navigate('TermsConditions'),
         },
     ];
 
@@ -260,7 +253,7 @@ const ProfileScreen = () => {
                             <View style={styles.profileImageRing}>
                                 <View style={styles.profileImageContainer}>
                                     {(() => {
-                                        const avatarUri =
+                                        const rawAvatar =
                                             driverProfile?.profile_image_url ||
                                             driverProfile?.profile_image ||
                                             driverProfile?.profile_photo ||
@@ -272,6 +265,8 @@ const ProfileScreen = () => {
                                             driverProfile?.image_url ||
                                             driverProfile?.photo_url ||
                                             null;
+
+                                        const avatarUri = getProfileImageUrl(rawAvatar);
 
                                         return avatarUri ? (
                                             <Image
@@ -473,7 +468,7 @@ const styles = StyleSheet.create({
 
     container: {
         flex: 1,
-         backgroundColor: colors.background,
+        backgroundColor: colors.background,
     },
 
     scrollContent: {

@@ -5,6 +5,7 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  TouchableOpacity,
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -14,11 +15,20 @@ import { colors, typography, shadows } from '../../theme';
 import { AppIcon } from '../../icons';
 import Header from '../../components/Header/Header';
 import { VehicleDocumentsSkeleton } from '../../components/Skeleton';
+import { ImageViewerModal } from '../../components';
 import { ProfileStackParamList } from '../../Navigation/stacks/Profilestack';
 import { getDriverApi, DriverProfileData } from '../../api';
 import { storage } from '../../storage/storage';
 import { STORAGE_KEYS } from '../../storage/storageKeys';
 import { useAppSelector } from '../../redux/hook';
+import {
+  getVehicleImageUrl,
+  getDrivingLicenseImageUrl,
+  getInsuranceImageUrl,
+  getPollutionCertificateImageUrl,
+  getRcBookImageUrl,
+  normalizeDriverProfile,
+} from '../../utils/imageUtils';
 
 interface DocumentItem {
   title: string;
@@ -39,47 +49,44 @@ const VehicleDocumentsScreen = () => {
   );
   const [isLoading, setIsLoading] = useState(!route.params?.driverProfile);
   const [refreshing, setRefreshing] = useState(false);
+  const [selectedImage, setSelectedImage] = useState<{
+    uri: string;
+    title: string;
+    subtitle?: string;
+  } | null>(null);
 
   const extractDriverFromResponse = (res: any): DriverProfileData | null => {
     if (!res) return null;
     const body = res?.data !== undefined ? res.data : res;
     if (!body) return null;
 
+    let rawDriver: any = null;
     if (Array.isArray(body)) {
-      return body.length > 0 ? body[0] : null;
-    }
-    if (Array.isArray(body.data)) {
-      return body.data.length > 0 ? body.data[0] : null;
-    }
-    if (body.data && typeof body.data === 'object' && !Array.isArray(body.data)) {
-      return body.data;
-    }
-    if (Array.isArray(body.result)) {
-      return body.result.length > 0 ? body.result[0] : null;
-    }
-    if (body.result && typeof body.result === 'object' && !Array.isArray(body.result)) {
-      return body.result;
-    }
-    if (Array.isArray(body.drivers)) {
-      return body.drivers.length > 0 ? body.drivers[0] : null;
-    }
-    if (body.driver && typeof body.driver === 'object' && !Array.isArray(body.driver)) {
-      return body.driver;
-    }
-    if (Array.isArray(body.records)) {
-      return body.records.length > 0 ? body.records[0] : null;
-    }
-    if (Array.isArray(body.rows)) {
-      return body.rows.length > 0 ? body.rows[0] : null;
-    }
-    if (
+      rawDriver = body.length > 0 ? body[0] : null;
+    } else if (Array.isArray(body.data)) {
+      rawDriver = body.data.length > 0 ? body.data[0] : null;
+    } else if (body.data && typeof body.data === 'object' && !Array.isArray(body.data)) {
+      rawDriver = body.data;
+    } else if (Array.isArray(body.result)) {
+      rawDriver = body.result.length > 0 ? body.result[0] : null;
+    } else if (body.result && typeof body.result === 'object' && !Array.isArray(body.result)) {
+      rawDriver = body.result;
+    } else if (Array.isArray(body.drivers)) {
+      rawDriver = body.drivers.length > 0 ? body.drivers[0] : null;
+    } else if (body.driver && typeof body.driver === 'object' && !Array.isArray(body.driver)) {
+      rawDriver = body.driver;
+    } else if (Array.isArray(body.records)) {
+      rawDriver = body.records.length > 0 ? body.records[0] : null;
+    } else if (Array.isArray(body.rows)) {
+      rawDriver = body.rows.length > 0 ? body.rows[0] : null;
+    } else if (
       typeof body === 'object' &&
       !Array.isArray(body) &&
       (body.name || body.driver_name || body.vehicle_number || body.vehicle_no)
     ) {
-      return body;
+      rawDriver = body;
     }
-    return null;
+    return rawDriver ? normalizeDriverProfile(rawDriver) : null;
   };
 
   const fetchDriverProfile = useCallback(async (isPullToRefresh = false) => {
@@ -171,36 +178,36 @@ const VehicleDocumentsScreen = () => {
       title: 'Driving License',
       subtitle: driverProfile?.driving_license_status?.toLowerCase() === 'verified'
         ? 'Verified & Approved'
-        : (driverProfile?.driving_license_image_url ? 'Document Attached (Pending Verification)' : 'Verification Pending'),
+        : (driverProfile?.driving_license_image_url || driverProfile?.driving_license_image ? 'Document Attached (Pending Verification)' : 'Verification Pending'),
       status: formatStatus(driverProfile?.driving_license_status),
-      imageUrl: driverProfile?.driving_license_image_url || null,
+      imageUrl: getDrivingLicenseImageUrl(driverProfile?.driving_license_image_url || driverProfile?.driving_license_image),
       icon: 'card-account-details-outline',
     },
     {
       title: 'RC Book',
       subtitle: driverProfile?.rc_book_status?.toLowerCase() === 'verified'
         ? 'Verified & Approved'
-        : (driverProfile?.rc_book_image_url ? 'Document Attached (Pending Verification)' : 'Verification Pending'),
+        : (driverProfile?.rc_book_image_url || driverProfile?.rc_book_image ? 'Document Attached (Pending Verification)' : 'Verification Pending'),
       status: formatStatus(driverProfile?.rc_book_status),
-      imageUrl: driverProfile?.rc_book_image_url || null,
+      imageUrl: getRcBookImageUrl(driverProfile?.rc_book_image_url || driverProfile?.rc_book_image),
       icon: 'file-document-outline',
     },
     {
       title: 'Insurance',
       subtitle: driverProfile?.insurance_status?.toLowerCase() === 'verified'
         ? 'Valid & Verified'
-        : (driverProfile?.insurance_image_url ? 'Document Attached (Pending Verification)' : 'Verification Pending'),
+        : (driverProfile?.insurance_image_url || driverProfile?.insurance_image ? 'Document Attached (Pending Verification)' : 'Verification Pending'),
       status: formatStatus(driverProfile?.insurance_status),
-      imageUrl: driverProfile?.insurance_image_url || null,
+      imageUrl: getInsuranceImageUrl(driverProfile?.insurance_image_url || driverProfile?.insurance_image),
       icon: 'shield-check-outline',
     },
     {
       title: 'Pollution Certificate',
       subtitle: driverProfile?.pollution_certificate_status?.toLowerCase() === 'verified'
         ? 'Valid & Verified'
-        : (driverProfile?.pollution_certificate_image_url ? 'Document Attached (Pending Verification)' : 'Verification Pending'),
+        : (driverProfile?.pollution_certificate_image_url || driverProfile?.pollution_certificate_image ? 'Document Attached (Pending Verification)' : 'Verification Pending'),
       status: formatStatus(driverProfile?.pollution_certificate_status),
-      imageUrl: driverProfile?.pollution_certificate_image_url || null,
+      imageUrl: getPollutionCertificateImageUrl(driverProfile?.pollution_certificate_image_url || driverProfile?.pollution_certificate_image),
       icon: 'leaf',
     },
   ];
@@ -279,24 +286,57 @@ const VehicleDocumentsScreen = () => {
                 ) : null}
               </View>
 
-              <View style={styles.vehicleImageContainer}>
-                {driverProfile?.vehicle_image_url ? (
-                  <Image
-                    source={{
-                      uri: driverProfile.vehicle_image_url,
+              {(() => {
+                const vehicleUri = getVehicleImageUrl(
+                  driverProfile?.vehicle_image_url || driverProfile?.vehicle_image
+                );
+                return (
+                  <TouchableOpacity
+                    style={styles.vehicleImageContainer}
+                    activeOpacity={vehicleUri ? 0.75 : 1}
+                    disabled={!vehicleUri}
+                    onPress={() => {
+                      if (vehicleUri) {
+                        setSelectedImage({
+                          uri: vehicleUri,
+                          title: driverProfile?.vehicle_name || 'Vehicle Photo',
+                          subtitle:
+                            driverProfile?.vehicle_number ||
+                            driverProfile?.vehicle_no ||
+                            'Ambulance Emergency Vehicle',
+                        });
+                      }
                     }}
-                    style={styles.vehicleImage}
-                    resizeMode="cover"
-                  />
-                ) : (
-                  <AppIcon
-                    family="material"
-                    name="ambulance"
-                    size={40}
-                    color={colors.primary}
-                  />
-                )}
-              </View>
+                  >
+                    {vehicleUri ? (
+                      <>
+                        <Image
+                          source={{
+                            uri: vehicleUri,
+                          }}
+                          style={styles.vehicleImage}
+                          resizeMode="cover"
+                        />
+                        <View style={styles.imageZoomBadge}>
+                          <AppIcon
+                            family="material"
+                            name="magnify-plus-outline"
+                            size={13}
+                            color="#FFFFFF"
+                          />
+                        </View>
+                      </>
+                    ) : (
+                      <AppIcon
+                        family="material"
+                        name="ambulance"
+                        size={40}
+                        color={colors.primary}
+                      />
+                    )}
+                  </TouchableOpacity>
+                );
+              })()}
             </View>
 
             {/* ================= DOCUMENTS ================= */}
@@ -310,8 +350,19 @@ const VehicleDocumentsScreen = () => {
                 const statusColors = getStatusColors(document.status);
 
                 return (
-                  <View
+                  <TouchableOpacity
                     key={document.title}
+                    activeOpacity={document.imageUrl ? 0.7 : 1}
+                    disabled={!document.imageUrl}
+                    onPress={() => {
+                      if (document.imageUrl) {
+                        setSelectedImage({
+                          uri: document.imageUrl,
+                          title: document.title,
+                          subtitle: document.subtitle || `Status: ${document.status}`,
+                        });
+                      }
+                    }}
                     style={[
                       styles.documentRow,
                       index === documents.length - 1 && styles.lastDocumentRow,
@@ -321,11 +372,21 @@ const VehicleDocumentsScreen = () => {
 
                     <View style={styles.documentIcon}>
                       {document.imageUrl ? (
-                        <Image
-                          source={{ uri: document.imageUrl }}
-                          style={styles.documentThumbnail}
-                          resizeMode="cover"
-                        />
+                        <View style={styles.thumbnailWrapper}>
+                          <Image
+                            source={{ uri: document.imageUrl }}
+                            style={styles.documentThumbnail}
+                            resizeMode="cover"
+                          />
+                          <View style={styles.thumbnailZoomBadge}>
+                            <AppIcon
+                              family="material"
+                              name="eye-outline"
+                              size={10}
+                              color="#FFFFFF"
+                            />
+                          </View>
+                        </View>
                       ) : (
                         <AppIcon
                           family="material"
@@ -375,13 +436,22 @@ const VehicleDocumentsScreen = () => {
                         {document.status}
                       </Text>
                     </View>
-                  </View>
+                  </TouchableOpacity>
                 );
               })}
             </View>
           </>
         )}
       </ScrollView>
+
+      {/* ================= IMAGE VIEWER MODAL ================= */}
+      <ImageViewerModal
+        visible={Boolean(selectedImage)}
+        imageUrl={selectedImage?.uri}
+        title={selectedImage?.title}
+        subtitle={selectedImage?.subtitle}
+        onClose={() => setSelectedImage(null)}
+      />
     </SafeAreaView>
   );
 };
@@ -395,7 +465,7 @@ const styles = StyleSheet.create({
 
   container: {
     flex: 1,
-     backgroundColor: colors.background,
+    backgroundColor: colors.background,
   },
 
   scrollContent: {
@@ -478,6 +548,19 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
 
     overflow: 'hidden',
+    position: 'relative',
+  },
+
+  imageZoomBadge: {
+    position: 'absolute',
+    bottom: 5,
+    right: 5,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: 'rgba(0, 0, 0, 0.55)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 
   vehicleImage: {
@@ -628,5 +711,25 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
     borderRadius: 12,
+  },
+
+  thumbnailWrapper: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 12,
+    overflow: 'hidden',
+    position: 'relative',
+  },
+
+  thumbnailZoomBadge: {
+    position: 'absolute',
+    bottom: 2,
+    right: 2,
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });

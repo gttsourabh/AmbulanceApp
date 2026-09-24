@@ -7,3 +7,5 @@ export { default as DateRangePickerModal } from './DateRangePickerModal';
 export * from './DateRangePickerModal';
 export { default as PermissionModal } from './Modal/PermissionModal';
 export * from './Modal/PermissionModal';
+export { default as ImageViewerModal } from './Modal/ImageViewerModal';
+export * from './Modal/ImageViewerModal';

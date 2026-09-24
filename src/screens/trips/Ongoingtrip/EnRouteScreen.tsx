@@ -644,21 +644,6 @@ const EnRouteScreen = () => {
             </View>
           </View>
         </View>
-
-        {patientPhone ? (
-          <TouchableOpacity
-            style={styles.patientCallButton}
-            onPress={handleCallPatient}
-            activeOpacity={0.7}
-          >
-            <AppIcon
-              family="material"
-              name="phone"
-              size={16}
-              color={colors.white}
-            />
-          </TouchableOpacity>
-        ) : null}
       </View>
 
       {/* MAP AREA */}

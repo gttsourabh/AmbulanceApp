@@ -1,10 +1,12 @@
 import axios from 'axios';
 import { store } from '../redux/store';
 
+// export const API_BASE_URL = 'https://6mcr9zjh-8867.inc1.devtunnels.ms'; // bahubali sir
+// export const API_BASE_URL = 'https://98769p8r-8867.inc1.devtunnels.ms'; // pranali madam
+export const API_BASE_URL = 'https://arvaya.uvtechsoft.com:7001';
+
 const axiosInstance = axios.create({
-    baseURL: 'https://6mcr9zjh-8867.inc1.devtunnels.ms', //bahubali sir 
-    // baseURL: 'https://98769p8r-8867.inc1.devtunnels.ms',  // pranali madam
-    // baseURL: 'https://arvaya.uvtechsoft.com:7001',
+    baseURL: API_BASE_URL,
     timeout: 15000,  //Automatically inject Bearer token from Redux auth state
 
     headers: {

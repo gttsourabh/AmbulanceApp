@@ -37,6 +37,7 @@ import {
 } from '../../api';
 import { storage } from '../../storage/storage';
 import { STORAGE_KEYS } from '../../storage/storageKeys';
+import { getProfileImageUrl } from '../../utils/imageUtils';
 
 const getGreetingText = () => {
     const hours = new Date().getHours();
@@ -407,325 +408,327 @@ const HomeScreen = () => {
                 ) : (
                     <>
                         <View style={styles.greetingSection}>
-                    <View style={styles.greetingContent}>
-                        <Text style={styles.greeting}>
-                            {getGreetingText()},
-                        </Text>
+                            <View style={styles.greetingContent}>
+                                <Text style={styles.greeting}>
+                                    {getGreetingText()},
+                                </Text>
 
-                        <Text style={styles.userName} numberOfLines={1}>
-                            {driverProfile?.name || driverProfile?.driver_name || ''}
-                        </Text>
-                    </View>
-
-                    <TouchableOpacity
-                        activeOpacity={0.7}
-                        onPress={() => navigation.navigate('Profile')}
-                        style={styles.profileAvatar}
-                    >
-                        {(() => {
-                            const avatarUri =
-                                driverProfile?.profile_image_url ||
-                                driverProfile?.profile_image ||
-                                driverProfile?.profile_photo ||
-                                driverProfile?.photo ||
-                                driverProfile?.image ||
-                                null;
-
-                            return avatarUri ? (
-                                <Image
-                                    source={{ uri: avatarUri }}
-                                    style={styles.avatarImage}
-                                    resizeMode="cover"
-                                />
-                            ) : (
-                                <AppIcon
-                                    family="material"
-                                    name="account"
-                                    size={26}
-                                    color={colors.primary}
-                                />
-                            );
-                        })()}
-                    </TouchableOpacity>
-                </View>
-
-                <View style={styles.emergencyCardOuterWrapper}>
-                    <TouchableOpacity
-                        activeOpacity={0.9}
-                        onPress={() => {
-                            if (!isOnline) {
-                                handleToggleOnline(true);
-                            }
-                        }}
-                        style={styles.emergencyCardContainer}
-                    >
-                        <ImageBackground
-                            source={require('../../assets/images/waiting_for_bg.jpg')}
-                            style={styles.emergencyCardBg}
-                            imageStyle={styles.emergencyCardBgImage}
-                            resizeMode="cover"
-                        >
-                            <View style={styles.cardContentRow}>
-                                <View style={styles.statusTextContainer}>
-                                    <Text style={styles.statusSubtitleText}>
-                                        {isOnline ? 'Waiting for new' : 'You are currently'}
-                                    </Text>
-                                    <Text style={styles.statusTitleText}>
-                                        {isOnline ? 'Emergency Request' : 'Offline'}
-                                    </Text>
-                                    {!isOnline && (
-                                        <Text style={styles.statusTapHint}>
-                                            Tap to go Online
-                                        </Text>
-                                    )}
-                                </View>
-
-                                <View style={styles.ambulancePlaceholder} />
+                                <Text style={styles.userName} numberOfLines={1}>
+                                    {driverProfile?.name || driverProfile?.driver_name || ''}
+                                </Text>
                             </View>
 
-                            {!isOnline && (
-                                <View style={styles.offlineOverlay}>
-                                    <View style={styles.offlinePill}>
-                                        <View style={styles.offlineDot} />
-                                        <Text style={styles.offlinePillText}>
-                                            OFFLINE
+                            <TouchableOpacity
+                                activeOpacity={0.7}
+                                onPress={() => navigation.navigate('Profile')}
+                                style={styles.profileAvatar}
+                            >
+                                {(() => {
+                                    const rawAvatar =
+                                        driverProfile?.profile_image_url ||
+                                        driverProfile?.profile_image ||
+                                        driverProfile?.profile_photo ||
+                                        driverProfile?.photo ||
+                                        driverProfile?.image ||
+                                        null;
+
+                                    const avatarUri = getProfileImageUrl(rawAvatar);
+
+                                    return avatarUri ? (
+                                        <Image
+                                            source={{ uri: avatarUri }}
+                                            style={styles.avatarImage}
+                                            resizeMode="cover"
+                                        />
+                                    ) : (
+                                        <AppIcon
+                                            family="material"
+                                            name="account"
+                                            size={26}
+                                            color={colors.primary}
+                                        />
+                                    );
+                                })()}
+                            </TouchableOpacity>
+                        </View>
+
+                        <View style={styles.emergencyCardOuterWrapper}>
+                            <TouchableOpacity
+                                activeOpacity={0.9}
+                                onPress={() => {
+                                    if (!isOnline) {
+                                        handleToggleOnline(true);
+                                    }
+                                }}
+                                style={styles.emergencyCardContainer}
+                            >
+                                <ImageBackground
+                                    source={require('../../assets/images/waiting_for_bg.jpg')}
+                                    style={styles.emergencyCardBg}
+                                    imageStyle={styles.emergencyCardBgImage}
+                                    resizeMode="cover"
+                                >
+                                    <View style={styles.cardContentRow}>
+                                        <View style={styles.statusTextContainer}>
+                                            <Text style={styles.statusSubtitleText}>
+                                                {isOnline ? 'Waiting for new' : 'You are currently'}
+                                            </Text>
+                                            <Text style={styles.statusTitleText}>
+                                                {isOnline ? 'Emergency Request' : 'Offline'}
+                                            </Text>
+                                            {!isOnline && (
+                                                <Text style={styles.statusTapHint}>
+                                                    Tap to go Online
+                                                </Text>
+                                            )}
+                                        </View>
+
+                                        <View style={styles.ambulancePlaceholder} />
+                                    </View>
+
+                                    {!isOnline && (
+                                        <View style={styles.offlineOverlay}>
+                                            <View style={styles.offlinePill}>
+                                                <View style={styles.offlineDot} />
+                                                <Text style={styles.offlinePillText}>
+                                                    OFFLINE
+                                                </Text>
+                                            </View>
+                                            <Text style={styles.offlinePrompt}>
+                                                Tap to Go Online
+                                            </Text>
+                                        </View>
+                                    )}
+                                </ImageBackground>
+                            </TouchableOpacity>
+
+                            <Image
+                                source={require('../../assets/images/ambulnace3d-removebg-preview.png')}
+                                style={[
+                                    styles.statusCardAmbulancePopOut,
+                                    !isOnline && styles.statusCardAmbulanceOffline,
+                                ]}
+                                resizeMode="contain"
+                            />
+                        </View>
+
+                        <View style={styles.overviewSection}>
+                            <Text style={styles.sectionTitle}>
+                                Today's Overview
+                            </Text>
+
+                            <View style={styles.overviewCard}>
+                                {/* 1. Total Trips */}
+                                <View style={styles.overviewRow}>
+                                    <View style={styles.rowLeft}>
+                                        <View
+                                            style={[
+                                                styles.iconBox,
+                                                {
+                                                    backgroundColor: colors.primaryLight,
+                                                },
+                                            ]}
+                                        >
+                                            <AppIcon
+                                                family="material"
+                                                name="format-list-bulleted"
+                                                size={18}
+                                                color={colors.primary}
+                                            />
+                                        </View>
+
+                                        <Text style={styles.rowLabel}>
+                                            Total Trips
                                         </Text>
                                     </View>
-                                    <Text style={styles.offlinePrompt}>
-                                        Tap to Go Online
+
+                                    <Text style={styles.rowValue}>
+                                        {String(overviewData.total_count).padStart(2, '0')}
                                     </Text>
                                 </View>
-                            )}
-                        </ImageBackground>
-                    </TouchableOpacity>
 
-                    <Image
-                        source={require('../../assets/images/ambulnace3d-removebg-preview.png')}
-                        style={[
-                            styles.statusCardAmbulancePopOut,
-                            !isOnline && styles.statusCardAmbulanceOffline,
-                        ]}
-                        resizeMode="contain"
-                    />
-                </View>
+                                {/* 2. Assigned Trips */}
+                                <View style={styles.overviewRow}>
+                                    <View style={styles.rowLeft}>
+                                        <View
+                                            style={[
+                                                styles.iconBox,
+                                                {
+                                                    backgroundColor: colors.warningLight,
+                                                },
+                                            ]}
+                                        >
+                                            <AppIcon
+                                                family="material"
+                                                name="clock-outline"
+                                                size={18}
+                                                color={colors.warning}
+                                            />
+                                        </View>
 
-                <View style={styles.overviewSection}>
-                    <Text style={styles.sectionTitle}>
-                        Today's Overview
-                    </Text>
+                                        <Text style={styles.rowLabel}>
+                                            Assigned
+                                        </Text>
+                                    </View>
 
-                    <View style={styles.overviewCard}>
-                        {/* 1. Total Trips */}
-                        <View style={styles.overviewRow}>
-                            <View style={styles.rowLeft}>
-                                <View
-                                    style={[
-                                        styles.iconBox,
-                                        {
-                                            backgroundColor: colors.primaryLight,
-                                        },
-                                    ]}
-                                >
-                                    <AppIcon
-                                        family="material"
-                                        name="format-list-bulleted"
-                                        size={18}
-                                        color={colors.primary}
-                                    />
+                                    <Text style={styles.rowValue}>
+                                        {String(overviewData.assigned_count).padStart(2, '0')}
+                                    </Text>
                                 </View>
 
-                                <Text style={styles.rowLabel}>
-                                    Total Trips
-                                </Text>
-                            </View>
-
-                            <Text style={styles.rowValue}>
-                                {String(overviewData.total_count).padStart(2, '0')}
-                            </Text>
-                        </View>
-
-                        {/* 2. Assigned Trips */}
-                        <View style={styles.overviewRow}>
-                            <View style={styles.rowLeft}>
+                                {/* 3. Completed Trips */}
                                 <View
                                     style={[
-                                        styles.iconBox,
-                                        {
-                                            backgroundColor: colors.warningLight,
-                                        },
+                                        styles.overviewRow,
+                                        styles.lastRow,
                                     ]}
                                 >
-                                    <AppIcon
-                                        family="material"
-                                        name="clock-outline"
-                                        size={18}
-                                        color={colors.warning}
-                                    />
+                                    <View style={styles.rowLeft}>
+                                        <View
+                                            style={[
+                                                styles.iconBox,
+                                                {
+                                                    backgroundColor: colors.successLight,
+                                                },
+                                            ]}
+                                        >
+                                            <AppIcon
+                                                family="material"
+                                                name="check-circle"
+                                                size={18}
+                                                color={colors.successDark}
+                                            />
+                                        </View>
+
+                                        <Text style={styles.rowLabel}>
+                                            Completed
+                                        </Text>
+                                    </View>
+
+                                    <Text style={styles.rowValue}>
+                                        {String(overviewData.completed_count).padStart(2, '0')}
+                                    </Text>
                                 </View>
-
-                                <Text style={styles.rowLabel}>
-                                    Assigned
-                                </Text>
                             </View>
-
-                            <Text style={styles.rowValue}>
-                                {String(overviewData.assigned_count).padStart(2, '0')}
-                            </Text>
                         </View>
 
-                        {/* 3. Completed Trips */}
-                        <View
-                            style={[
-                                styles.overviewRow,
-                                styles.lastRow,
-                            ]}
-                        >
-                            <View style={styles.rowLeft}>
-                                <View
-                                    style={[
-                                        styles.iconBox,
-                                        {
-                                            backgroundColor: colors.successLight,
-                                        },
-                                    ]}
-                                >
-                                    <AppIcon
-                                        family="material"
-                                        name="check-circle"
-                                        size={18}
-                                        color={colors.successDark}
-                                    />
-                                </View>
-
-                                <Text style={styles.rowLabel}>
-                                    Completed
-                                </Text>
-                            </View>
-
-                            <Text style={styles.rowValue}>
-                                {String(overviewData.completed_count).padStart(2, '0')}
-                            </Text>
-                        </View>
-                    </View>
-                </View>
-
-                {/* =====================================================
+                        {/* =====================================================
                     ACTIVE TRIP ONGOING SECTION (BELOW TODAY'S OVERVIEW)
                 ===================================================== */}
-                {activeTrip && (
-                    <View style={styles.activeTripSection}>
-                        <View style={styles.activeTripHeaderRow}>
-                            <View style={styles.liveIndicatorContainer}>
-                                <View style={styles.livePulseDot} />
-                                <Text style={styles.sectionTitle}>
-                                    Ongoing Active Trip
-                                </Text>
-                            </View>
-                            <View style={styles.activeStatusPill}>
-                                <Text style={styles.activeStatusPillText}>
-                                    {formatTripStatus(activeTrip.status)}
-                                </Text>
-                            </View>
-                        </View>
-
-                        <TouchableOpacity
-                            activeOpacity={0.92}
-                            onPress={handleResumeActiveTrip}
-                            style={styles.activeTripCard}
-                        >
-                            {/* Top Row: Emergency Type Badge & Request ID */}
-                            <View style={styles.activeTripTopRow}>
-                                <View style={styles.activeTripEmergencyBadge}>
-                                    <AppIcon
-                                        family="material"
-                                        name="ambulance"
-                                        size={14}
-                                        color="#DC2626"
-                                    />
-                                    <Text style={styles.activeTripEmergencyText} numberOfLines={1}>
-                                        {activeTrip.emergency_type || 'Emergency Trip'}
-                                    </Text>
-                                </View>
-                                <Text style={styles.activeTripIdText}>
-                                    #{activeTrip.id || activeTrip.request_id || ''}
-                                </Text>
-                            </View>
-
-                            {/* Patient Info Row (Without Call Button) */}
-                            <View style={styles.activeTripPatientRow}>
-                                <View style={styles.activeTripAvatar}>
-                                    <AppIcon
-                                        family="material"
-                                        name="account"
-                                        size={18}
-                                        color={colors.primary}
-                                    />
-                                </View>
-                                <View style={styles.activeTripPatientDetails}>
-                                    <Text style={styles.activeTripPatientName} numberOfLines={1}>
-                                        {activeTrip.patient_name || 'Emergency Patient'}
-                                    </Text>
-                                    {!!(activeTrip.requester_phone || activeTrip.contact_no) && (
-                                        <Text style={styles.activeTripPatientPhone}>
-                                            {activeTrip.requester_phone || activeTrip.contact_no}
+                        {activeTrip && (
+                            <View style={styles.activeTripSection}>
+                                <View style={styles.activeTripHeaderRow}>
+                                    <View style={styles.liveIndicatorContainer}>
+                                        <View style={styles.livePulseDot} />
+                                        <Text style={styles.sectionTitle}>
+                                            Ongoing Active Trip
                                         </Text>
-                                    )}
-                                </View>
-                            </View>
-
-                            {/* Compact Route Box */}
-                            <View style={styles.activeTripRouteBox}>
-                                <View style={styles.routeItemRow}>
-                                    <View style={styles.routeDotGreen} />
-                                    <View style={styles.routeTextCol}>
-                                        <Text style={styles.routeHeaderLabel}>PICKUP LOCATION</Text>
-                                        <Text style={styles.routeAddressText} numberOfLines={1}>
-                                            {activeTrip.pickup_address || activeTrip.address || 'Pickup Point'}
+                                    </View>
+                                    <View style={styles.activeStatusPill}>
+                                        <Text style={styles.activeStatusPillText}>
+                                            {formatTripStatus(activeTrip.status)}
                                         </Text>
                                     </View>
                                 </View>
 
-                                {(activeTrip.drop_address || activeTrip.destination) && (
-                                    <>
-                                        <View style={styles.routeDottedLine} />
+                                <TouchableOpacity
+                                    activeOpacity={0.92}
+                                    onPress={handleResumeActiveTrip}
+                                    style={styles.activeTripCard}
+                                >
+                                    {/* Top Row: Emergency Type Badge & Request ID */}
+                                    <View style={styles.activeTripTopRow}>
+                                        <View style={styles.activeTripEmergencyBadge}>
+                                            <AppIcon
+                                                family="material"
+                                                name="ambulance"
+                                                size={14}
+                                                color="#DC2626"
+                                            />
+                                            <Text style={styles.activeTripEmergencyText} numberOfLines={1}>
+                                                {activeTrip.emergency_type || 'Emergency Trip'}
+                                            </Text>
+                                        </View>
+                                        <Text style={styles.activeTripIdText}>
+                                            #{activeTrip.id || activeTrip.request_id || ''}
+                                        </Text>
+                                    </View>
+
+                                    {/* Patient Info Row (Without Call Button) */}
+                                    <View style={styles.activeTripPatientRow}>
+                                        <View style={styles.activeTripAvatar}>
+                                            <AppIcon
+                                                family="material"
+                                                name="account"
+                                                size={18}
+                                                color={colors.primary}
+                                            />
+                                        </View>
+                                        <View style={styles.activeTripPatientDetails}>
+                                            <Text style={styles.activeTripPatientName} numberOfLines={1}>
+                                                {activeTrip.patient_name || 'Emergency Patient'}
+                                            </Text>
+                                            {!!(activeTrip.requester_phone || activeTrip.contact_no) && (
+                                                <Text style={styles.activeTripPatientPhone}>
+                                                    {activeTrip.requester_phone || activeTrip.contact_no}
+                                                </Text>
+                                            )}
+                                        </View>
+                                    </View>
+
+                                    {/* Compact Route Box */}
+                                    <View style={styles.activeTripRouteBox}>
                                         <View style={styles.routeItemRow}>
-                                            <View style={styles.routeDotRed} />
+                                            <View style={styles.routeDotGreen} />
                                             <View style={styles.routeTextCol}>
-                                                <Text style={styles.routeHeaderLabel}>HOSPITAL / DESTINATION</Text>
+                                                <Text style={styles.routeHeaderLabel}>PICKUP LOCATION</Text>
                                                 <Text style={styles.routeAddressText} numberOfLines={1}>
-                                                    {activeTrip.drop_address || activeTrip.destination}
+                                                    {activeTrip.pickup_address || activeTrip.address || 'Pickup Point'}
                                                 </Text>
                                             </View>
                                         </View>
-                                    </>
-                                )}
-                            </View>
 
-                            {/* Compact Resume Navigation CTA Button */}
-                            <TouchableOpacity
-                                activeOpacity={0.85}
-                                onPress={handleResumeActiveTrip}
-                                style={styles.resumeTripBtn}
-                            >
-                                <AppIcon
-                                    family="material"
-                                    name="navigation"
-                                    size={15}
-                                    color="#FFFFFF"
-                                />
-                                <Text style={styles.resumeTripBtnText}>
-                                    Resume Trip & Navigation
-                                </Text>
-                                <AppIcon
-                                    family="feather"
-                                    name="arrow-right"
-                                    size={14}
-                                    color="#FFFFFF"
-                                />
-                            </TouchableOpacity>
-                        </TouchableOpacity>
-                    </View>
-                )}
+                                        {(activeTrip.drop_address || activeTrip.destination) && (
+                                            <>
+                                                <View style={styles.routeDottedLine} />
+                                                <View style={styles.routeItemRow}>
+                                                    <View style={styles.routeDotRed} />
+                                                    <View style={styles.routeTextCol}>
+                                                        <Text style={styles.routeHeaderLabel}>HOSPITAL / DESTINATION</Text>
+                                                        <Text style={styles.routeAddressText} numberOfLines={1}>
+                                                            {activeTrip.drop_address || activeTrip.destination}
+                                                        </Text>
+                                                    </View>
+                                                </View>
+                                            </>
+                                        )}
+                                    </View>
+
+                                    {/* Compact Resume Navigation CTA Button */}
+                                    <TouchableOpacity
+                                        activeOpacity={0.85}
+                                        onPress={handleResumeActiveTrip}
+                                        style={styles.resumeTripBtn}
+                                    >
+                                        <AppIcon
+                                            family="material"
+                                            name="navigation"
+                                            size={15}
+                                            color="#FFFFFF"
+                                        />
+                                        <Text style={styles.resumeTripBtnText}>
+                                            Resume Trip & Navigation
+                                        </Text>
+                                        <AppIcon
+                                            family="feather"
+                                            name="arrow-right"
+                                            size={14}
+                                            color="#FFFFFF"
+                                        />
+                                    </TouchableOpacity>
+                                </TouchableOpacity>
+                            </View>
+                        )}
                     </>
                 )}
             </ScrollView>

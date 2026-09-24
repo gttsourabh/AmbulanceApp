@@ -5,7 +5,6 @@ import {
     ScrollView,
     StyleSheet,
     Text,
-    TouchableOpacity,
     View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -20,6 +19,7 @@ import { ProfileStackParamList } from '../../Navigation/stacks/Profilestack';
 import { getDriverApi, DriverProfileData } from '../../api';
 import { storage } from '../../storage/storage';
 import { STORAGE_KEYS } from '../../storage/storageKeys';
+import { getProfileImageUrl, normalizeDriverProfile } from '../../utils/imageUtils';
 
 interface InfoItemProps {
     icon: string;
@@ -28,7 +28,6 @@ interface InfoItemProps {
     valueColor?: string;
     iconBg: string;
     iconColor: string;
-    onPress?: () => void;
 }
 
 type UserInfoRouteProp = RouteProp<ProfileStackParamList, 'UserInfo'>;
@@ -47,41 +46,33 @@ const UserInfo = () => {
         const body = res?.data !== undefined ? res.data : res;
         if (!body) return null;
 
+        let rawDriver: any = null;
         if (Array.isArray(body)) {
-            return body.length > 0 ? body[0] : null;
-        }
-        if (Array.isArray(body.data)) {
-            return body.data.length > 0 ? body.data[0] : null;
-        }
-        if (body.data && typeof body.data === 'object' && !Array.isArray(body.data)) {
-            return body.data;
-        }
-        if (Array.isArray(body.result)) {
-            return body.result.length > 0 ? body.result[0] : null;
-        }
-        if (body.result && typeof body.result === 'object' && !Array.isArray(body.result)) {
-            return body.result;
-        }
-        if (Array.isArray(body.drivers)) {
-            return body.drivers.length > 0 ? body.drivers[0] : null;
-        }
-        if (body.driver && typeof body.driver === 'object' && !Array.isArray(body.driver)) {
-            return body.driver;
-        }
-        if (Array.isArray(body.records)) {
-            return body.records.length > 0 ? body.records[0] : null;
-        }
-        if (Array.isArray(body.rows)) {
-            return body.rows.length > 0 ? body.rows[0] : null;
-        }
-        if (
+            rawDriver = body.length > 0 ? body[0] : null;
+        } else if (Array.isArray(body.data)) {
+            rawDriver = body.data.length > 0 ? body.data[0] : null;
+        } else if (body.data && typeof body.data === 'object' && !Array.isArray(body.data)) {
+            rawDriver = body.data;
+        } else if (Array.isArray(body.result)) {
+            rawDriver = body.result.length > 0 ? body.result[0] : null;
+        } else if (body.result && typeof body.result === 'object' && !Array.isArray(body.result)) {
+            rawDriver = body.result;
+        } else if (Array.isArray(body.drivers)) {
+            rawDriver = body.drivers.length > 0 ? body.drivers[0] : null;
+        } else if (body.driver && typeof body.driver === 'object' && !Array.isArray(body.driver)) {
+            rawDriver = body.driver;
+        } else if (Array.isArray(body.records)) {
+            rawDriver = body.records.length > 0 ? body.records[0] : null;
+        } else if (Array.isArray(body.rows)) {
+            rawDriver = body.rows.length > 0 ? body.rows[0] : null;
+        } else if (
             typeof body === 'object' &&
             !Array.isArray(body) &&
             (body.name || body.driver_name || body.full_name || body.mobile_no || body.mobile_number || body.phone || body.vehicle_no)
         ) {
-            return body;
+            rawDriver = body;
         }
-        return null;
+        return rawDriver ? normalizeDriverProfile(rawDriver) : null;
     };
 
     const fetchDriverProfile = useCallback(async (isPullToRefresh = false) => {
@@ -139,18 +130,6 @@ const UserInfo = () => {
         fetchDriverProfile(true);
     };
 
-    const handleVehicle = () => {
-        console.log('Vehicle Info');
-    };
-
-    const handleExperience = () => {
-        console.log('Experience');
-    };
-
-    const handleDocuments = () => {
-        console.log('Documents');
-    };
-
     const renderInfoItem = ({
         icon,
         title,
@@ -158,14 +137,9 @@ const UserInfo = () => {
         valueColor,
         iconBg,
         iconColor,
-        onPress,
     }: InfoItemProps) => {
         return (
-            <TouchableOpacity
-                activeOpacity={0.7}
-                style={styles.infoRow}
-                onPress={onPress}
-            >
+            <View style={styles.infoRow}>
                 {/* ICON */}
 
                 <View
@@ -202,18 +176,7 @@ const UserInfo = () => {
                         {value}
                     </Text>
                 </View>
-
-                {/* ARROW */}
-
-                <View style={styles.chevronContainer}>
-                    <AppIcon
-                        family="material"
-                        name="chevron-right"
-                        size={19}
-                        color={colors.textLight}
-                    />
-                </View>
-            </TouchableOpacity>
+            </View>
         );
     };
 
@@ -254,7 +217,7 @@ const UserInfo = () => {
 
                             <View style={styles.avatarContainer}>
                                 {(() => {
-                                    const avatarUri =
+                                    const rawAvatar =
                                         driverProfile?.profile_image_url ||
                                         driverProfile?.profile_image ||
                                         driverProfile?.profile_photo ||
@@ -266,6 +229,8 @@ const UserInfo = () => {
                                         driverProfile?.image_url ||
                                         driverProfile?.photo_url ||
                                         null;
+
+                                    const avatarUri = getProfileImageUrl(rawAvatar);
 
                                     return avatarUri ? (
                                         <Image
@@ -340,7 +305,6 @@ const UserInfo = () => {
                                 value: driverProfile?.vehicle_number || driverProfile?.vehicle_no || driverProfile?.ambulance_no || 'Not Assigned',
                                 iconBg: colors.primaryLight,
                                 iconColor: colors.primary,
-                                onPress: handleVehicle,
                             })}
 
                             <View style={styles.divider} />
@@ -353,7 +317,6 @@ const UserInfo = () => {
                                 value: driverProfile?.experience ? `${driverProfile.experience} Years` : '3 Years',
                                 iconBg: colors.warningLight,
                                 iconColor: colors.warning,
-                                onPress: handleExperience,
                             })}
 
                             <View style={styles.divider} />
@@ -375,7 +338,6 @@ const UserInfo = () => {
                                 iconColor: (driverProfile?.document_status?.toLowerCase() === 'verified' || driverProfile?.is_verified === 1 || driverProfile?.is_verified === true)
                                     ? colors.successDark
                                     : colors.warning,
-                                onPress: handleDocuments,
                             })}
 
                             {driverProfile?.email_id ? (
@@ -569,18 +531,6 @@ const styles = StyleSheet.create({
         lineHeight: 13,
         includeFontPadding: false,
         color: colors.textSecondary,
-    },
-
-    chevronContainer: {
-        width: 26,
-        height: 26,
-
-        borderRadius: 13,
-
-        alignItems: 'center',
-        justifyContent: 'center',
-
-        backgroundColor: colors.background,
     },
 
     // =====================================================
