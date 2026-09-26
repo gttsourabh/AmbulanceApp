@@ -11,7 +11,13 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AppIcon } from '../../icons';
 import { colors, typography } from '../../theme';
-import { Skeleton, TripCardSkeleton, DateRangePickerModal, formatDisplayDate } from '../../components';
+import {
+    Skeleton,
+    TripCardSkeleton,
+    DateRangePickerModal,
+    ExportTripModal,
+    formatDisplayDate,
+} from '../../components';
 import { useAppSelector } from '../../redux/hook';
 import {
     getAmbulanceRequestApi,
@@ -37,6 +43,12 @@ interface Trip {
     dateCategory: 'Today' | 'Yesterday' | 'Earlier';
     address?: string;
     emergencyType?: string;
+    phone?: string;
+    dropAddress?: string;
+    ambulanceNo?: string;
+    driverName?: string;
+    cancellationReason?: string;
+    createdAt?: string;
 }
 
 // Static mock trips commented out for dynamic API integration:
@@ -63,6 +75,7 @@ const TripsScreen = () => {
     const [startDate, setStartDate] = useState<string>(`${currentYear}-01-01`);
     const [endDate, setEndDate] = useState<string>(`${currentYear}-12-31`);
     const [isDatePickerVisible, setIsDatePickerVisible] = useState(false);
+    const [isExportModalVisible, setIsExportModalVisible] = useState(false);
     const [trips, setTrips] = useState<Trip[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
@@ -182,6 +195,12 @@ const TripsScreen = () => {
                         dateCategory,
                         address: item.pickup_address || '',
                         emergencyType: item.emergency_type ? item.emergency_type.trim() : '',
+                        phone: item.requester_phone || '--',
+                        dropAddress: item.drop_address || '--',
+                        ambulanceNo: item.ambulance_no || '--',
+                        driverName: item.driver_name || '--',
+                        cancellationReason: item.cancellation_reason || '--',
+                        createdAt: item.created_at || '',
                     };
                 });
 
@@ -375,6 +394,19 @@ const TripsScreen = () => {
                 </Text>
 
                 <View style={styles.headerRightButtons}>
+                    <TouchableOpacity
+                        activeOpacity={0.7}
+                        style={[styles.headerIconButton, styles.exportIconButton]}
+                        onPress={() => setIsExportModalVisible(true)}
+                    >
+                        <AppIcon
+                            family="material"
+                            name="file-excel-box"
+                            size={20}
+                            color="#107C41"
+                        />
+                    </TouchableOpacity>
+
                     <TouchableOpacity
                         activeOpacity={0.7}
                         style={styles.headerIconButton}
@@ -596,6 +628,15 @@ const TripsScreen = () => {
                 onClose={() => setIsDatePickerVisible(false)}
                 onApply={handleApplyDateRange}
             />
+
+            <ExportTripModal
+                visible={isExportModalVisible}
+                onClose={() => setIsExportModalVisible(false)}
+                currentTrips={trips}
+                startDate={startDate}
+                endDate={endDate}
+                onOpenDatePicker={() => setIsDatePickerVisible(true)}
+            />
         </SafeAreaView>
     );
 };
@@ -646,6 +687,12 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
         backgroundColor: colors.primaryLight,
+    },
+
+    exportIconButton: {
+        backgroundColor: '#E8F5E9',
+        borderWidth: 1,
+        borderColor: '#C8E6C9',
     },
 
     // =====================================================

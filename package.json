@@ -33,7 +33,8 @@
     "react-native-phone-input": "^1.4.1",
     "react-native-safe-area-context": "^5.8.1",
     "react-native-screens": "^4.25.2",
-    "react-redux": "^9.3.0"
+    "react-redux": "^9.3.0",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",

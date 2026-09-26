@@ -9,3 +9,6 @@ export { default as PermissionModal } from './Modal/PermissionModal';
 export * from './Modal/PermissionModal';
 export { default as ImageViewerModal } from './Modal/ImageViewerModal';
 export * from './Modal/ImageViewerModal';
+export { default as ExportTripModal } from './Modal/ExportTripModal';
+export * from './Modal/ExportTripModal';
+
