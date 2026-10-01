@@ -15,7 +15,7 @@ import { colors, typography, shadows } from '../../theme';
 import { AppIcon } from '../../icons';
 import Header from '../../components/Header/Header';
 import { VehicleDocumentsSkeleton } from '../../components/Skeleton';
-import { ImageViewerModal } from '../../components';
+import { ImageViewerModal, ShowImage, fetchImageBase64 } from '../../components';
 import { ProfileStackParamList } from '../../Navigation/stacks/Profilestack';
 import { getDriverApi, DriverProfileData } from '../../api';
 import { storage } from '../../storage/storage';
@@ -28,6 +28,7 @@ import {
   getPollutionCertificateImageUrl,
   getRcBookImageUrl,
   normalizeDriverProfile,
+  IMAGE_FOLDERS,
 } from '../../utils/imageUtils';
 
 interface DocumentItem {
@@ -35,6 +36,8 @@ interface DocumentItem {
   subtitle?: string;
   status: string;
   imageUrl?: string | null;
+  rawFilename?: string | null;
+  folderName: string;
   icon: string;
 }
 
@@ -50,7 +53,9 @@ const VehicleDocumentsScreen = () => {
   const [isLoading, setIsLoading] = useState(!route.params?.driverProfile);
   const [refreshing, setRefreshing] = useState(false);
   const [selectedImage, setSelectedImage] = useState<{
-    uri: string;
+    uri?: string | null;
+    filename?: string | null;
+    folderName?: string;
     title: string;
     subtitle?: string;
   } | null>(null);
@@ -181,6 +186,8 @@ const VehicleDocumentsScreen = () => {
         : (driverProfile?.driving_license_image_url || driverProfile?.driving_license_image ? 'Document Attached (Pending Verification)' : 'Verification Pending'),
       status: formatStatus(driverProfile?.driving_license_status),
       imageUrl: getDrivingLicenseImageUrl(driverProfile?.driving_license_image_url || driverProfile?.driving_license_image),
+      rawFilename: driverProfile?.driving_license_image_url || driverProfile?.driving_license_image,
+      folderName: IMAGE_FOLDERS.DRIVING_LICENSE,
       icon: 'card-account-details-outline',
     },
     {
@@ -190,6 +197,8 @@ const VehicleDocumentsScreen = () => {
         : (driverProfile?.rc_book_image_url || driverProfile?.rc_book_image ? 'Document Attached (Pending Verification)' : 'Verification Pending'),
       status: formatStatus(driverProfile?.rc_book_status),
       imageUrl: getRcBookImageUrl(driverProfile?.rc_book_image_url || driverProfile?.rc_book_image),
+      rawFilename: driverProfile?.rc_book_image_url || driverProfile?.rc_book_image,
+      folderName: IMAGE_FOLDERS.RC_BOOK,
       icon: 'file-document-outline',
     },
     {
@@ -199,6 +208,8 @@ const VehicleDocumentsScreen = () => {
         : (driverProfile?.insurance_image_url || driverProfile?.insurance_image ? 'Document Attached (Pending Verification)' : 'Verification Pending'),
       status: formatStatus(driverProfile?.insurance_status),
       imageUrl: getInsuranceImageUrl(driverProfile?.insurance_image_url || driverProfile?.insurance_image),
+      rawFilename: driverProfile?.insurance_image_url || driverProfile?.insurance_image,
+      folderName: IMAGE_FOLDERS.INSURANCE,
       icon: 'shield-check-outline',
     },
     {
@@ -208,6 +219,8 @@ const VehicleDocumentsScreen = () => {
         : (driverProfile?.pollution_certificate_image_url || driverProfile?.pollution_certificate_image ? 'Document Attached (Pending Verification)' : 'Verification Pending'),
       status: formatStatus(driverProfile?.pollution_certificate_status),
       imageUrl: getPollutionCertificateImageUrl(driverProfile?.pollution_certificate_image_url || driverProfile?.pollution_certificate_image),
+      rawFilename: driverProfile?.pollution_certificate_image_url || driverProfile?.pollution_certificate_image,
+      folderName: IMAGE_FOLDERS.POLLUTION_CERTIFICATE,
       icon: 'leaf',
     },
   ];
@@ -287,18 +300,19 @@ const VehicleDocumentsScreen = () => {
               </View>
 
               {(() => {
-                const vehicleUri = getVehicleImageUrl(
-                  driverProfile?.vehicle_image_url || driverProfile?.vehicle_image
-                );
+                const rawVehicle = driverProfile?.vehicle_image_url || driverProfile?.vehicle_image;
+                const hasVehicleImage = Boolean(rawVehicle);
                 return (
                   <TouchableOpacity
                     style={styles.vehicleImageContainer}
-                    activeOpacity={vehicleUri ? 0.75 : 1}
-                    disabled={!vehicleUri}
+                    activeOpacity={hasVehicleImage ? 0.75 : 1}
+                    disabled={!hasVehicleImage}
                     onPress={() => {
-                      if (vehicleUri) {
+                      if (rawVehicle) {
                         setSelectedImage({
-                          uri: vehicleUri,
+                          uri: getVehicleImageUrl(rawVehicle),
+                          filename: rawVehicle,
+                          folderName: IMAGE_FOLDERS.VEHICLE,
                           title: driverProfile?.vehicle_name || 'Vehicle Photo',
                           subtitle:
                             driverProfile?.vehicle_number ||
@@ -308,20 +322,27 @@ const VehicleDocumentsScreen = () => {
                       }
                     }}
                   >
-                    {vehicleUri ? (
+                    {hasVehicleImage ? (
                       <>
-                        <Image
-                          source={{
-                            uri: vehicleUri,
-                          }}
+                        <ShowImage
+                          folderName={IMAGE_FOLDERS.VEHICLE}
+                          filename={rawVehicle}
                           style={styles.vehicleImage}
                           resizeMode="cover"
+                          fallbackComponent={
+                            <AppIcon
+                              family="material"
+                              name="ambulance"
+                              size={40}
+                              color={colors.primary}
+                            />
+                          }
                         />
                         <View style={styles.imageZoomBadge}>
                           <AppIcon
                             family="material"
                             name="magnify-plus-outline"
-                            size={13}
+                            size={16}
                             color="#FFFFFF"
                           />
                         </View>
@@ -352,12 +373,14 @@ const VehicleDocumentsScreen = () => {
                 return (
                   <TouchableOpacity
                     key={document.title}
-                    activeOpacity={document.imageUrl ? 0.7 : 1}
-                    disabled={!document.imageUrl}
+                    activeOpacity={document.rawFilename || document.imageUrl ? 0.7 : 1}
+                    disabled={!document.rawFilename && !document.imageUrl}
                     onPress={() => {
-                      if (document.imageUrl) {
+                      if (document.rawFilename || document.imageUrl) {
                         setSelectedImage({
                           uri: document.imageUrl,
+                          filename: document.rawFilename || document.imageUrl,
+                          folderName: document.folderName,
                           title: document.title,
                           subtitle: document.subtitle || `Status: ${document.status}`,
                         });
@@ -371,12 +394,21 @@ const VehicleDocumentsScreen = () => {
                     {/* ICON / THUMBNAIL */}
 
                     <View style={styles.documentIcon}>
-                      {document.imageUrl ? (
+                      {document.rawFilename || document.imageUrl ? (
                         <View style={styles.thumbnailWrapper}>
-                          <Image
-                            source={{ uri: document.imageUrl }}
+                          <ShowImage
+                            folderName={document.folderName}
+                            filename={document.rawFilename || document.imageUrl}
                             style={styles.documentThumbnail}
                             resizeMode="cover"
+                            fallbackComponent={
+                              <AppIcon
+                                family="material"
+                                name={document.icon}
+                                size={18}
+                                color={colors.primary}
+                              />
+                            }
                           />
                           <View style={styles.thumbnailZoomBadge}>
                             <AppIcon
@@ -448,6 +480,8 @@ const VehicleDocumentsScreen = () => {
       <ImageViewerModal
         visible={Boolean(selectedImage)}
         imageUrl={selectedImage?.uri}
+        filename={selectedImage?.filename}
+        folderName={selectedImage?.folderName}
         title={selectedImage?.title}
         subtitle={selectedImage?.subtitle}
         onClose={() => setSelectedImage(null)}

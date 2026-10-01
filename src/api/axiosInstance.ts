@@ -1,18 +1,17 @@
 import axios from 'axios';
 import { store } from '../redux/store';
+import { ENV } from '../config/env';
 
-// export const API_BASE_URL = 'https://6mcr9zjh-8867.inc1.devtunnels.ms'; // bahubali sir
-// export const API_BASE_URL = 'https://98769p8r-8867.inc1.devtunnels.ms'; // pranali madam
-export const API_BASE_URL = 'https://arvaya.uvtechsoft.com:7001';
+export const API_BASE_URL = ENV.API_BASE_URL;
 
 const axiosInstance = axios.create({
     baseURL: API_BASE_URL,
-    timeout: 15000,  //Automatically inject Bearer token from Redux auth state
+    timeout: ENV.API_TIMEOUT,  //Automatically inject Bearer token from Redux auth state
 
     headers: {
         'Content-Type': 'application/json',
         Accept: 'application/json',
-        'apikey': 'JP76Ol1r5lMvzljKmeaTdP9EthTYzKFH',
+        'apikey': ENV.API_KEY,
     },
 });
 

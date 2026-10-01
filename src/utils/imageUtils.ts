@@ -19,6 +19,7 @@ export const IMAGE_FOLDERS = {
     POLLUTION_CERTIFICATE: 'driverPollutionCertificateImages',
     RC_BOOK: 'driverRcBookImages',
     VEHICLE: 'driverVehicleImages',
+    PATIENT_PROFILE: 'patientProfileImage',
 } as const;
 
 export type ImageFolderType = keyof typeof IMAGE_FOLDERS | (typeof IMAGE_FOLDERS)[keyof typeof IMAGE_FOLDERS] | string;

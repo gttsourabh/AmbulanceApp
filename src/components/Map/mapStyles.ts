@@ -5,7 +5,7 @@ export const medicalMapStyle = [
   },
   {
     elementType: 'labels.icon',
-    stylers: [{ visibility: 'on' }],
+    stylers: [{ visibility: 'off' }],
   },
   {
     elementType: 'labels.text.fill',
@@ -22,23 +22,15 @@ export const medicalMapStyle = [
   },
   {
     featureType: 'poi',
-    elementType: 'geometry',
-    stylers: [{ color: '#eef5f6' }],
-  },
-  {
-    featureType: 'poi',
-    elementType: 'labels.text.fill',
-    stylers: [{ color: '#757575' }],
+    stylers: [{ visibility: 'off' }],
   },
   {
     featureType: 'poi.medical',
-    elementType: 'geometry',
-    stylers: [{ color: '#e6f4f5' }],
+    stylers: [{ visibility: 'off' }],
   },
   {
-    featureType: 'poi.medical',
-    elementType: 'labels.icon',
-    stylers: [{ visibility: 'on' }],
+    featureType: 'poi.business',
+    stylers: [{ visibility: 'off' }],
   },
   {
     featureType: 'poi.park',

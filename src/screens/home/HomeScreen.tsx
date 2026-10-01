@@ -37,7 +37,8 @@ import {
 } from '../../api';
 import { storage } from '../../storage/storage';
 import { STORAGE_KEYS } from '../../storage/storageKeys';
-import { getProfileImageUrl } from '../../utils/imageUtils';
+import { getProfileImageUrl, IMAGE_FOLDERS } from '../../utils/imageUtils';
+import { ShowImage } from '../../components';
 
 const getGreetingText = () => {
     const hours = new Date().getHours();
@@ -432,20 +433,20 @@ const HomeScreen = () => {
                                         driverProfile?.image ||
                                         null;
 
-                                    const avatarUri = getProfileImageUrl(rawAvatar);
-
-                                    return avatarUri ? (
-                                        <Image
-                                            source={{ uri: avatarUri }}
+                                    return (
+                                        <ShowImage
+                                            folderName={IMAGE_FOLDERS.PROFILE}
+                                            filename={rawAvatar}
                                             style={styles.avatarImage}
                                             resizeMode="cover"
-                                        />
-                                    ) : (
-                                        <AppIcon
-                                            family="material"
-                                            name="account"
-                                            size={26}
-                                            color={colors.primary}
+                                            fallbackComponent={
+                                                <AppIcon
+                                                    family="material"
+                                                    name="account"
+                                                    size={26}
+                                                    color={colors.primary}
+                                                />
+                                            }
                                         />
                                     );
                                 })()}
@@ -624,8 +625,22 @@ const HomeScreen = () => {
                                             Ongoing Active Trip
                                         </Text>
                                     </View>
-                                    <View style={styles.activeStatusPill}>
-                                        <Text style={styles.activeStatusPillText}>
+                                    <View
+                                        style={[
+                                            styles.activeStatusPill,
+                                            (activeTrip.status || '').toLowerCase().includes('assign')
+                                                ? styles.activeStatusPillAssigned
+                                                : styles.activeStatusPillAccepted,
+                                        ]}
+                                    >
+                                        <Text
+                                            style={[
+                                                styles.activeStatusPillText,
+                                                (activeTrip.status || '').toLowerCase().includes('assign')
+                                                    ? styles.activeStatusPillAssignedText
+                                                    : styles.activeStatusPillAcceptedText,
+                                            ]}
+                                        >
                                             {formatTripStatus(activeTrip.status)}
                                         </Text>
                                     </View>
@@ -643,7 +658,7 @@ const HomeScreen = () => {
                                                 family="material"
                                                 name="ambulance"
                                                 size={14}
-                                                color="#DC2626"
+                                                color={colors.danger}
                                             />
                                             <Text style={styles.activeTripEmergencyText} numberOfLines={1}>
                                                 {activeTrip.emergency_type || 'Emergency Trip'}
@@ -654,7 +669,7 @@ const HomeScreen = () => {
                                         </Text>
                                     </View>
 
-                                    {/* Patient Info Row (Without Call Button) */}
+                                    {/* Patient Info Row */}
                                     <View style={styles.activeTripPatientRow}>
                                         <View style={styles.activeTripAvatar}>
                                             <AppIcon
@@ -676,7 +691,7 @@ const HomeScreen = () => {
                                         </View>
                                     </View>
 
-                                    {/* Compact Route Box */}
+                                    {/* Route Box */}
                                     <View style={styles.activeTripRouteBox}>
                                         <View style={styles.routeItemRow}>
                                             <View style={styles.routeDotGreen} />
@@ -704,7 +719,7 @@ const HomeScreen = () => {
                                         )}
                                     </View>
 
-                                    {/* Compact Resume Navigation CTA Button */}
+                                    {/* Resume Navigation CTA Button */}
                                     <TouchableOpacity
                                         activeOpacity={0.85}
                                         onPress={handleResumeActiveTrip}
@@ -760,7 +775,7 @@ const styles = StyleSheet.create({
 
     scrollContent: {
         paddingHorizontal: 16,
-        paddingBottom: 96,
+        paddingBottom: 112,
     },
 
     headerLogo: {
@@ -1079,12 +1094,13 @@ const styles = StyleSheet.create({
     // =========================
     activeTripSection: {
         marginTop: 14,
+        marginBottom: 20,
     },
     activeTripHeaderRow: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        marginBottom: 6,
+        marginBottom: 8,
     },
     liveIndicatorContainer: {
         flexDirection: 'row',
@@ -1095,72 +1111,86 @@ const styles = StyleSheet.create({
         width: 8,
         height: 8,
         borderRadius: 4,
-        backgroundColor: '#10B981',
+        backgroundColor: colors.successDark,
     },
     activeStatusPill: {
-        backgroundColor: '#DCFCE7',
-        borderWidth: 1,
-        borderColor: '#86EFAC',
         paddingHorizontal: 8,
         paddingVertical: 2.5,
-        borderRadius: 10,
+        borderRadius: 8,
+        borderWidth: 1,
+    },
+    activeStatusPillAssigned: {
+        backgroundColor: '#FFFBEB',
+        borderColor: '#FDE68A',
+    },
+    activeStatusPillAssignedText: {
+        color: '#D97706',
+    },
+    activeStatusPillAccepted: {
+        backgroundColor: '#ECFDF5',
+        borderColor: '#A7F3D0',
+    },
+    activeStatusPillAcceptedText: {
+        color: '#059669',
     },
     activeStatusPillText: {
         fontFamily: 'GoogleSans-Bold',
         fontSize: 10.5,
-        color: '#15803D',
+        includeFontPadding: false,
         textTransform: 'uppercase',
         letterSpacing: 0.4,
     },
     activeTripCard: {
         backgroundColor: colors.card,
         borderRadius: 14,
-        paddingHorizontal: 12,
-        paddingTop: 10,
-        paddingBottom: 10,
-        borderWidth: 1.2,
-        borderColor: '#86EFAC',
+        paddingHorizontal: 14,
+        paddingVertical: 12,
+        borderWidth: 1,
+        borderColor: colors.border,
         shadowColor: colors.shadow,
         shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.05,
+        shadowOpacity: 0.04,
         shadowRadius: 8,
-        elevation: 2,
+        elevation: 1,
     },
     activeTripTopRow: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        marginBottom: 6,
+        marginBottom: 8,
     },
     activeTripEmergencyBadge: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: '#FEE2E2',
+        backgroundColor: colors.dangerLight,
         paddingHorizontal: 7,
-        paddingVertical: 2.5,
+        paddingVertical: 3,
         borderRadius: 6,
         gap: 4,
     },
     activeTripEmergencyText: {
         fontFamily: 'GoogleSans-Bold',
         fontSize: 11,
-        color: '#B91C1C',
+        includeFontPadding: false,
+        color: colors.danger,
+        textTransform: 'capitalize',
     },
     activeTripIdText: {
-        fontFamily: 'GoogleSans-Medium',
-        fontSize: 11,
+        fontFamily: 'GoogleSans-Bold',
+        fontSize: 12,
+        includeFontPadding: false,
         color: colors.textSecondary,
     },
     activeTripPatientRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 8,
-        marginBottom: 6,
+        gap: 9,
+        marginBottom: 8,
     },
     activeTripAvatar: {
-        width: 32,
-        height: 32,
-        borderRadius: 16,
+        width: 34,
+        height: 34,
+        borderRadius: 17,
         backgroundColor: colors.primaryLight,
         alignItems: 'center',
         justifyContent: 'center',
@@ -1177,41 +1207,44 @@ const styles = StyleSheet.create({
     },
     activeTripPatientPhone: {
         fontFamily: 'GoogleSans-Regular',
-        fontSize: 11,
+        fontSize: 11.5,
+        lineHeight: 15,
         includeFontPadding: false,
         color: colors.textSecondary,
-        marginTop: 1,
+        marginTop: 2,
     },
     activeTripRouteBox: {
         backgroundColor: '#F8FAFC',
-        borderRadius: 8,
-        paddingHorizontal: 8,
-        paddingVertical: 6,
-        marginBottom: 8,
+        borderRadius: 9,
+        borderWidth: 1,
+        borderColor: colors.divider,
+        paddingHorizontal: 10,
+        paddingVertical: 7,
+        marginBottom: 10,
     },
     routeItemRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 6,
+        gap: 7,
     },
     routeDotGreen: {
-        width: 8,
-        height: 8,
-        borderRadius: 4,
-        backgroundColor: '#10B981',
+        width: 7,
+        height: 7,
+        borderRadius: 3.5,
+        backgroundColor: colors.successDark,
     },
     routeDotRed: {
-        width: 8,
-        height: 8,
-        borderRadius: 4,
-        backgroundColor: '#EF4444',
+        width: 7,
+        height: 7,
+        borderRadius: 3.5,
+        backgroundColor: colors.danger,
     },
     routeDottedLine: {
         width: 1.5,
-        height: 8,
+        height: 7,
         backgroundColor: '#CBD5E1',
-        marginLeft: 3.25,
-        marginVertical: 1,
+        marginLeft: 2.75,
+        marginVertical: 1.5,
     },
     routeTextCol: {
         flex: 1,
@@ -1219,6 +1252,8 @@ const styles = StyleSheet.create({
     routeHeaderLabel: {
         fontFamily: 'GoogleSans-Bold',
         fontSize: 8.5,
+        lineHeight: 11,
+        includeFontPadding: false,
         color: colors.textLight,
         letterSpacing: 0.4,
     },
@@ -1228,19 +1263,22 @@ const styles = StyleSheet.create({
         lineHeight: 14,
         includeFontPadding: false,
         color: colors.textPrimary,
+        marginTop: 1.5,
     },
     resumeTripBtn: {
         backgroundColor: colors.primary,
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        paddingVertical: 9,
+        paddingVertical: 9.5,
         borderRadius: 10,
         gap: 6,
     },
     resumeTripBtnText: {
         fontFamily: 'GoogleSans-Bold',
         fontSize: 12.5,
+        includeFontPadding: false,
         color: '#FFFFFF',
+        letterSpacing: 0.2,
     },
 });

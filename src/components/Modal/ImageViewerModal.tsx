@@ -12,12 +12,15 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AppIcon } from '../../icons';
+import ShowImage from '../ShowImage/ShowImage';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 export interface ImageViewerModalProps {
     visible: boolean;
     imageUrl?: string | null;
+    filename?: string | null;
+    folderName?: string;
     title?: string;
     subtitle?: string;
     onClose: () => void;
@@ -26,6 +29,8 @@ export interface ImageViewerModalProps {
 const ImageViewerModal: React.FC<ImageViewerModalProps> = ({
     visible,
     imageUrl,
+    filename,
+    folderName,
     title,
     subtitle,
     onClose,
@@ -35,11 +40,11 @@ const ImageViewerModal: React.FC<ImageViewerModalProps> = ({
 
     // Reset states when a new image or visibility changes
     useEffect(() => {
-        if (visible && imageUrl) {
+        if (visible && (imageUrl || filename)) {
             setIsLoading(true);
             setHasError(false);
         }
-    }, [visible, imageUrl]);
+    }, [visible, imageUrl, filename]);
 
     if (!visible) return null;
 
@@ -89,30 +94,56 @@ const ImageViewerModal: React.FC<ImageViewerModalProps> = ({
 
                     {/* ================= IMAGE VIEWER AREA ================= */}
                     <View style={styles.imageContainer}>
-                        {imageUrl && !hasError ? (
-                            <Image
-                                source={{ uri: imageUrl }}
+                        {folderName ? (
+                            <ShowImage
+                                folderName={folderName}
+                                filename={filename || imageUrl}
+                                fallbackSource={imageUrl ? { uri: imageUrl } : undefined}
                                 style={styles.image}
                                 resizeMode="contain"
-                                onLoadStart={() => setIsLoading(true)}
-                                onLoadEnd={() => setIsLoading(false)}
-                                onError={() => {
-                                    setIsLoading(false);
-                                    setHasError(true);
-                                }}
+                                showLoader={true}
+                                loadingIndicatorSize="large"
+                                loadingIndicatorColor="#FFFFFF"
+                                fallbackComponent={
+                                    <View style={styles.errorContainer}>
+                                        <View style={styles.errorIconWrap}>
+                                            <AppIcon
+                                                family="material"
+                                                name="image-broken-variant"
+                                                size={48}
+                                                color="rgba(255,255,255,0.6)"
+                                            />
+                                        </View>
+                                        <Text style={styles.errorTitle}>
+                                            Unable to load image
+                                        </Text>
+                                        <Text style={styles.errorSubtitle}>
+                                            The document image could not be retrieved from the server.
+                                        </Text>
+                                    </View>
+                                }
                             />
-                        ) : null}
-
-                        {/* SPINNER WHILE LOADING */}
-                        {isLoading && !hasError ? (
-                            <View style={styles.loaderContainer}>
-                                <ActivityIndicator size="large" color="#FFFFFF" />
-                                <Text style={styles.loadingText}>Loading image...</Text>
-                            </View>
-                        ) : null}
-
-                        {/* ERROR FALLBACK */}
-                        {hasError || !imageUrl ? (
+                        ) : imageUrl && !hasError ? (
+                            <>
+                                <Image
+                                    source={{ uri: imageUrl }}
+                                    style={styles.image}
+                                    resizeMode="contain"
+                                    onLoadStart={() => setIsLoading(true)}
+                                    onLoadEnd={() => setIsLoading(false)}
+                                    onError={() => {
+                                        setIsLoading(false);
+                                        setHasError(true);
+                                    }}
+                                />
+                                {isLoading && (
+                                    <View style={styles.loaderContainer}>
+                                        <ActivityIndicator size="large" color="#FFFFFF" />
+                                        <Text style={styles.loadingText}>Loading image...</Text>
+                                    </View>
+                                )}
+                            </>
+                        ) : (
                             <View style={styles.errorContainer}>
                                 <View style={styles.errorIconWrap}>
                                     <AppIcon
@@ -126,10 +157,10 @@ const ImageViewerModal: React.FC<ImageViewerModalProps> = ({
                                     Unable to load image
                                 </Text>
                                 <Text style={styles.errorSubtitle}>
-                                    The image could not be retrieved from the server.
+                                    The document image could not be retrieved from the server.
                                 </Text>
                             </View>
-                        ) : null}
+                        )}
                     </View>
 
                     {/* ================= FOOTER / DISMISS HINT ================= */}

@@ -3,9 +3,7 @@ import {
     ScrollView,
     StyleSheet,
     Text,
-    TouchableOpacity,
     View,
-    Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -108,14 +106,6 @@ const POLICY_SECTIONS: PolicySection[] = [
 ];
 
 const PrivacyPolicyScreen = () => {
-    const handleEmailSupport = () => {
-        Linking.openURL('mailto:privacy@arvaya.com?subject=Arvaya%20Driver%20Privacy%20Inquiry');
-    };
-
-    const handleCallSupport = () => {
-        Linking.openURL('tel:+918012345678');
-    };
-
     return (
         <SafeAreaView style={styles.container} edges={['top']}>
             {/* Header */}
@@ -187,55 +177,7 @@ const PrivacyPolicyScreen = () => {
                     </View>
                 ))}
 
-                {/* Contact Card */}
-                <View style={styles.contactCard}>
-                    <View style={styles.contactHeader}>
-                        <View style={styles.contactIconCircle}>
-                            <AppIcon
-                                family="material"
-                                name="headphones"
-                                size={22}
-                                color={colors.primary}
-                            />
-                        </View>
-                        <View style={styles.contactTextWrapper}>
-                            <Text style={styles.contactTitle}>Privacy Questions or Concerns?</Text>
-                            <Text style={styles.contactSubtitle}>Our operations team is available 24x7</Text>
-                        </View>
-                    </View>
 
-                    <View style={styles.contactActionsRow}>
-                        <TouchableOpacity
-                            style={styles.actionButton}
-                            onPress={handleEmailSupport}
-                            activeOpacity={0.8}
-                        >
-                            <AppIcon
-                                family="material"
-                                name="email-outline"
-                                size={16}
-                                color={colors.primary}
-                            />
-                            <Text style={styles.actionButtonText}>Email Privacy Team</Text>
-                        </TouchableOpacity>
-
-                        <TouchableOpacity
-                            style={[styles.actionButton, styles.callButton]}
-                            onPress={handleCallSupport}
-                            activeOpacity={0.8}
-                        >
-                            <AppIcon
-                                family="material"
-                                name="phone-outline"
-                                size={16}
-                                color={colors.white}
-                            />
-                            <Text style={[styles.actionButtonText, styles.callButtonText]}>
-                                Call Support
-                            </Text>
-                        </TouchableOpacity>
-                    </View>
-                </View>
 
                 {/* Footer copyright */}
                 <View style={styles.footerContainer}>
@@ -379,76 +321,7 @@ const styles = StyleSheet.create({
         lineHeight: 19,
         color: colors.textPrimary,
     },
-    contactCard: {
-        backgroundColor: '#FFFFFF',
-        borderRadius: 18,
-        padding: 16,
-        marginTop: 6,
-        marginBottom: 16,
-        borderWidth: 1.5,
-        borderColor: colors.primaryLight,
-        shadowColor: colors.primary,
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.08,
-        shadowRadius: 12,
-        elevation: 3,
-    },
-    contactHeader: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 12,
-        marginBottom: 14,
-    },
-    contactIconCircle: {
-        width: 42,
-        height: 42,
-        borderRadius: 21,
-        backgroundColor: colors.primaryLight,
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    contactTextWrapper: {
-        flex: 1,
-    },
-    contactTitle: {
-        fontFamily: typography.fontFamily.bold,
-        fontSize: 15,
-        fontWeight: '700',
-        color: colors.textPrimary,
-        marginBottom: 2,
-    },
-    contactSubtitle: {
-        fontFamily: typography.fontFamily.regular,
-        fontSize: 12,
-        color: colors.textSecondary,
-    },
-    contactActionsRow: {
-        flexDirection: 'row',
-        gap: 10,
-    },
-    actionButton: {
-        flex: 1,
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: 6,
-        paddingVertical: 10,
-        borderRadius: 12,
-        backgroundColor: colors.primaryLight,
-    },
-    actionButtonText: {
-        fontFamily: typography.fontFamily.semiBold,
-        fontSize: 13,
-        fontWeight: '600',
-        color: colors.primary,
-    },
-    callButton: {
-        backgroundColor: colors.primary,
-    },
-    callButtonText: {
-        fontFamily: typography.fontFamily.semiBold,
-        color: '#FFFFFF',
-    },
+
     footerContainer: {
         alignItems: 'center',
         paddingVertical: 12,

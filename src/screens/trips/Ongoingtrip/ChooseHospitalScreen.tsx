@@ -24,11 +24,7 @@ import Header from '../../../components/Header/Header';
 import Button from '../../../components/Button/Button';
 import { AmbulanceMarker, medicalMapStyle } from '../../../components/Map';
 import { HospitalItem, SECURE_HOSPITALS_LIST } from '../../../data/hospitalsData';
-import {
-    fetchGoogleNearbyHospitals,
-    searchGoogleHospitals,
-    calculateHospitalMetrics,
-} from '../../../services/hospitalSearchService';
+import { calculateHospitalMetrics } from '../../../services/hospitalSearchService';
 import { updateAmbulanceStatusApi } from '../../../api';
 import Geolocation from '@react-native-community/geolocation';
 import { requestLocationPermission } from '../../../utils/locationPermission';
@@ -628,6 +624,7 @@ const ChooseHospitalScreen = () => {
                     }}
                     mapType={mapType}
                     customMapStyle={mapType === 'standard' ? medicalMapStyle : undefined}
+                    showsPointsOfInterests={false}
                     showsCompass={true}
                     loadingEnabled={true}
                     showsUserLocation={false}
@@ -640,7 +637,7 @@ const ChooseHospitalScreen = () => {
                         description={address}
                     />
 
-                    {/* Hospital Markers from Google Places API */}
+                    {/* Hospital Markers (Static SeCURE Hospitals Network) */}
                     {mapHospitals.map(hosp => {
                         const isSelected = selectedHospital ? hosp.id === selectedHospital.id : false;
                         return (

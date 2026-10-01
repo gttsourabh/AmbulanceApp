@@ -19,7 +19,8 @@ import { resetToLogin } from '../../utils/navigationRef';
 import { updateDriverOnlineStatus, getDriverApi, DriverProfileData } from '../../api';
 import { STORAGE_KEYS } from '../../storage/storageKeys';
 import { unsubscribeFromTopic } from '../../services/notificationService';
-import { getProfileImageUrl, normalizeDriverProfile } from '../../utils/imageUtils';
+import { getProfileImageUrl, normalizeDriverProfile, IMAGE_FOLDERS } from '../../utils/imageUtils';
+import { ShowImage } from '../../components';
 
 import {
     colors,
@@ -266,19 +267,20 @@ const ProfileScreen = () => {
                                             driverProfile?.photo_url ||
                                             null;
 
-                                        const avatarUri = getProfileImageUrl(rawAvatar);
-
-                                        return avatarUri ? (
-                                            <Image
-                                                source={{ uri: avatarUri }}
+                                        return (
+                                            <ShowImage
+                                                folderName={IMAGE_FOLDERS.PROFILE}
+                                                filename={rawAvatar}
                                                 style={styles.profileImage}
-                                            />
-                                        ) : (
-                                            <AppIcon
-                                                family="material"
-                                                name="account"
-                                                size={48}
-                                                color={colors.primary}
+                                                resizeMode="cover"
+                                                fallbackComponent={
+                                                    <AppIcon
+                                                        family="material"
+                                                        name="account"
+                                                        size={48}
+                                                        color={colors.primary}
+                                                    />
+                                                }
                                             />
                                         );
                                     })()}
