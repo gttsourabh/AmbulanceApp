@@ -23,7 +23,7 @@ import { AppIcon } from '../../../icons';
 import Header from '../../../components/Header/Header';
 import Button from '../../../components/Button/Button';
 import { AmbulanceMarker, medicalMapStyle } from '../../../components/Map';
-import { HospitalItem } from '../../../data/hospitalsData';
+import { HospitalItem, SECURE_HOSPITALS_LIST } from '../../../data/hospitalsData';
 import {
     fetchGoogleNearbyHospitals,
     searchGoogleHospitals,
@@ -81,17 +81,31 @@ const ChooseHospitalScreen = () => {
         route?.params?.driverLocation || null
     );
 
-    // Google API Live Hospital Data State
-    const [nearbyHospitals, setNearbyHospitals] = useState<HospitalItem[]>([]);
-    const [isLoadingNearby, setIsLoadingNearby] = useState(true);
+    // SeCURE Hospitals static data with dynamically calculated metrics based on pickup location
+    const secureHospitals = useMemo<HospitalItem[]>(() => {
+        return SECURE_HOSPITALS_LIST.map(hosp => {
+            const { distanceKm, etaMinutes } = calculateHospitalMetrics(pickupLocation, {
+                latitude: hosp.latitude,
+                longitude: hosp.longitude,
+            });
+            return {
+                ...hosp,
+                distanceKm,
+                etaMinutes,
+            };
+        }).sort((a, b) => Number(a.distanceKm || 0) - Number(b.distanceKm || 0));
+    }, [pickupLocation]);
+
+    const nearbyHospitals = secureHospitals;
+    const isLoadingNearby = false;
 
     // Selected Hospital (NO hospital selected by default!)
     const [selectedHospital, setSelectedHospital] = useState<HospitalItem | null>(null);
 
-    // Selected City Filter (e.g. 'All', 'Sangli', 'Kolhapur' when on border of two cities)
+    // Selected City Filter (e.g. 'All', 'Gadag', 'Hubballi', 'Shivamogga', 'Solapur', 'Mysore')
     const [selectedCityFilter, setSelectedCityFilter] = useState<string>('All');
 
-    // Search and State (Live Google Places API Search)
+    // Search and State
     const [searchQuery, setSearchQuery] = useState('');
     const [searchResults, setSearchResults] = useState<HospitalItem[]>([]);
     const [isSearching, setIsSearching] = useState(false);
@@ -100,31 +114,6 @@ const ChooseHospitalScreen = () => {
     const [isConfirming, setIsConfirming] = useState(false);
     const [mapType, setMapType] = useState<'standard' | 'satellite'>('standard');
     const [isListExpanded, setIsListExpanded] = useState(false);
-
-    // Load live hospitals from Google Places API on mount / pickup location (50 km border radius)
-    useEffect(() => {
-        let isMounted = true;
-        const loadNearby = async () => {
-            setIsLoadingNearby(true);
-            try {
-                const results = await fetchGoogleNearbyHospitals(pickupLocation, 50000);
-                if (isMounted) {
-                    setNearbyHospitals(results);
-                }
-            } catch (err) {
-                console.warn('Google Places nearby hospitals error:', err);
-            } finally {
-                if (isMounted) {
-                    setIsLoadingNearby(false);
-                }
-            }
-        };
-
-        loadNearby();
-        return () => {
-            isMounted = false;
-        };
-    }, [pickupLocation]);
 
     useEffect(() => {
         requestLocationPermission().then(granted => {
@@ -198,15 +187,11 @@ const ChooseHospitalScreen = () => {
         return displayedHospitals;
     }, [selectedHospital, displayedHospitals]);
 
-    // Live search query change with debounce calling Google Places API
+    // Instant search query filter over SeCURE Hospitals static data
     const handleSearchTextChange = (text: string) => {
         setSearchQuery(text);
 
-        if (searchDebounceTimer.current) {
-            clearTimeout(searchDebounceTimer.current);
-        }
-
-        const trimmed = text.trim();
+        const trimmed = text.trim().toLowerCase();
         if (!trimmed) {
             setSearchResults([]);
             setShowSearchResults(false);
@@ -215,19 +200,16 @@ const ChooseHospitalScreen = () => {
         }
 
         setShowSearchResults(true);
-        setIsSearching(true);
+        setIsSearching(false);
 
-        searchDebounceTimer.current = setTimeout(async () => {
-            try {
-                const results = await searchGoogleHospitals(trimmed, pickupLocation);
-                setSearchResults(results);
-            } catch (err) {
-                console.warn('Google Places search error:', err);
-                setSearchResults([]);
-            } finally {
-                setIsSearching(false);
-            }
-        }, 350);
+        const results = secureHospitals.filter(h => {
+            const matchName = h.name.toLowerCase().includes(trimmed);
+            const matchCity = h.city ? h.city.toLowerCase().includes(trimmed) : false;
+            const matchAddress = h.address.toLowerCase().includes(trimmed);
+            return matchName || matchCity || matchAddress;
+        });
+
+        setSearchResults(results);
     };
 
     const handleClearSearch = () => {
@@ -262,10 +244,21 @@ const ChooseHospitalScreen = () => {
     // Initial map frame on screen load
     useEffect(() => {
         if (!selectedHospital) {
-            mapRef.current?.animateCamera({
-                center: driverLiveLocation || pickupLocation,
-                zoom: 14,
-            });
+            if (secureHospitals.length > 0) {
+                const nearest = secureHospitals[0];
+                mapRef.current?.fitToCoordinates(
+                    [pickupLocation, { latitude: nearest.latitude, longitude: nearest.longitude }],
+                    {
+                        edgePadding: { top: 120, right: 60, bottom: 260, left: 60 },
+                        animated: true,
+                    }
+                );
+            } else {
+                mapRef.current?.animateCamera({
+                    center: driverLiveLocation || pickupLocation,
+                    zoom: 14,
+                });
+            }
             return;
         }
         const timer = setTimeout(() => {
@@ -278,7 +271,7 @@ const ChooseHospitalScreen = () => {
             );
         }, 600);
         return () => clearTimeout(timer);
-    }, [pickupLocation, selectedHospital, driverLiveLocation]);
+    }, [pickupLocation, selectedHospital, driverLiveLocation, secureHospitals]);
 
     const handleCallHospital = (phone: string) => {
         if (!phone) {
@@ -403,11 +396,11 @@ const ChooseHospitalScreen = () => {
                     </View>
                 </View>
                 <Text style={styles.contextHint}>
-                    {isLoadingNearby ? 'Loading Google hospitals...' : `${displayedHospitals.length} hospitals found`}
+                    {`${displayedHospitals.length} SeCURE Hospitals available`}
                 </Text>
             </View>
 
-            {/* Floating Search Bar using Google Places API */}
+            {/* Floating Search Bar */}
             <View
                 style={styles.searchBarWrapper}
                 onLayout={e => {
@@ -426,7 +419,7 @@ const ChooseHospitalScreen = () => {
                     />
                     <TextInput
                         style={styles.searchInput}
-                        placeholder="Search hospital on Google Maps..."
+                        placeholder="Search SeCURE hospital by name or city..."
                         placeholderTextColor={colors.textLight}
                         value={searchQuery}
                         onChangeText={handleSearchTextChange}
@@ -491,7 +484,7 @@ const ChooseHospitalScreen = () => {
                                             isSelected && styles.activeCityChipText,
                                         ]}
                                     >
-                                        {city === 'All' ? '🌐 All Nearby (50km)' : `📍 ${city}`} ({count})
+                                        {city === 'All' ? '🌐 All SeCURE Hospitals' : `📍 ${city}`} ({count})
                                     </Text>
                                 </TouchableOpacity>
                             );
@@ -500,18 +493,18 @@ const ChooseHospitalScreen = () => {
                 </View>
             )}
 
-            {/* Search Results Dropdown Overlay (Live from Google Places API) */}
+            {/* Search Results Dropdown Overlay */}
             {searchQuery.trim().length > 0 && showSearchResults && (
                 <View style={[styles.searchResultsOverlay, { top: searchDropdownTop }]}>
                     <View style={styles.searchResultsHeader}>
                         <View style={styles.resultsCountRow}>
                             <Text style={styles.resultsCountText}>
                                 {isSearching
-                                    ? 'Searching Google Maps...'
+                                    ? 'Searching SeCURE Hospitals...'
                                     : `${searchResults.length} ${searchResults.length === 1 ? 'Hospital' : 'Hospitals'} Found`}
                             </Text>
                             <View style={styles.googleBadge}>
-                                <Text style={styles.googleBadgeText}>Google Places API</Text>
+                                <Text style={styles.googleBadgeText}>SeCURE Network</Text>
                             </View>
                         </View>
                         <TouchableOpacity
@@ -528,7 +521,7 @@ const ChooseHospitalScreen = () => {
                     {isSearching && searchResults.length === 0 ? (
                         <View style={styles.searchingContainer}>
                             <ActivityIndicator size="small" color={colors.primary} />
-                            <Text style={styles.searchingText}>Searching hospitals on Google Maps...</Text>
+                            <Text style={styles.searchingText}>Searching SeCURE hospitals...</Text>
                         </View>
                     ) : searchResults.length === 0 ? (
                         <View style={styles.emptySearchContainer}>
@@ -538,9 +531,9 @@ const ChooseHospitalScreen = () => {
                                 size={36}
                                 color={colors.textLight}
                             />
-                            <Text style={styles.emptySearchTitle}>No hospitals found</Text>
+                            <Text style={styles.emptySearchTitle}>No SeCURE hospital found</Text>
                             <Text style={styles.emptySearchSubtitle}>
-                                Try searching by hospital name or city (e.g. Sangli, Miraj, Kolhapur, Pune)
+                                Try searching by city (e.g. Gadag, Hubballi, Shivamogga, Solapur, Mysuru)
                             </Text>
                         </View>
                     ) : (
@@ -755,7 +748,7 @@ const ChooseHospitalScreen = () => {
                 <View style={styles.expandedListContainer}>
                     <View style={styles.listHeaderRow}>
                         <Text style={styles.listHeaderTitle}>
-                            Hospitals ({displayedHospitals.length})
+                            SeCURE Hospitals ({displayedHospitals.length})
                         </Text>
                         <TouchableOpacity onPress={() => setIsListExpanded(false)}>
                             <Text style={styles.closeListText}>Show Map</Text>
@@ -1015,7 +1008,7 @@ const ChooseHospitalScreen = () => {
                                     color="#FFFFFF"
                                 />
                                 <Text style={styles.browseButtonText}>
-                                    Browse All Hospitals ({displayedHospitals.length})
+                                    Browse SeCURE Hospitals ({displayedHospitals.length})
                                 </Text>
                             </TouchableOpacity>
                         </View>

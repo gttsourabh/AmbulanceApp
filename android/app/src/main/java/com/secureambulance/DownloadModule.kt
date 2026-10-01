@@ -1,6 +1,7 @@
 package com.secureambulance
 
 import android.content.ContentValues
+import android.media.MediaScannerConnection
 import android.os.Build
 import android.os.Environment
 import android.provider.MediaStore
@@ -31,22 +32,29 @@ class DownloadModule(private val reactContext: ReactApplicationContext) :
             var targetPath = ""
 
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                val resolver = reactContext.contentResolver
-                val contentValues = ContentValues().apply {
-                    put(MediaStore.MediaColumns.DISPLAY_NAME, fileName)
-                    put(MediaStore.MediaColumns.MIME_TYPE, mimeType)
-                    put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS)
-                }
-                val uri = resolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, contentValues)
-                if (uri != null) {
-                    resolver.openOutputStream(uri)?.use { stream ->
-                        stream.write(bytes)
-                        stream.flush()
+                try {
+                    val resolver = reactContext.contentResolver
+                    val contentValues = ContentValues().apply {
+                        put(MediaStore.MediaColumns.DISPLAY_NAME, fileName)
+                        put(MediaStore.MediaColumns.MIME_TYPE, mimeType)
+                        put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS)
                     }
-                    targetPath = uri.toString()
-                    success = true
+                    val uri = resolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, contentValues)
+                    if (uri != null) {
+                        resolver.openOutputStream(uri)?.use { stream ->
+                            stream.write(bytes)
+                            stream.flush()
+                        }
+                        targetPath = uri.toString()
+                        success = true
+                    }
+                } catch (mediaEx: Exception) {
+                    mediaEx.printStackTrace()
                 }
-            } else {
+            }
+
+            // Fallback for API < 29 or when MediaStore insertion fails
+            if (!success) {
                 val downloadsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
                 if (!downloadsDir.exists()) {
                     downloadsDir.mkdirs()
@@ -57,6 +65,18 @@ class DownloadModule(private val reactContext: ReactApplicationContext) :
                     stream.flush()
                 }
                 targetPath = targetFile.absolutePath
+
+                try {
+                    MediaScannerConnection.scanFile(
+                        reactContext,
+                        arrayOf(targetFile.absolutePath),
+                        arrayOf(mimeType),
+                        null
+                    )
+                } catch (scanEx: Exception) {
+                    scanEx.printStackTrace()
+                }
+
                 success = true
             }
 
@@ -64,7 +84,7 @@ class DownloadModule(private val reactContext: ReactApplicationContext) :
                 reactContext.runOnUiQueueThread {
                     Toast.makeText(
                         reactContext,
-                        "Downloaded $fileName to Downloads folder",
+                        "Saved $fileName to Downloads",
                         Toast.LENGTH_LONG
                     ).show()
                 }
@@ -73,7 +93,7 @@ class DownloadModule(private val reactContext: ReactApplicationContext) :
                 promise.reject("DOWNLOAD_FAILED", "Failed to save file to Downloads")
             }
         } catch (e: Exception) {
-            promise.reject("DOWNLOAD_ERROR", e.localizedMessage, e)
+            promise.reject("DOWNLOAD_ERROR", e.localizedMessage ?: "Unknown download error", e)
         }
     }
 }

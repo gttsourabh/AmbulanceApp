@@ -1,5 +1,6 @@
 import * as XLSX from 'xlsx';
 import { NativeModules, Alert } from 'react-native';
+import { requestStoragePermission, openAppSettings } from '../utils/locationPermission';
 import {
     getAmbulanceRequestApi,
     AmbulanceRequestItem,
@@ -313,6 +314,20 @@ export const downloadTripReportToDevice = async (
     }
 
     try {
+        // Request/verify storage permission on devices that require it (Android < 33)
+        const hasStorage = await requestStoragePermission();
+        if (!hasStorage) {
+            Alert.alert(
+                'Storage Permission Required',
+                'Storage permission is required to save the Excel trip report to your Downloads folder.\n\nPlease grant Storage permission to continue.',
+                [
+                    { text: 'Cancel', style: 'cancel' },
+                    { text: 'Open Settings', onPress: openAppSettings },
+                ]
+            );
+            return { success: false };
+        }
+
         const { base64Xlsx } = generateTripExcelReport(trips, filters);
         const fileName = `Trip_Report_${filters.startDate}_to_${filters.endDate}.xlsx`;
         const mimeType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';

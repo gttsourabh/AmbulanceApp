@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
+
 import {
     AppState,
     AppStateStatus,
@@ -9,8 +10,11 @@ import {
     View,
     ScrollView,
 } from 'react-native';
+
 import { colors, typography } from '../../theme';
+
 import { AppIcon } from '../../icons';
+
 import {
     AppPermissionsStatus,
     checkAllPermissions,

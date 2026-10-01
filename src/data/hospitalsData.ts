@@ -15,11 +15,180 @@ export interface HospitalItem {
     etaMinutes?: number;
 }
 
+export interface StaticHospitalData {
+    hospitalName: string;
+    address: string;
+    city: string;
+    latitude: number;
+    longitude: number;
+}
+
+/**
+ * Official SeCURE Hospitals Network static database
+ */
+export const SECURE_STATIC_HOSPITALS: StaticHospitalData[] = [
+    {
+        hospitalName: "SeCURE Hospitals Shivamogga",
+        address: "Gadag-Vivekananda Road",
+        city: "Shivamogga",
+        latitude: 13.918252,
+        longitude: 75.567943,
+    },
+    {
+        hospitalName: "SeCURE Hospitals Gadag",
+        address: "4th Cross Road, Vivekananda Rd, Masari, Karnataka 582101",
+        city: "Gadag",
+        latitude: 15.430334,
+        longitude: 75.645273,
+    },
+    {
+        hospitalName: "SeCURE Hospital Mulgund Road Gadag",
+        address: "Mulgund Road, Gadag, Karnataka",
+        city: "Gadag",
+        latitude: 15.41517,
+        longitude: 75.621099,
+    },
+    {
+        hospitalName: "SeCURE Hospital Solapur",
+        address: "Solapur, Maharashtra",
+        city: "Solapur",
+        latitude: 17.682996,
+        longitude: 75.887986,
+    },
+    {
+        hospitalName: "SeCURE Hospital Mysuru",
+        address: "Mysuru, Karnataka",
+        city: "Mysore",
+        latitude: 12.295406,
+        longitude: 76.648221,
+    },
+    {
+        hospitalName: "SeCURE Hospital Hubballi",
+        address: "Gokul Rd, beside New Bus Stand, Dollars Colony, Chaitanya Nagar, Rajendra Nagar, Hubballi, Karnataka 580030",
+        city: "Hubballi",
+        latitude: 15.349093,
+        longitude: 75.511051,
+    },
+    {
+        hospitalName: "SeCURE Hospital Hosur Hubli",
+        address: "Hosur Road, Hubballi, Karnataka",
+        city: "Hubballi",
+        latitude: 15.349095,
+        longitude: 75.115002,
+    },
+];
+
+export const SECURE_HOSPITALS_LIST: HospitalItem[] = [
+    {
+        id: 'secure-hosp-1',
+        name: 'SeCURE Hospitals Shivamogga',
+        type: 'Multi-Specialty',
+        address: 'Gadag-Vivekananda Road',
+        city: 'Shivamogga',
+        latitude: 13.918252,
+        longitude: 75.567943,
+        phone: '+918182222222',
+        emergencyAvailable: true,
+        icuBeds: 24,
+        specialties: ['24x7 Emergency', 'Critical Care', 'Trauma ICU', 'Multi-Specialty'],
+        rating: 4.8,
+    },
+    {
+        id: 'secure-hosp-2',
+        name: 'SeCURE Hospitals Gadag',
+        type: 'Multi-Specialty',
+        address: '4th Cross Road, Vivekananda Rd, Masari, Karnataka 582101',
+        city: 'Gadag',
+        latitude: 15.430334,
+        longitude: 75.645273,
+        phone: '+918372222222',
+        emergencyAvailable: true,
+        icuBeds: 30,
+        specialties: ['24x7 Emergency', 'Critical Care', 'Cardiology', 'Trauma ICU'],
+        rating: 4.9,
+    },
+    {
+        id: 'secure-hosp-3',
+        name: 'SeCURE Hospital Mulgund Road Gadag',
+        type: 'Trauma Center',
+        address: 'Mulgund Road, Gadag, Karnataka',
+        city: 'Gadag',
+        latitude: 15.41517,
+        longitude: 75.621099,
+        phone: '+918372222223',
+        emergencyAvailable: true,
+        icuBeds: 20,
+        specialties: ['24x7 Emergency', 'Trauma Center', 'Orthopedics', 'General Surgery'],
+        rating: 4.7,
+    },
+    {
+        id: 'secure-hosp-4',
+        name: 'SeCURE Hospital Solapur',
+        type: 'Multi-Specialty',
+        address: 'Solapur, Maharashtra',
+        city: 'Solapur',
+        latitude: 17.682996,
+        longitude: 75.887986,
+        phone: '+912172222222',
+        emergencyAvailable: true,
+        icuBeds: 28,
+        specialties: ['24x7 Emergency', 'Cardiac Care', 'Neuro ICU', 'Critical Care'],
+        rating: 4.8,
+    },
+    {
+        id: 'secure-hosp-5',
+        name: 'SeCURE Hospital Mysuru',
+        type: 'Multi-Specialty',
+        address: 'Mysuru, Karnataka',
+        city: 'Mysore',
+        latitude: 12.295406,
+        longitude: 76.648221,
+        phone: '+918212222222',
+        emergencyAvailable: true,
+        icuBeds: 24,
+        specialties: ['24x7 Emergency', 'Critical Care', 'Multi-Specialty', 'Trauma'],
+        rating: 4.8,
+    },
+    {
+        id: 'secure-hosp-6',
+        name: 'SeCURE Hospital Hubballi',
+        type: 'Multi-Specialty',
+        address: 'Gokul Rd, beside New Bus Stand, Dollars Colony, Chaitanya Nagar, Rajendra Nagar, Hubballi, Karnataka 580030',
+        city: 'Hubballi',
+        latitude: 15.349093,
+        longitude: 75.511051,
+        phone: '+918362222222',
+        emergencyAvailable: true,
+        icuBeds: 35,
+        specialties: ['24x7 Emergency', 'Advanced Trauma', 'Cardiology', 'Surgical ICU'],
+        rating: 4.9,
+    },
+    {
+        id: 'secure-hosp-7',
+        name: 'SeCURE Hospital Hosur Hubli',
+        type: 'Trauma Center',
+        address: 'Hosur Road, Hubballi, Karnataka',
+        city: 'Hubballi',
+        latitude: 15.349095,
+        longitude: 75.115002,
+        phone: '+918362222223',
+        emergencyAvailable: true,
+        icuBeds: 22,
+        specialties: ['24x7 Emergency', 'Emergency Care', 'Accident & Trauma', 'ICU'],
+        rating: 4.7,
+    },
+];
+
 /**
  * Curated multi-city hospital database covering major tertiary care,
  * government civil hospitals, trauma centers, and multi-specialty healthcare networks.
  */
 export const HOSPITALS_DATABASE: HospitalItem[] = [
+    // ==========================================
+    // SeCURE HOSPITALS NETWORK
+    // ==========================================
+    ...SECURE_HOSPITALS_LIST,
+
     // ==========================================
     // SANGLI & MIRAJ
     // ==========================================

@@ -283,15 +283,6 @@ const ProfileScreen = () => {
                                         );
                                     })()}
                                 </View>
-
-                                <View style={styles.editBadge}>
-                                    <AppIcon
-                                        family="material"
-                                        name="pencil"
-                                        size={12}
-                                        color={colors.white}
-                                    />
-                                </View>
                             </View>
 
                             {(() => {
@@ -522,26 +513,6 @@ const styles = StyleSheet.create({
     profileImage: {
         width: '100%',
         height: '100%',
-    },
-
-    editBadge: {
-        position: 'absolute',
-
-        bottom: 0,
-        right: 0,
-
-        width: 26,
-        height: 26,
-
-        borderRadius: 13,
-
-        backgroundColor: colors.primary,
-
-        alignItems: 'center',
-        justifyContent: 'center',
-
-        borderWidth: 2,
-        borderColor: colors.card,
     },
 
     profileName: {
