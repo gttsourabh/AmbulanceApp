@@ -8,7 +8,7 @@ import {
     ImageStyle,
     View,
 } from 'react-native';
-import { ENV } from '../../config/env';
+import { API_BASE_URL, API_KEY } from '@env';
 import { store } from '../../redux/store';
 import { storage } from '../../storage/storage';
 import { STORAGE_KEYS } from '../../storage/storageKeys';
@@ -67,7 +67,7 @@ export const fetchImageBase64 = async (
         return imageCache.get(cacheKey)!;
     }
 
-    const cleanBaseUrl = (ENV.API_BASE_URL || '').replace(/\/+$/, '');
+    const cleanBaseUrl = (API_BASE_URL || 'https://6mcr9zjh-8867.inc1.devtunnels.ms').replace(/\/+$/, '');
     const endpoint = `${cleanBaseUrl}/downloadFile`;
 
     let token = '';
@@ -82,7 +82,7 @@ export const fetchImageBase64 = async (
 
     const headers: Record<string, string> = {
         'Content-Type': 'application/json',
-        apikey: ENV.API_KEY,
+        apikey: API_KEY,
     };
 
     if (token) {

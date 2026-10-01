@@ -1,17 +1,17 @@
 import axios from 'axios';
 import { store } from '../redux/store';
-import { ENV } from '../config/env';
+import { API_BASE_URL as ENV_API_BASE_URL, API_KEY, API_TIMEOUT } from '@env';
 
-export const API_BASE_URL = ENV.API_BASE_URL;
+export const API_BASE_URL = ENV_API_BASE_URL;
 
 const axiosInstance = axios.create({
     baseURL: API_BASE_URL,
-    timeout: ENV.API_TIMEOUT,  //Automatically inject Bearer token from Redux auth state
+    timeout: Number(API_TIMEOUT) || 15000,
 
     headers: {
         'Content-Type': 'application/json',
         Accept: 'application/json',
-        'apikey': ENV.API_KEY,
+        'apikey': API_KEY,
     },
 });
 

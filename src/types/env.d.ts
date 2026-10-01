@@ -1,0 +1,19 @@
+declare module '@env' {
+    export const APP_ENV: string;
+    export const APP_NAME: string;
+    export const APP_PACKAGE_NAME: string;
+    export const API_BASE_URL: string;
+    export const API_BASE_URL_DEV_BAHUBALI: string;
+    export const API_BASE_URL_DEV_PRANALI: string;
+    export const API_KEY: string;
+    export const API_TIMEOUT: string;
+    export const GOOGLE_MAPS_API_KEY: string;
+    export const GOOGLE_ROUTES_API_URL: string;
+    export const GOOGLE_PLACES_SEARCH_TEXT_URL: string;
+    export const GOOGLE_PLACES_SEARCH_NEARBY_URL: string;
+    export const FIREBASE_API_KEY: string;
+    export const FIREBASE_PROJECT_ID: string;
+    export const FIREBASE_PROJECT_NUMBER: string;
+    export const FIREBASE_STORAGE_BUCKET: string;
+    export const FIREBASE_APP_ID: string;
+}
