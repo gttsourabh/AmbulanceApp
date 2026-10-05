@@ -30,6 +30,7 @@ interface NotificationItem {
   iconFamily: 'material' | 'ionicons' | 'fontawesome' | 'feather';
   backgroundColor: string;
   iconColor: string;
+  isUnread: boolean;
 }
 
 // Determines icon and color theme dynamically based on notification content
@@ -98,50 +99,58 @@ const getNotificationVisuals = (title: string, message: string) => {
   };
 };
 
-// Formats timestamp into relative or human-readable format
+// Formats timestamp into readable clock time and date (e.g. "11:07 AM", "Yesterday, 11:07 AM", "5 Oct, 11:07 AM")
 const formatNotificationTime = (dateStr?: string): string => {
   if (!dateStr) return '';
 
+  let normalizedStr = dateStr.trim();
+  // Truncate microsecond precision (.266319 -> .266) for JS Date parsing
+  normalizedStr = normalizedStr.replace(/(\.\d{3})\d+/, '$1');
+
   // Handle standard date strings or MySQL datetime
-  const normalizedStr = dateStr.includes(' ') && !dateStr.includes('T')
-    ? dateStr.replace(' ', 'T')
-    : dateStr;
+  if (normalizedStr.includes(' ') && !normalizedStr.includes('T')) {
+    normalizedStr = normalizedStr.replace(' ', 'T');
+  }
 
   const parsedDate = new Date(normalizedStr);
   if (isNaN(parsedDate.getTime())) {
-    return dateStr; // Already relative string e.g. "2 min ago"
+    return dateStr;
   }
+
+  // Format clock time (e.g. "11:07 AM")
+  const timeStr = parsedDate.toLocaleTimeString('en-US', {
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
+  });
 
   const now = new Date();
-  const diffSeconds = Math.floor((now.getTime() - parsedDate.getTime()) / 1000);
+  const isToday =
+    parsedDate.getDate() === now.getDate() &&
+    parsedDate.getMonth() === now.getMonth() &&
+    parsedDate.getFullYear() === now.getFullYear();
 
-  if (diffSeconds < 60) {
-    return 'Just now';
+  if (isToday) {
+    return timeStr;
   }
 
-  const diffMinutes = Math.floor(diffSeconds / 60);
-  if (diffMinutes < 60) {
-    return `${diffMinutes} min ago`;
+  const yesterday = new Date(now);
+  yesterday.setDate(yesterday.getDate() - 1);
+  const isYesterday =
+    parsedDate.getDate() === yesterday.getDate() &&
+    parsedDate.getMonth() === yesterday.getMonth() &&
+    parsedDate.getFullYear() === yesterday.getFullYear();
+
+  if (isYesterday) {
+    return `Yesterday, ${timeStr}`;
   }
 
-  const diffHours = Math.floor(diffMinutes / 60);
-  if (diffHours < 24) {
-    return `${diffHours} hr${diffHours > 1 ? 's' : ''} ago`;
-  }
-
-  const diffDays = Math.floor(diffHours / 24);
-  if (diffDays === 1) {
-    return 'Yesterday';
-  }
-
-  if (diffDays < 7) {
-    return `${diffDays} days ago`;
-  }
-
-  return parsedDate.toLocaleDateString('en-IN', {
+  const dateStrFormatted = parsedDate.toLocaleDateString('en-IN', {
     day: 'numeric',
     month: 'short',
   });
+
+  return `${dateStrFormatted}, ${timeStr}`;
 };
 
 const NotificationsScreen = () => {
@@ -166,15 +175,25 @@ const NotificationsScreen = () => {
         }
       }
 
-      // Filter: ' and owner_type="d" and user_id=?'
-      const filterStr = driverUserId
-        ? ` and owner_type="d" and user_id=${driverUserId}`
-        : ' and owner_type="d"';
+      const userIdVal = driverUserId !== undefined && driverUserId !== null ? `${driverUserId}` : `${user?.id || ''}`;
 
-      console.log('📡 [NOTIFICATIONS API] Fetching with filter:', filterStr);
+      const filters = [
+        {
+          column: 'owner_type',
+          operator: '=',
+          value: 'D',
+        },
+        {
+          column: 'user_id',
+          operator: '=',
+          value: userIdVal,
+        },
+      ];
+
+      console.log('📡 [NOTIFICATIONS API] Fetching with filters:', JSON.stringify(filters));
 
       const res = await getNotificationsApi({
-        filter: filterStr,
+        filters,
       });
 
       console.log('✅ [NOTIFICATIONS API SUCCESS] Raw data:', res?.data);
@@ -190,9 +209,20 @@ const NotificationsScreen = () => {
 
       const mappedList: NotificationItem[] = items.map((item, index) => {
         const title = item.title || item.heading || item.subject || 'Notification';
-        const message = item.message || item.body || item.description || item.text || item.msg || '';
-        const rawTime = item.created_at || item.time || item.date || item.timestamp;
+        const message = item.description || item.message || item.body || item.text || item.msg || '';
+        const rawTime = item.created_modified_date || item.created_at || item.time || item.date || item.timestamp;
         const visuals = getNotificationVisuals(title, message);
+
+        const readOnlyVal = String(item.read_only || '').trim().toUpperCase();
+        const isUnread =
+          readOnlyVal === 'N' ||
+          item.is_read === 0 ||
+          item.is_read === false ||
+          item.is_read === '0' ||
+          item.read === false ||
+          item.read === 0 ||
+          item.read_status === 'unread' ||
+          item.read_status === '0';
 
         return {
           id: String(item.id ?? item.notification_id ?? index),
@@ -203,6 +233,7 @@ const NotificationsScreen = () => {
           iconFamily: visuals.iconFamily,
           backgroundColor: visuals.backgroundColor,
           iconColor: visuals.iconColor,
+          isUnread,
         };
       });
 
@@ -224,6 +255,15 @@ const NotificationsScreen = () => {
     fetchNotifications(true);
   };
 
+  const handleNotificationPress = (clickedItem: NotificationItem) => {
+    // Mark as read locally on tap
+    setNotifications(prev =>
+      prev.map(item =>
+        item.id === clickedItem.id ? { ...item, isUnread: false } : item
+      )
+    );
+  };
+
   const renderNotification = ({
     item,
   }: {
@@ -232,9 +272,13 @@ const NotificationsScreen = () => {
     return (
       <TouchableOpacity
         activeOpacity={0.7}
-        style={styles.notificationRow}
+        onPress={() => handleNotificationPress(item)}
+        style={[
+          styles.notificationRow,
+          item.isUnread && styles.unreadNotificationRow,
+        ]}
       >
-        {/* Icon */}
+        {/* Icon with unread badge dot */}
         <View
           style={[
             styles.iconContainer,
@@ -249,12 +293,16 @@ const NotificationsScreen = () => {
             size={17}
             color={item.iconColor}
           />
+          {item.isUnread && <View style={styles.unreadDot} />}
         </View>
 
         {/* Content */}
         <View style={styles.contentContainer}>
           <Text
-            style={styles.notificationTitle}
+            style={[
+              styles.notificationTitle,
+              item.isUnread && styles.unreadNotificationTitle,
+            ]}
             numberOfLines={1}
           >
             {item.title}
@@ -269,9 +317,11 @@ const NotificationsScreen = () => {
         </View>
 
         {/* Time */}
-        <Text style={styles.time}>
-          {item.time}
-        </Text>
+        <View style={styles.timeContainer}>
+          <Text style={[styles.time, item.isUnread && styles.unreadTime]}>
+            {item.time}
+          </Text>
+        </View>
       </TouchableOpacity>
     );
   };
@@ -374,18 +424,34 @@ const styles = StyleSheet.create({
     borderBottomColor: colors.divider,
     backgroundColor: colors.background,
   },
+  unreadNotificationRow: {
+    backgroundColor: '#F8FAFC',
+  },
 
   // ==========================================
   // ICON
   // ==========================================
 
   iconContainer: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,
+  },
+  unreadDot: {
+    position: 'absolute',
+    top: -1,
+    right: -1,
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: '#EF4444',
+    borderWidth: 2,
+    borderColor: colors.white,
+    zIndex: 10,
+    elevation: 4,
   },
 
   // ==========================================
@@ -407,6 +473,10 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
     marginBottom: 2,
   },
+  unreadNotificationTitle: {
+    fontWeight: typography.fontWeight.bold,
+    color: colors.textPrimary,
+  },
 
   notificationMessage: {
     fontFamily: 'GoogleSans-Regular',
@@ -421,14 +491,25 @@ const styles = StyleSheet.create({
   // TIME
   // ==========================================
 
-  time: {
-    fontFamily: 'GoogleSans-Regular',
-    fontSize: 10.5,
-    lineHeight: 12,
-    includeFontPadding: false,
-    color: colors.textLight,
+  timeContainer: {
+    alignItems: 'flex-end',
+    justifyContent: 'flex-start',
     alignSelf: 'flex-start',
     marginTop: 2,
+    maxWidth: 95,
+  },
+
+  time: {
+    fontFamily: 'GoogleSans-Regular',
+    fontSize: 11,
+    lineHeight: 14,
+    includeFontPadding: false,
+    color: colors.textLight,
+    textAlign: 'right',
+  },
+  unreadTime: {
+    color: '#2563EB',
+    fontWeight: typography.fontWeight.semibold,
   },
 
   // ==========================================

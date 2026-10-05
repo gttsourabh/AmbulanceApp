@@ -61,14 +61,22 @@ const NavigationToPickup = () => {
     const [altRouteInfo, setAltRouteInfo] = useState<RouteResult | null>(null);
     const [activeCoordinates, setActiveCoordinates] = useState<Array<{ latitude: number; longitude: number }>>([]);
     const [alternativeCoordinates, setAlternativeCoordinates] = useState<Array<{ latitude: number; longitude: number }>>([]);
+    const activeCoordinatesRef = useRef<Array<{ latitude: number; longitude: number }>>([]);
+    const altCoordinatesRef = useRef<Array<{ latitude: number; longitude: number }>>([]);
+    const rawDriverLocationRef = useRef<LatLng | null>(null);
     const initialTripStatus = String(route?.params?.status || '').toLowerCase();
     const [selectedRouteType, setSelectedRouteType] = useState<'nearest' | 'alternative'>('nearest');
+    const selectedRouteTypeRef = useRef<'nearest' | 'alternative'>('nearest');
     const [isNavigating, setIsNavigating] = useState(
         initialTripStatus.includes('dispatch') || route?.params?.isNavigating === true
     );
     const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
     const isNavigatingRef = useRef(isNavigating);
     const isStartingNavRef = useRef(false);
+
+    useEffect(() => {
+        selectedRouteTypeRef.current = selectedRouteType;
+    }, [selectedRouteType]);
 
     // Computes the shortest distance to patient from Google Routes API (comparing primary and alternative routes)
     const getShortestNpDistance = (): string => {
@@ -290,6 +298,7 @@ const NavigationToPickup = () => {
             if (routes?.primaryRoute && routes.primaryRoute.coordinates.length > 0) {
                 setPrimaryRouteInfo(routes.primaryRoute);
                 setActiveCoordinates(routes.primaryRoute.coordinates);
+                activeCoordinatesRef.current = routes.primaryRoute.coordinates;
                 setDistanceText(routes.primaryRoute.distanceText);
                 if (routes.primaryRoute.durationText) {
                     setEtaText(routes.primaryRoute.durationText);
@@ -298,12 +307,20 @@ const NavigationToPickup = () => {
                 if (routes.alternativeRoute && routes.alternativeRoute.coordinates.length > 0) {
                     setAltRouteInfo(routes.alternativeRoute);
                     setAlternativeCoordinates(routes.alternativeRoute.coordinates);
+                    altCoordinatesRef.current = routes.alternativeRoute.coordinates;
                 }
+
+                // Immediately snap ambulance location onto the newly calculated road polyline
+                const rawPos = rawDriverLocationRef.current || currentDriverPos;
+                const snap = snapToRoutePolyline(rawPos, routes.primaryRoute.coordinates, 60);
+                const finalPos = snap.snapped ? snap.point : currentDriverPos;
+                setDriverLocation(finalPos);
+                driverLocationRef.current = finalPos;
 
                 if (!hasInitialFit.current) {
                     hasInitialFit.current = true;
                     mapRef.current?.fitToCoordinates(
-                        [currentDriverPos, pickupLocation, ...routes.primaryRoute.coordinates],
+                        [finalPos, pickupLocation, ...routes.primaryRoute.coordinates],
                         {
                             edgePadding: { top: 90, right: 50, bottom: 200, left: 50 },
                             animated: true,
@@ -313,6 +330,7 @@ const NavigationToPickup = () => {
             } else {
                 const directLine = [currentDriverPos, pickupLocation];
                 setActiveCoordinates(directLine);
+                activeCoordinatesRef.current = directLine;
                 if (!hasInitialFit.current) {
                     hasInitialFit.current = true;
                     mapRef.current?.fitToCoordinates(directLine, {
@@ -323,7 +341,9 @@ const NavigationToPickup = () => {
             }
         } catch (routeErr) {
             console.warn('Driving route error in NavigationToPickup:', routeErr);
-            setActiveCoordinates([currentDriverPos, pickupLocation]);
+            const fallbackDirect = [currentDriverPos, pickupLocation];
+            setActiveCoordinates(fallbackDirect);
+            activeCoordinatesRef.current = fallbackDirect;
         } finally {
             if (isInitial) {
                 setIsInitialRouteLoading(false);
@@ -341,18 +361,26 @@ const NavigationToPickup = () => {
         const applyDriverLocation = (rawCoords: LatLng, heading?: number) => {
             if (!isMounted) return;
 
+            rawDriverLocationRef.current = rawCoords;
             const isFirstFix = !hasRealDriverGpsRef.current;
             hasRealDriverGpsRef.current = true;
 
-            // Snap to active driving route polyline if available
+            // Pick active road polyline using live ref to avoid stale closure
+            const currentRoute = selectedRouteTypeRef.current === 'alternative' && altCoordinatesRef.current.length > 0
+                ? altCoordinatesRef.current
+                : activeCoordinatesRef.current;
+
+            // Snap to active driving route polyline (up to 60m GPS drift)
             let finalCoords = rawCoords;
             let currentBearing = heading;
 
-            if (activeCoordinates.length > 0) {
-                const snapResult = snapToRoutePolyline(rawCoords, activeCoordinates, 35);
-                finalCoords = snapResult.point;
-                if (snapResult.roadBearing !== undefined) {
-                    currentBearing = snapResult.roadBearing;
+            if (currentRoute && currentRoute.length > 0) {
+                const snapResult = snapToRoutePolyline(rawCoords, currentRoute, 60);
+                if (snapResult.snapped) {
+                    finalCoords = snapResult.point;
+                    if (snapResult.roadBearing !== undefined) {
+                        currentBearing = snapResult.roadBearing;
+                    }
                 }
             }
 
@@ -488,20 +516,25 @@ const NavigationToPickup = () => {
 
     const selectRoute = (type: 'nearest' | 'alternative') => {
         setSelectedRouteType(type);
-        if (type === 'nearest' && primaryRouteInfo) {
-            setDistanceText(primaryRouteInfo.distanceText);
-            if (primaryRouteInfo.durationText) setEtaText(primaryRouteInfo.durationText);
-            mapRef.current?.fitToCoordinates(primaryRouteInfo.coordinates, {
+        selectedRouteTypeRef.current = type;
+        const targetRoute = type === 'nearest' ? primaryRouteInfo : altRouteInfo;
+        if (targetRoute) {
+            setDistanceText(targetRoute.distanceText);
+            if (targetRoute.durationText) setEtaText(targetRoute.durationText);
+            mapRef.current?.fitToCoordinates(targetRoute.coordinates, {
                 edgePadding: { top: 70, right: 40, bottom: 210, left: 40 },
                 animated: true,
             });
-        } else if (type === 'alternative' && altRouteInfo) {
-            setDistanceText(altRouteInfo.distanceText);
-            if (altRouteInfo.durationText) setEtaText(altRouteInfo.durationText);
-            mapRef.current?.fitToCoordinates(altRouteInfo.coordinates, {
-                edgePadding: { top: 70, right: 40, bottom: 210, left: 40 },
-                animated: true,
-            });
+
+            // Snap current vehicle to the newly selected route
+            const rawPos = rawDriverLocationRef.current || driverLocationRef.current;
+            if (rawPos && targetRoute.coordinates.length > 0) {
+                const snap = snapToRoutePolyline(rawPos, targetRoute.coordinates, 60);
+                if (snap.snapped) {
+                    setDriverLocation(snap.point);
+                    driverLocationRef.current = snap.point;
+                }
+            }
         }
     };
 

@@ -20,15 +20,16 @@ import MapView, {
 } from 'react-native-maps';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useAppSelector } from '../../../redux/hook';
-
 import { colors, typography } from '../../../theme';
 import { AppIcon } from '../../../icons';
 import Header from '../../../components/Header/Header';
 import Button from '../../../components/Button/Button';
+
 import {
   AmbulanceMarker,
   LocationMarker,
 } from '../../../components/Map';
+
 import { getDrivingRoutesWithAlternatives, RouteResult, LatLng } from '../../../services/directionsService';
 import Geolocation from '@react-native-community/geolocation';
 import { requestLocationPermission } from '../../../utils/locationPermission';
@@ -123,13 +124,21 @@ const EnRouteScreen = () => {
   const [altRouteInfo, setAltRouteInfo] = useState<RouteResult | null>(null);
   const [activeCoordinates, setActiveCoordinates] = useState<Array<{ latitude: number; longitude: number }>>([]);
   const [alternativeCoordinates, setAlternativeCoordinates] = useState<Array<{ latitude: number; longitude: number }>>([]);
+  const activeCoordinatesRef = useRef<Array<{ latitude: number; longitude: number }>>([]);
+  const altCoordinatesRef = useRef<Array<{ latitude: number; longitude: number }>>([]);
+  const rawAmbulanceLocationRef = useRef<LatLng | null>(null);
   const [selectedRouteType, setSelectedRouteType] = useState<'nearest' | 'alternative'>('nearest');
+  const selectedRouteTypeRef = useRef<'nearest' | 'alternative'>('nearest');
   const [isNavigating, setIsNavigating] = useState(route?.params?.autoStartTracking !== false);
   const isNavigatingRef = useRef(isNavigating);
 
   useEffect(() => {
     isNavigatingRef.current = isNavigating;
   }, [isNavigating]);
+
+  useEffect(() => {
+    selectedRouteTypeRef.current = selectedRouteType;
+  }, [selectedRouteType]);
 
   // =====================================================
   // AMBULANCE LIVE LOCATION (Driver GPS - Never static Sangli!)
@@ -234,6 +243,7 @@ const EnRouteScreen = () => {
       if (routes?.primaryRoute && routes.primaryRoute.coordinates.length > 0) {
         setPrimaryRouteInfo(routes.primaryRoute);
         setActiveCoordinates(routes.primaryRoute.coordinates);
+        activeCoordinatesRef.current = routes.primaryRoute.coordinates;
         setDistanceText(routes.primaryRoute.distanceText);
         if (routes.primaryRoute.durationText) {
           setEtaText(routes.primaryRoute.durationText);
@@ -242,12 +252,20 @@ const EnRouteScreen = () => {
         if (routes.alternativeRoute && routes.alternativeRoute.coordinates.length > 0) {
           setAltRouteInfo(routes.alternativeRoute);
           setAlternativeCoordinates(routes.alternativeRoute.coordinates);
+          altCoordinatesRef.current = routes.alternativeRoute.coordinates;
         }
+
+        // Immediately snap ambulance location onto the newly calculated road polyline
+        const rawPos = rawAmbulanceLocationRef.current || currentAmbulancePos;
+        const snap = snapToRoutePolyline(rawPos, routes.primaryRoute.coordinates, 60);
+        const finalPos = snap.snapped ? snap.point : currentAmbulancePos;
+        setAmbulanceLocation(finalPos);
+        ambulanceLocationRef.current = finalPos;
 
         if (!hasInitialFit.current) {
           hasInitialFit.current = true;
           mapRef.current?.fitToCoordinates(
-            [currentAmbulancePos, hospitalLocation, ...routes.primaryRoute.coordinates],
+            [finalPos, hospitalLocation, ...routes.primaryRoute.coordinates],
             {
               edgePadding: { top: 90, right: 60, bottom: 140, left: 60 },
               animated: true,
@@ -257,6 +275,7 @@ const EnRouteScreen = () => {
       } else {
         const directLine = [currentAmbulancePos, hospitalLocation];
         setActiveCoordinates(directLine);
+        activeCoordinatesRef.current = directLine;
         if (!hasInitialFit.current) {
           hasInitialFit.current = true;
           mapRef.current?.fitToCoordinates(directLine, {
@@ -267,7 +286,9 @@ const EnRouteScreen = () => {
       }
     } catch (routeErr) {
       console.warn('Driving route error in EnRoute:', routeErr);
-      setActiveCoordinates([currentAmbulancePos, hospitalLocation]);
+      const fallbackDirect = [currentAmbulancePos, hospitalLocation];
+      setActiveCoordinates(fallbackDirect);
+      activeCoordinatesRef.current = fallbackDirect;
     } finally {
       setIsRouteLoading(false);
     }
@@ -281,26 +302,46 @@ const EnRouteScreen = () => {
     const applyDriverLocation = (rawCoords: LatLng, heading?: number) => {
       if (!isMounted) return;
 
+      rawAmbulanceLocationRef.current = rawCoords;
       const isFirstFix = !hasRealDriverGpsRef.current;
       hasRealDriverGpsRef.current = true;
 
-      setAmbulanceLocation(rawCoords);
-      ambulanceLocationRef.current = rawCoords;
+      // Pick active road polyline using live ref to avoid stale closure
+      const currentRoute = selectedRouteTypeRef.current === 'alternative' && altCoordinatesRef.current.length > 0
+        ? altCoordinatesRef.current
+        : activeCoordinatesRef.current;
 
-      if (heading !== undefined && heading >= 0) {
-        setAmbulanceHeading(heading);
+      // Snap to active driving route polyline (up to 60m GPS drift)
+      let finalCoords = rawCoords;
+      let currentBearing = heading;
+
+      if (currentRoute && currentRoute.length > 0) {
+        const snapResult = snapToRoutePolyline(rawCoords, currentRoute, 60);
+        if (snapResult.snapped) {
+          finalCoords = snapResult.point;
+          if (snapResult.roadBearing !== undefined) {
+            currentBearing = snapResult.roadBearing;
+          }
+        }
+      }
+
+      setAmbulanceLocation(finalCoords);
+      ambulanceLocationRef.current = finalCoords;
+
+      if (currentBearing !== undefined && currentBearing >= 0) {
+        setAmbulanceHeading(currentBearing);
       }
 
       if (isFirstFix) {
         console.log(
-          `📍 [DRIVER LIVE GPS ACQUIRED]: ${rawCoords.latitude.toFixed(6)}, ${rawCoords.longitude.toFixed(6)}`
+          `📍 [DRIVER LIVE GPS ACQUIRED]: ${finalCoords.latitude.toFixed(6)}, ${finalCoords.longitude.toFixed(6)}`
         );
-        lastRouteFetchLoc.current = rawCoords;
-        updateHospitalRoute(rawCoords);
+        lastRouteFetchLoc.current = finalCoords;
+        updateHospitalRoute(finalCoords);
 
-        // Center camera directly on driver's real device position
+        // Center camera directly on driver's live position
         mapRef.current?.animateCamera({
-          center: rawCoords,
+          center: finalCoords,
           zoom: 16,
           pitch: 35,
         }, { duration: 600 });
@@ -318,9 +359,9 @@ const EnRouteScreen = () => {
       // If navigation mode is active, smoothly follow ambulance with camera
       if (isNavigatingRef.current) {
         mapRef.current?.animateCamera({
-          center: rawCoords,
+          center: finalCoords,
           pitch: 45,
-          heading: heading ?? ambulanceHeading,
+          heading: currentBearing ?? ambulanceHeading,
           zoom: 17,
         }, { duration: 600 });
       }
@@ -414,20 +455,25 @@ const EnRouteScreen = () => {
 
   const selectRoute = (type: 'nearest' | 'alternative') => {
     setSelectedRouteType(type);
-    if (type === 'nearest' && primaryRouteInfo) {
-      setDistanceText(primaryRouteInfo.distanceText);
-      if (primaryRouteInfo.durationText) setEtaText(primaryRouteInfo.durationText);
-      mapRef.current?.fitToCoordinates(primaryRouteInfo.coordinates, {
+    selectedRouteTypeRef.current = type;
+    const targetRoute = type === 'nearest' ? primaryRouteInfo : altRouteInfo;
+    if (targetRoute) {
+      setDistanceText(targetRoute.distanceText);
+      if (targetRoute.durationText) setEtaText(targetRoute.durationText);
+      mapRef.current?.fitToCoordinates(targetRoute.coordinates, {
         edgePadding: { top: 90, right: 60, bottom: 140, left: 60 },
         animated: true,
       });
-    } else if (type === 'alternative' && altRouteInfo) {
-      setDistanceText(altRouteInfo.distanceText);
-      if (altRouteInfo.durationText) setEtaText(altRouteInfo.durationText);
-      mapRef.current?.fitToCoordinates(altRouteInfo.coordinates, {
-        edgePadding: { top: 90, right: 60, bottom: 140, left: 60 },
-        animated: true,
-      });
+
+      // Snap current ambulance to the newly selected route
+      const rawPos = rawAmbulanceLocationRef.current || ambulanceLocationRef.current;
+      if (rawPos && targetRoute.coordinates.length > 0) {
+        const snap = snapToRoutePolyline(rawPos, targetRoute.coordinates, 60);
+        if (snap.snapped) {
+          setAmbulanceLocation(snap.point);
+          ambulanceLocationRef.current = snap.point;
+        }
+      }
     }
   };
 

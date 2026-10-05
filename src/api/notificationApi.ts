@@ -1,6 +1,13 @@
 import axiosInstance from './axiosInstance';
 
+export interface NotificationFilter {
+    column: string;
+    operator: string;
+    value: string | number;
+}
+
 export interface GetNotificationPayload {
+    filters?: NotificationFilter[];
     filter?: string;
     [key: string]: any;
 }
@@ -17,6 +24,15 @@ export interface NotificationRecord {
     is_read?: number | boolean;
     created_at?: string;
     updated_at?: string;
+    created_modified_date?: string;
+    archive_flag?: string;
+    attachment?: string | null;
+    client_id?: number;
+    is_panel?: number;
+    read_only?: string;
+    result_type?: string;
+    sharing_type?: string;
+    total_count?: string;
     time?: string;
     date?: string;
     [key: string]: any;
@@ -32,7 +48,11 @@ export interface GetNotificationResponse {
 
 /**
  * POST /api/notification/get
- * Fetches driver notifications using filter: ' and owner_type="d" and user_id=?'
+ * Fetches notifications using filters array:
+ * filters: [
+ *   { column: 'owner_type', operator: '=', value: 'D' },
+ *   { column: 'user_id', operator: '=', value: `${user?.id}` }
+ * ]
  */
 export const getNotificationsApi = async (
     payload: GetNotificationPayload

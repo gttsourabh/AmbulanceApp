@@ -16,7 +16,7 @@ interface AmbulanceMarkerProps {
 
 export const AmbulanceMarker: React.FC<AmbulanceMarkerProps> = ({
   coordinate,
-  heading = 0,
+  heading: _heading,
   title = 'Ambulance',
   description = 'Your Vehicle',
 }) => {
@@ -24,17 +24,10 @@ export const AmbulanceMarker: React.FC<AmbulanceMarkerProps> = ({
     <Marker
       coordinate={coordinate}
       anchor={{ x: 0.5, y: 0.5 }}
-      flat={true}
-      rotation={heading}
       title={title}
       description={description}
     >
       <View style={styles.container}>
-        {/* Forward Direction Arrow Pointer (Rotates with heading) */}
-        <View style={styles.directionArrowContainer}>
-          <View style={styles.directionArrowHead} />
-        </View>
-
         {/* Pulse Effect */}
         <View style={styles.outerPulse} />
 
@@ -56,30 +49,8 @@ const styles = StyleSheet.create({
   container: {
     alignItems: 'center',
     justifyContent: 'center',
-    width: 60,
-    height: 60,
-  },
-  directionArrowContainer: {
-    position: 'absolute',
-    top: 0,
-    alignItems: 'center',
-    justifyContent: 'center',
-    zIndex: 10,
-  },
-  directionArrowHead: {
-    width: 0,
-    height: 0,
-    borderLeftWidth: 8,
-    borderRightWidth: 8,
-    borderBottomWidth: 14,
-    borderLeftColor: 'transparent',
-    borderRightColor: 'transparent',
-    borderBottomColor: '#2563EB', // vibrant navigation blue
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.35,
-    shadowRadius: 3,
-    elevation: 6,
+    width: 52,
+    height: 52,
   },
   outerPulse: {
     position: 'absolute',

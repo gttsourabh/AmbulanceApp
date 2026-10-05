@@ -51,14 +51,29 @@ function projectPointOnSegment(p: LatLng, p1: LatLng, p2: LatLng): { point: LatL
         };
     }
 
-    // Vector math in lat/lng space (sufficient for small road segments)
-    const dx = p2.longitude - p1.longitude;
+    // Convert to metric projection using average latitude cosine scaling
+    const latRad = ((p1.latitude + p2.latitude) / 2) * (Math.PI / 180);
+    const cosLat = Math.cos(latRad);
+
+    const dx = (p2.longitude - p1.longitude) * cosLat;
     const dy = p2.latitude - p1.latitude;
-    const t = Math.max(0, Math.min(1, ((p.longitude - p1.longitude) * dx + (p.latitude - p1.latitude) * dy) / (dx * dx + dy * dy)));
+    const px = (p.longitude - p1.longitude) * cosLat;
+    const py = p.latitude - p1.latitude;
+
+    const denom = dx * dx + dy * dy;
+    if (denom < 1e-14) {
+        return {
+            point: p1,
+            distance: getDistanceMeters(p, p1),
+            bearing: 0,
+        };
+    }
+
+    const t = Math.max(0, Math.min(1, (px * dx + py * dy) / denom));
 
     const projectedPoint: LatLng = {
-        latitude: p1.latitude + t * dy,
-        longitude: p1.longitude + t * dx,
+        latitude: p1.latitude + t * (p2.latitude - p1.latitude),
+        longitude: p1.longitude + t * (p2.longitude - p1.longitude),
     };
 
     return {
@@ -76,7 +91,7 @@ function projectPointOnSegment(p: LatLng, p1: LatLng, p2: LatLng): { point: LatL
 export function snapToRoutePolyline(
     rawPoint: LatLng,
     polyline: LatLng[],
-    maxSnapMeters = 35
+    maxSnapMeters = 60
 ): { point: LatLng; snapped: boolean; roadBearing?: number } {
     if (!polyline || polyline.length < 2) {
         return { point: rawPoint, snapped: false };
