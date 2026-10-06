@@ -67,7 +67,7 @@ export const fetchImageBase64 = async (
         return imageCache.get(cacheKey)!;
     }
 
-    const cleanBaseUrl = (API_BASE_URL || 'https://6mcr9zjh-8867.inc1.devtunnels.ms').replace(/\/+$/, '');
+    const cleanBaseUrl = (API_BASE_URL);
     const endpoint = `${cleanBaseUrl}/downloadFile`;
 
     let token = '';
