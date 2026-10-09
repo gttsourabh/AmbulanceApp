@@ -10,6 +10,15 @@ import { name as appName } from './app.json';
 import { parseEmergencyTripPayload } from './src/utils/emergencyNotificationHandler';
 import { storage } from './src/storage/storage';
 import { STORAGE_KEYS } from './src/storage/storageKeys';
+import Geolocation from '@react-native-community/geolocation';
+
+// Configure Geolocation globally for background / headless execution:
+// - skipPermissionRequests: prevents PermissionsModule from crashing when Activity is null (app killed)
+// - locationProvider: 'playServices' enables Google Play Services FusedLocationProviderClient
+Geolocation.setRNConfiguration({
+    skipPermissionRequests: true,
+    locationProvider: 'playServices',
+});
 
 // Register background and quit-state FCM message handler
 const messagingInstance = getMessaging();

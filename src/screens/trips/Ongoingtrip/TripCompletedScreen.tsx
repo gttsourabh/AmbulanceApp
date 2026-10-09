@@ -4,9 +4,10 @@ import {
     Text,
     View,
     ScrollView,
+    BackHandler,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useNavigation, useRoute } from '@react-navigation/native';
+import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/native';
 import { useAppSelector } from '../../../redux/hook';
 
 import { colors, typography } from '../../../theme';
@@ -121,15 +122,29 @@ const TripCompletedScreen = () => {
         }
     };
 
+    // Intercept mobile hardware back button: block returning to en route and redirect to Home
+    useFocusEffect(
+        React.useCallback(() => {
+            const onBackPress = () => {
+                navigation.navigate('MainTabs' as never);
+                return true;
+            };
+
+            const subscription = BackHandler.addEventListener('hardwareBackPress', onBackPress);
+            return () => subscription.remove();
+        }, [navigation])
+    );
+
     return (
         <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
             <ScrollView
                 style={styles.scrollView}
                 contentContainerStyle={styles.scrollContent}
                 showsVerticalScrollIndicator={false}
+                bounces={false}
             >
                 {/* =====================================================
-                    SUCCESS HEADER
+                    COMPACT SUCCESS HEADER (App Primary Teal + Brand Colors)
                 ===================================================== */}
                 <View style={styles.successHeader}>
                     <View style={styles.successIconRing}>
@@ -137,168 +152,152 @@ const TripCompletedScreen = () => {
                             <AppIcon
                                 family="material"
                                 name="check-bold"
-                                size={28}
-                                color={colors.success}
+                                size={18}
+                                color={colors.primary}
                             />
                         </View>
                     </View>
 
                     <Text style={styles.successTitle}>Trip Completed</Text>
                     <Text style={styles.successSubtitle}>
-                        Patient safely dropped off at hospital
+                        Patient safely dropped off at destination
                     </Text>
                 </View>
 
                 {/* =====================================================
-                    CONTENT CARD
+                    COMPACT TRIP CARD
                 ===================================================== */}
-                <View style={styles.contentCardShadowWrap}>
-                    <View style={styles.contentCard}>
-                        {/* ROUTE TIMELINE (PICKUP -> DROP) */}
-                        <Text style={styles.sectionHeader}>TRIP ROUTE</Text>
-
-                        <View style={styles.routeContainer}>
-                            {/* PICKUP ROW */}
-                            <View style={styles.routeRow}>
-                                <View style={styles.nodeColumn}>
-                                    <View style={styles.pickupDot}>
-                                        <View style={styles.pickupInnerDot} />
-                                    </View>
-                                    <View style={styles.connectorLine} />
-                                </View>
-                                <View style={styles.locationDetails}>
-                                    <Text style={styles.locationCategory}>PICKUP LOCATION</Text>
-                                    <Text style={styles.locationAddress} numberOfLines={2}>
-                                        {pickupAddress}
-                                    </Text>
-                                </View>
+                <View style={styles.contentCard}>
+                    {/* SECTION: TRIP ROUTE */}
+                    <Text style={styles.sectionHeader}>TRIP ROUTE</Text>
+                    <View style={styles.routeContainer}>
+                        {/* Pickup */}
+                        <View style={styles.routeRow}>
+                            <View style={styles.pickupDot}>
+                                <View style={styles.pickupInnerDot} />
                             </View>
-
-                            {/* DROP ROW */}
-                            <View style={styles.routeRow}>
-                                <View style={styles.nodeColumn}>
-                                    <View style={styles.dropDot}>
-                                        <AppIcon
-                                            family="material"
-                                            name="hospital-building"
-                                            size={14}
-                                            color={colors.white}
-                                        />
-                                    </View>
-                                </View>
-                                <View style={styles.locationDetails}>
-                                    <Text style={styles.locationCategory}>DROP LOCATION</Text>
-                                    <Text style={styles.locationTitle} numberOfLines={1}>
-                                        {hospitalName}
-                                    </Text>
-                                    <Text style={styles.locationSubAddress} numberOfLines={2}>
-                                        {dropAddress}
-                                    </Text>
-                                </View>
-                            </View>
-                        </View>
-
-                        <View style={styles.divider} />
-
-                        {/* TRIP STATS (WHOLE TRIP DISTANCE & PATIENT - NO EARNINGS) */}
-                        <Text style={styles.sectionHeader}>TRIP SUMMARY</Text>
-
-                        <View style={styles.statsRow}>
-                            {/* WHOLE TRIP DISTANCE STAT */}
-                            <View style={styles.statBox}>
-                                <View style={styles.statIconWrap}>
-                                    <AppIcon
-                                        family="material"
-                                        name="map-marker-distance"
-                                        size={20}
-                                        color={colors.primary}
-                                    />
-                                </View>
-                                <Text style={styles.statLabel}>WHOLE TRIP DISTANCE</Text>
-                                <Text style={styles.statValue}>{tripDistances.totalDistance}</Text>
-                            </View>
-
-                            {/* PATIENT STAT */}
-                            <View style={styles.statBox}>
-                                <View style={[styles.statIconWrap, styles.patientIconWrap]}>
-                                    <AppIcon
-                                        family="material"
-                                        name="account"
-                                        size={20}
-                                        color={colors.danger}
-                                    />
-                                </View>
-                                <Text style={styles.statLabel}>PATIENT</Text>
-                                <Text style={styles.statValue} numberOfLines={1}>
-                                    {patientName}
+                            <View style={styles.locationDetails}>
+                                <Text style={styles.locationCategory}>PICKUP</Text>
+                                <Text style={styles.locationAddress} numberOfLines={1}>
+                                    {pickupAddress}
                                 </Text>
-                                <View style={styles.emergencyTag}>
-                                    <Text style={styles.emergencyTagText}>
-                                        {emergencyType.toUpperCase()}
-                                    </Text>
-                                </View>
                             </View>
                         </View>
 
-                        {/* WHOLE TRIP DISTANCE BREAKDOWN (PICKUP + HOSPITAL LEGS) */}
-                        {tripDistances.npDistance && tripDistances.phDistance && (
-                            <View style={styles.breakdownContainer}>
-                                <View style={styles.breakdownItem}>
-                                    <View style={styles.breakdownDotPickup} />
-                                    <Text style={styles.breakdownLabel}>To Pickup:</Text>
-                                    <Text style={styles.breakdownValue}>{tripDistances.npDistance}</Text>
-                                </View>
-                                <View style={styles.breakdownSeparator} />
-                                <View style={styles.breakdownItem}>
-                                    <View style={styles.breakdownDotHospital} />
-                                    <Text style={styles.breakdownLabel}>To Hospital:</Text>
-                                    <Text style={styles.breakdownValue}>{tripDistances.phDistance}</Text>
-                                </View>
-                            </View>
-                        )}
-
-                        {/* SAFE HANDOVER VERIFIED BADGE */}
-                        <View style={styles.handoverBadge}>
-                            <AppIcon
-                                family="material"
-                                name="shield-check"
-                                size={18}
-                                color={colors.success}
-                            />
-                            <Text style={styles.handoverText}>
-                                Patient safely handed over to medical staff
-                            </Text>
+                        {/* Connector line */}
+                        <View style={styles.connectorLineWrap}>
+                            <View style={styles.connectorLine} />
                         </View>
 
-                        {/* DRIVER INFO ROW */}
-                        <View style={styles.driverInfoRow}>
-                            <View style={styles.driverAvatar}>
+                        {/* Drop / Hospital */}
+                        <View style={styles.routeRow}>
+                            <View style={styles.dropDot}>
                                 <AppIcon
-                                    family="ionicons"
-                                    name="person"
-                                    size={18}
-                                    color={colors.textSecondary}
+                                    family="material"
+                                    name="hospital-building"
+                                    size={12}
+                                    color={colors.primary}
                                 />
                             </View>
-                            <View style={styles.driverDetails}>
-                                <Text style={styles.driverNameText}>{driverName}</Text>
-                                <Text style={styles.driverSubText}>Ambulance Driver</Text>
-                            </View>
-                            <View style={styles.statusPill}>
-                                <Text style={styles.statusPillText}>COMPLETED</Text>
+                            <View style={styles.locationDetails}>
+                                <Text style={styles.locationCategory}>HOSPITAL DROP-OFF</Text>
+                                <Text style={styles.locationTitle} numberOfLines={1}>
+                                    {hospitalName}
+                                </Text>
+                                <Text style={styles.locationSubAddress} numberOfLines={1}>
+                                    {dropAddress}
+                                </Text>
                             </View>
                         </View>
-
-                        {/* COMPLETE BUTTON */}
-                        <Button
-                            title={isSubmitting ? "Completing..." : "Done - Back to Home"}
-                            icon="check"
-                            onPress={handleComplete}
-                            disabled={isSubmitting}
-                            variant="primary"
-                            style={styles.completeButton}
-                        />
                     </View>
+
+                    <View style={styles.divider} />
+
+                    {/* SECTION: TRIP SUMMARY STATS */}
+                    <Text style={styles.sectionHeader}>TRIP SUMMARY</Text>
+                    <View style={styles.statsRow}>
+                        {/* Total Distance */}
+                        <View style={styles.statBox}>
+                            <View style={styles.statIconWrap}>
+                                <AppIcon
+                                    family="material"
+                                    name="map-marker-distance"
+                                    size={16}
+                                    color={colors.primary}
+                                />
+                            </View>
+                            <Text style={styles.statLabel}>TOTAL DISTANCE</Text>
+                            <Text style={styles.statValue}>{tripDistances.totalDistance}</Text>
+                            {tripDistances.npDistance && tripDistances.phDistance ? (
+                                <Text style={styles.statSubText} numberOfLines={1}>
+                                    {tripDistances.npDistance} + {tripDistances.phDistance}
+                                </Text>
+                            ) : null}
+                        </View>
+
+                        {/* Patient */}
+                        <View style={styles.statBox}>
+                            <View style={[styles.statIconWrap, styles.patientIconWrap]}>
+                                <AppIcon
+                                    family="material"
+                                    name="account"
+                                    size={16}
+                                    color={colors.danger}
+                                />
+                            </View>
+                            <Text style={styles.statLabel}>PATIENT</Text>
+                            <Text style={styles.statValue} numberOfLines={1}>
+                                {patientName}
+                            </Text>
+                            <View style={styles.emergencyTag}>
+                                <Text style={styles.emergencyTagText}>
+                                    {emergencyType.toUpperCase()}
+                                </Text>
+                            </View>
+                        </View>
+                    </View>
+
+                    {/* SAFE HANDOVER STRIP */}
+                    <View style={styles.handoverBadge}>
+                        <AppIcon
+                            family="material"
+                            name="shield-check"
+                            size={16}
+                            color={colors.successDark}
+                        />
+                        <Text style={styles.handoverText} numberOfLines={1}>
+                            Handed over safely to hospital staff
+                        </Text>
+                    </View>
+
+                    {/* DRIVER INFO ROW */}
+                    <View style={styles.driverInfoRow}>
+                        <View style={styles.driverAvatar}>
+                            <AppIcon
+                                family="ionicons"
+                                name="person"
+                                size={15}
+                                color={colors.primary}
+                            />
+                        </View>
+                        <View style={styles.driverDetails}>
+                            <Text style={styles.driverNameText} numberOfLines={1}>{driverName}</Text>
+                            <Text style={styles.driverSubText}>Ambulance Driver</Text>
+                        </View>
+                        <View style={styles.statusPill}>
+                            <Text style={styles.statusPillText}>COMPLETED</Text>
+                        </View>
+                    </View>
+
+                    {/* COMPLETE / RETURN BUTTON */}
+                    <Button
+                        title={isSubmitting ? "Completing..." : "Done - Back to Home"}
+                        icon="check"
+                        onPress={handleComplete}
+                        disabled={isSubmitting}
+                        variant="primary"
+                        style={styles.completeButton}
+                    />
                 </View>
             </ScrollView>
         </SafeAreaView>
@@ -316,323 +315,287 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     scrollContent: {
-        paddingBottom: 24,
+        flexGrow: 1,
+        paddingBottom: 10,
     },
 
-    // SUCCESS HEADER
+    // =====================================================
+    // SUCCESS HEADER - Compact Brand Header
+    // =====================================================
     successHeader: {
-        height: 180,
-        backgroundColor: colors.success,
+        backgroundColor: colors.primary,
         alignItems: 'center',
         justifyContent: 'center',
-        paddingTop: 8,
+        paddingVertical: 14,
+        paddingHorizontal: 16,
     },
     successIconRing: {
-        width: 68,
-        height: 68,
-        borderRadius: 34,
-        backgroundColor: 'rgba(255,255,255,0.22)',
+        width: 44,
+        height: 44,
+        borderRadius: 22,
+        backgroundColor: 'rgba(255, 255, 255, 0.2)',
         alignItems: 'center',
         justifyContent: 'center',
-        marginBottom: 8,
+        marginBottom: 6,
     },
     successIcon: {
-        width: 52,
-        height: 52,
-        borderRadius: 26,
+        width: 32,
+        height: 32,
+        borderRadius: 16,
         backgroundColor: colors.white,
         alignItems: 'center',
         justifyContent: 'center',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 3 },
+        elevation: 3,
+        shadowColor: colors.shadow,
+        shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.15,
-        shadowRadius: 5,
-        elevation: 4,
+        shadowRadius: 3,
     },
     successTitle: {
         fontFamily: 'GoogleSans-Bold',
-        fontSize: typography.fontSize.lg,
-        letterSpacing: 0.2,
+        fontSize: typography.fontSize.md,
         color: colors.white,
-        marginBottom: 2,
+        letterSpacing: 0.2,
     },
     successSubtitle: {
         fontFamily: 'GoogleSans-Regular',
-        fontSize: typography.fontSize.xs,
-        color: 'rgba(255,255,255,0.9)',
+        fontSize: 11,
+        color: colors.primaryLight,
+        marginTop: 2,
     },
 
-    // CONTENT CARD
-    contentCardShadowWrap: {
-        marginHorizontal: 14,
-        marginTop: -22,
-        borderRadius: 20,
-        shadowColor: colors.shadow,
-        shadowOffset: { width: 0, height: 8 },
-        shadowOpacity: 0.12,
-        shadowRadius: 16,
-        elevation: 6,
-    },
+    // =====================================================
+    // CONTENT CARD - Compact, Single Screen
+    // =====================================================
     contentCard: {
-        borderRadius: 20,
+        marginHorizontal: 12,
+        marginTop: -8,
+        borderRadius: 14,
         backgroundColor: colors.card,
-        padding: 16,
+        paddingHorizontal: 12,
+        paddingVertical: 12,
         borderWidth: 1,
         borderColor: colors.border,
+        elevation: 3,
+        shadowColor: colors.shadow,
+        shadowOffset: { width: 0, height: 3 },
+        shadowOpacity: 0.08,
+        shadowRadius: 6,
     },
 
     sectionHeader: {
         fontFamily: 'GoogleSans-Bold',
-        fontSize: 11,
-        letterSpacing: 0.8,
+        fontSize: 10,
+        letterSpacing: 0.6,
         color: colors.textSecondary,
-        marginBottom: 12,
+        marginBottom: 6,
     },
 
     // ROUTE CONTAINER
     routeContainer: {
-        marginBottom: 4,
+        backgroundColor: colors.background,
+        borderRadius: 10,
+        padding: 8,
+        borderWidth: 1,
+        borderColor: colors.divider,
     },
     routeRow: {
         flexDirection: 'row',
-        alignItems: 'flex-start',
-    },
-    nodeColumn: {
-        width: 32,
         alignItems: 'center',
     },
     pickupDot: {
-        width: 22,
-        height: 22,
-        borderRadius: 11,
-        backgroundColor: 'rgba(16, 185, 129, 0.18)',
+        width: 20,
+        height: 20,
+        borderRadius: 10,
+        backgroundColor: colors.successLight,
         alignItems: 'center',
         justifyContent: 'center',
     },
     pickupInnerDot: {
-        width: 10,
-        height: 10,
-        borderRadius: 5,
-        backgroundColor: colors.success,
+        width: 8,
+        height: 8,
+        borderRadius: 4,
+        backgroundColor: colors.successDark,
+    },
+    connectorLineWrap: {
+        width: 20,
+        alignItems: 'center',
+        height: 12,
+        justifyContent: 'center',
     },
     connectorLine: {
         width: 2,
-        height: 38,
-        backgroundColor: colors.divider,
-        marginVertical: 4,
+        height: 12,
+        backgroundColor: colors.border,
     },
     dropDot: {
-        width: 24,
-        height: 24,
-        borderRadius: 12,
-        backgroundColor: colors.primary,
+        width: 20,
+        height: 20,
+        borderRadius: 10,
+        backgroundColor: colors.primaryLight,
         alignItems: 'center',
         justifyContent: 'center',
     },
     locationDetails: {
         flex: 1,
         marginLeft: 8,
-        paddingBottom: 10,
     },
     locationCategory: {
         fontFamily: 'GoogleSans-Bold',
-        fontSize: 9,
+        fontSize: 8.5,
         color: colors.textLight,
-        letterSpacing: 0.6,
-        marginBottom: 2,
+        letterSpacing: 0.4,
     },
     locationTitle: {
         fontFamily: 'GoogleSans-Bold',
-        fontSize: typography.fontSize.sm,
+        fontSize: 12,
         color: colors.textPrimary,
-        marginBottom: 1,
     },
     locationAddress: {
         fontFamily: 'GoogleSans-Medium',
-        fontSize: typography.fontSize.xs,
+        fontSize: 11.5,
         color: colors.textPrimary,
-        lineHeight: 18,
     },
     locationSubAddress: {
         fontFamily: 'GoogleSans-Regular',
-        fontSize: typography.fontSize.xs,
+        fontSize: 10.5,
         color: colors.textSecondary,
-        lineHeight: 16,
     },
 
     divider: {
         height: 1,
         backgroundColor: colors.divider,
-        marginVertical: 14,
+        marginVertical: 8,
     },
 
     // STATS ROW
     statsRow: {
         flexDirection: 'row',
-        gap: 10,
-        marginBottom: 14,
+        gap: 8,
+        marginBottom: 8,
     },
     statBox: {
         flex: 1,
-        backgroundColor: colors.surface,
-        borderRadius: 14,
-        padding: 12,
+        backgroundColor: colors.background,
+        borderRadius: 10,
+        paddingVertical: 8,
+        paddingHorizontal: 8,
         alignItems: 'center',
         borderWidth: 1,
         borderColor: colors.border,
     },
     statIconWrap: {
-        width: 36,
-        height: 36,
-        borderRadius: 18,
-        backgroundColor: 'rgba(37, 99, 235, 0.1)',
+        width: 28,
+        height: 28,
+        borderRadius: 14,
+        backgroundColor: colors.primaryLight,
         alignItems: 'center',
         justifyContent: 'center',
-        marginBottom: 6,
+        marginBottom: 3,
     },
     patientIconWrap: {
-        backgroundColor: 'rgba(239, 68, 68, 0.1)',
+        backgroundColor: colors.dangerLight,
     },
     statLabel: {
         fontFamily: 'GoogleSans-Bold',
-        fontSize: 9,
-        letterSpacing: 0.6,
-        color: colors.textLight,
-        marginBottom: 2,
+        fontSize: 8.5,
+        letterSpacing: 0.5,
+        color: colors.textSecondary,
+        marginBottom: 1,
     },
     statValue: {
         fontFamily: 'GoogleSans-Bold',
-        fontSize: typography.fontSize.md,
+        fontSize: 13,
         color: colors.textPrimary,
     },
+    statSubText: {
+        fontFamily: 'GoogleSans-Regular',
+        fontSize: 9,
+        color: colors.textSecondary,
+        marginTop: 2,
+    },
     emergencyTag: {
-        marginTop: 4,
+        marginTop: 3,
         paddingHorizontal: 6,
-        paddingVertical: 2,
+        paddingVertical: 1,
         borderRadius: 4,
-        backgroundColor: '#FEE2E2',
+        backgroundColor: colors.dangerLight,
     },
     emergencyTagText: {
         fontFamily: 'GoogleSans-Bold',
         fontSize: 8,
         color: colors.danger,
-        letterSpacing: 0.4,
-    },
-
-    // BREAKDOWN STYLES
-    breakdownContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-around',
-        backgroundColor: colors.surface,
-        borderRadius: 12,
-        paddingVertical: 9,
-        paddingHorizontal: 12,
-        marginBottom: 14,
-        borderWidth: 1,
-        borderColor: colors.border,
-    },
-    breakdownItem: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 6,
-    },
-    breakdownDotPickup: {
-        width: 8,
-        height: 8,
-        borderRadius: 4,
-        backgroundColor: colors.primary,
-    },
-    breakdownDotHospital: {
-        width: 8,
-        height: 8,
-        borderRadius: 4,
-        backgroundColor: colors.success,
-    },
-    breakdownLabel: {
-        fontFamily: 'GoogleSans-Medium',
-        fontSize: 11,
-        color: colors.textSecondary,
-    },
-    breakdownValue: {
-        fontFamily: 'GoogleSans-Bold',
-        fontSize: 11,
-        color: colors.textPrimary,
-    },
-    breakdownSeparator: {
-        width: 1,
-        height: 14,
-        backgroundColor: colors.border,
+        letterSpacing: 0.3,
     },
 
     // HANDOVER BADGE
     handoverBadge: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 8,
-        backgroundColor: 'rgba(16, 185, 129, 0.08)',
-        borderRadius: 12,
-        paddingHorizontal: 12,
-        paddingVertical: 10,
+        gap: 6,
+        backgroundColor: colors.successLight,
+        borderRadius: 8,
+        paddingHorizontal: 8,
+        paddingVertical: 6,
         borderWidth: 1,
-        borderColor: 'rgba(16, 185, 129, 0.25)',
-        marginBottom: 14,
+        borderColor: 'rgba(107, 207, 155, 0.4)',
+        marginBottom: 8,
     },
     handoverText: {
         flex: 1,
         fontFamily: 'GoogleSans-Medium',
-        fontSize: typography.fontSize.xs,
-        color: colors.success,
+        fontSize: 10.5,
+        color: colors.successDark,
     },
 
     // DRIVER ROW
     driverInfoRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        paddingVertical: 8,
-        marginBottom: 16,
+        paddingVertical: 2,
+        marginBottom: 10,
     },
     driverAvatar: {
-        width: 36,
-        height: 36,
-        borderRadius: 18,
-        backgroundColor: colors.surface,
+        width: 28,
+        height: 28,
+        borderRadius: 14,
+        backgroundColor: colors.primaryLight,
         borderWidth: 1,
         borderColor: colors.border,
         alignItems: 'center',
         justifyContent: 'center',
-        marginRight: 10,
+        marginRight: 8,
     },
     driverDetails: {
         flex: 1,
     },
     driverNameText: {
-        fontFamily: 'GoogleSans-Medium',
-        fontSize: typography.fontSize.sm,
+        fontFamily: 'GoogleSans-Bold',
+        fontSize: 12,
         color: colors.textPrimary,
     },
     driverSubText: {
         fontFamily: 'GoogleSans-Regular',
-        fontSize: typography.fontSize.xs,
+        fontSize: 10,
         color: colors.textSecondary,
     },
     statusPill: {
-        paddingHorizontal: 8,
-        paddingVertical: 4,
+        paddingHorizontal: 7,
+        paddingVertical: 3,
         borderRadius: 6,
-        backgroundColor: 'rgba(16, 185, 129, 0.12)',
+        backgroundColor: colors.successLight,
     },
     statusPillText: {
         fontFamily: 'GoogleSans-Bold',
-        fontSize: 9,
-        color: colors.success,
-        letterSpacing: 0.5,
+        fontSize: 8.5,
+        color: colors.successDark,
+        letterSpacing: 0.4,
     },
 
     // COMPLETE BUTTON
     completeButton: {
-        height: 52,
-        borderRadius: 14,
-        backgroundColor: colors.success,
+        height: 44,
+        borderRadius: 10,
+        backgroundColor: colors.primary,
     },
 });

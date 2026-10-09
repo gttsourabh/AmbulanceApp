@@ -13,10 +13,11 @@ import {
     TouchableOpacity,
     View,
     ScrollView,
+    BackHandler,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import MapView, { PROVIDER_GOOGLE, PROVIDER_DEFAULT, Marker } from 'react-native-maps';
-import { useNavigation, useRoute } from '@react-navigation/native';
+import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/native';
 
 import { colors, typography } from '../../../theme';
 import { AppIcon } from '../../../icons';
@@ -114,20 +115,7 @@ const ChooseHospitalScreen = () => {
     useEffect(() => {
         requestLocationPermission().then(granted => {
             if (!granted) return;
-            // Quick cached/network position (<200ms)
-            Geolocation.getCurrentPosition(
-                pos => {
-                    const loc: LatLng = {
-                        latitude: pos.coords.latitude,
-                        longitude: pos.coords.longitude,
-                    };
-                    setDriverLiveLocation(loc);
-                },
-                err => console.log('ChooseHospital cached GPS:', err?.message),
-                { enableHighAccuracy: false, timeout: 4000, maximumAge: 60000 }
-            );
-
-            // Fresh high-accuracy GPS fix
+            // Fresh GPS fix from device GPS hardware
             Geolocation.getCurrentPosition(
                 pos => {
                     const loc: LatLng = {
@@ -142,8 +130,8 @@ const ChooseHospitalScreen = () => {
                         });
                     }
                 },
-                err => console.warn('ChooseHospital high-accuracy GPS error:', err?.message),
-                { enableHighAccuracy: true, timeout: 10000, maximumAge: 5000 }
+                err => console.log('ChooseHospital GPS notice:', err?.message),
+                { enableHighAccuracy: true, timeout: 8000, maximumAge: 10000 }
             );
         });
     }, [selectedHospital]);
@@ -369,11 +357,25 @@ const ChooseHospitalScreen = () => {
         });
     };
 
+    // Intercept mobile hardware back button: block backward navigation and redirect to Home
+    useFocusEffect(
+        useCallback(() => {
+            const onBackPress = () => {
+                navigation.navigate('MainTabs' as never);
+                return true;
+            };
+
+            const subscription = BackHandler.addEventListener('hardwareBackPress', onBackPress);
+            return () => subscription.remove();
+        }, [navigation])
+    );
+
     return (
         <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
             {/* Top Header */}
             <Header
-                backEnabled
+                backEnabled={false}
+                showLeftIcon={false}
                 title="Select Destination Hospital"
                 showRightIcon={false}
             />

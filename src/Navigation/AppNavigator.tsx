@@ -1,9 +1,6 @@
 import React from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-
 import MainTabNavigator from './tabs/MainTabNavigator';
-
-
 import PickupScreen from '../screens/trips/Ongoingtrip/PickupScreen';
 import EnRouteScreen from '../screens/trips/Ongoingtrip/EnRouteScreen';
 import OnTripScreen from '../screens/trips/Ongoingtrip/OnTripScreen';
@@ -51,31 +48,37 @@ const AppNavigator = () => {
             <Stack.Screen
                 name="NavigationToPickup"
                 component={NavigationToPickup}
+                options={{ gestureEnabled: false }}
             />
 
             <Stack.Screen
                 name="ChooseHospital"
                 component={ChooseHospitalScreen}
+                options={{ gestureEnabled: false }}
             />
 
             <Stack.Screen
                 name="Pickup"
                 component={PickupScreen}
+                options={{ gestureEnabled: false }}
             />
 
             <Stack.Screen
                 name="EnRoute"
                 component={EnRouteScreen}
+                options={{ gestureEnabled: false }}
             />
 
             <Stack.Screen
                 name="OnTrip"
                 component={OnTripScreen}
+                options={{ gestureEnabled: false }}
             />
 
             <Stack.Screen
                 name="TripCompleted"
                 component={TripCompletedScreen}
+                options={{ gestureEnabled: false }}
             />
         </Stack.Navigator>
     );

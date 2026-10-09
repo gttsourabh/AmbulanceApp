@@ -28,9 +28,11 @@
       android:value="@string/google_maps_api_key"
     />
     <!-- Background Actions Foreground Service for Location Tracking -->
+    <!-- stopWithTask="false" keeps the service & notification alive when user swipes the app away -->
     <service
       android:name="com.asterinet.react.bgactions.RNBackgroundActionsTask"
       android:foregroundServiceType="location"
+      android:stopWithTask="false"
       android:exported="false" />
 
     <activity

@@ -9,6 +9,7 @@ import {
     Modal,
     Linking,
     Alert,
+    BackHandler,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import MapView, {
@@ -18,7 +19,7 @@ import MapView, {
     MapType,
     Region,
 } from 'react-native-maps';
-import { useNavigation, useRoute } from '@react-navigation/native';
+import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/native';
 import { useAppSelector } from '../../../redux/hook';
 
 import { colors, typography } from '../../../theme';
@@ -186,10 +187,6 @@ const NavigationToPickup = () => {
         } else {
             stopBackgroundLocationTracking();
         }
-
-        return () => {
-            stopBackgroundLocationTracking();
-        };
     }, [isNavigating, ambulanceRequestId, dynamicDriverId]);
 
     // Patient Pickup Location: from navigation params
@@ -458,7 +455,7 @@ const NavigationToPickup = () => {
                 updateDrivingRoute(initialDriverLoc, true);
             }
 
-            // 1. Instant low-accuracy / cached fix (< 200ms) - Gets driver's real location immediately
+            // 1. Initial GPS fix from device GPS hardware
             Geolocation.getCurrentPosition(
                 pos => {
                     applyDriverLocation({
@@ -466,20 +463,8 @@ const NavigationToPickup = () => {
                         longitude: pos.coords.longitude,
                     }, pos.coords.heading ?? undefined);
                 },
-                err => console.log('Fast cached GPS info in NavigationToPickup:', err?.message),
-                { enableHighAccuracy: false, timeout: 4000, maximumAge: 60000 }
-            );
-
-            // 2. Fresh high-accuracy GPS fix from device GPS hardware
-            Geolocation.getCurrentPosition(
-                pos => {
-                    applyDriverLocation({
-                        latitude: pos.coords.latitude,
-                        longitude: pos.coords.longitude,
-                    }, pos.coords.heading ?? undefined);
-                },
-                err => console.warn('High-accuracy GPS fix error in NavigationToPickup:', err?.message),
-                { enableHighAccuracy: true, timeout: 10000, maximumAge: 5000 }
+                err => console.log('Initial GPS fix notice in NavigationToPickup:', err?.message),
+                { enableHighAccuracy: true, timeout: 8000, maximumAge: 10000 }
             );
 
             // 3. Continuous real-time tracking as driver moves
@@ -657,13 +642,26 @@ const NavigationToPickup = () => {
         navigation,
     ]);
 
+    // Intercept mobile hardware back button: block backward navigation and redirect to Home
+    useFocusEffect(
+        useCallback(() => {
+            const onBackPress = () => {
+                navigation.navigate('MainTabs' as never);
+                return true;
+            };
+
+            const subscription = BackHandler.addEventListener('hardwareBackPress', onBackPress);
+            return () => subscription.remove();
+        }, [navigation])
+    );
+
     return (
         <SafeAreaView
             style={styles.container}
             edges={['top', 'bottom']}
         >
             {/* HEADER */}
-            <Header title='Navigation To Pickup' />
+            <Header title="Navigation To Pickup" backEnabled={false} showLeftIcon={false} />
 
             {/* MAP VIEW */}
             <View style={styles.mapContainer}>

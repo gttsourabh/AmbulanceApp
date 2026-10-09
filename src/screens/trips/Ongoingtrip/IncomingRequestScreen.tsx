@@ -240,8 +240,8 @@ const IncomingRequestScreen = () => {
       // ONLY navigate to next page if backend succeeds!
       await storage.remove(STORAGE_KEYS.PENDING_EMERGENCY_REQUEST);
 
-      // Dynamic navigation parameters
-      (navigation.navigate as any)('NavigationToPickup', {
+      // Dynamic navigation parameters (replace so driver cannot go back to incoming modal)
+      (navigation as any).replace('NavigationToPickup', {
         driverLocation: driverLocation,
         driver_lat: driverLocation?.latitude,
         driver_lng: driverLocation?.longitude,
@@ -363,14 +363,14 @@ const IncomingRequestScreen = () => {
               ]}
             >
               {/* Close / Dismiss Button */}
-              <TouchableOpacity
+              {/* <TouchableOpacity
                 style={styles.circularCloseBtn}
                 onPress={handleDismissAlert}
                 hitSlop={{ top: 12, right: 12, bottom: 12, left: 12 }}
                 activeOpacity={0.7}
               >
                 <AppIcon family="material" name="close" size={16} color="rgba(255,255,255,0.8)" />
-              </TouchableOpacity>
+              </TouchableOpacity> */}
 
               {/* Siren Icon in glowing bubble */}
               <View style={styles.circularIconHub}>
@@ -464,13 +464,6 @@ const IncomingRequestScreen = () => {
                     </Text>
                   </View>
                 ) : null}
-                <TouchableOpacity
-                  onPress={() => navigation.goBack()}
-                  style={styles.cardCloseBtn}
-                  hitSlop={{ top: 10, right: 10, bottom: 10, left: 10 }}
-                >
-                  <AppIcon family="material" name="close" size={16} color={colors.textLight} />
-                </TouchableOpacity>
               </View>
             </View>
 

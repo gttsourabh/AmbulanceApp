@@ -4,9 +4,10 @@ import {
   StyleSheet,
   Text,
   View,
+  BackHandler,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useNavigation, useRoute } from '@react-navigation/native';
+import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/native';
 
 import { colors, typography, shadows } from '../../../theme';
 import { AppIcon } from '../../../icons';
@@ -43,6 +44,19 @@ const PickupScreen = () => {
     });
   };
 
+  // Intercept mobile hardware back button: block backward navigation and redirect to Home
+  useFocusEffect(
+    React.useCallback(() => {
+      const onBackPress = () => {
+        navigation.navigate('MainTabs' as never);
+        return true;
+      };
+
+      const subscription = BackHandler.addEventListener('hardwareBackPress', onBackPress);
+      return () => subscription.remove();
+    }, [navigation])
+  );
+
   return (
     <SafeAreaView
       style={styles.container}
@@ -53,7 +67,8 @@ const PickupScreen = () => {
       ===================================================== */}
 
       <Header
-        backEnabled
+        backEnabled={false}
+        showLeftIcon={false}
         title="Pickup Patient"
         showRightIcon={false}
       />

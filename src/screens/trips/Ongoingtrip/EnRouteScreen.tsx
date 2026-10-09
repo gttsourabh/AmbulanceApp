@@ -9,6 +9,7 @@ import {
   Modal,
   Linking,
   Alert,
+  BackHandler,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import MapView, {
@@ -18,7 +19,7 @@ import MapView, {
   MapType,
   Region,
 } from 'react-native-maps';
-import { useNavigation, useRoute } from '@react-navigation/native';
+import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/native';
 import { useAppSelector } from '../../../redux/hook';
 import { colors, typography } from '../../../theme';
 import { AppIcon } from '../../../icons';
@@ -148,6 +149,7 @@ const EnRouteScreen = () => {
     route?.params?.driver_lat ??
     0
   );
+  
   const passedDriverLng = Number(
     route?.params?.driverLocation?.longitude ??
     route?.params?.driver_lng ??
@@ -183,26 +185,22 @@ const EnRouteScreen = () => {
     } else {
       stopBackgroundLocationTracking();
     }
-
-    return () => {
-      stopBackgroundLocationTracking();
-    };
   }, [isNavigating, ambulanceRequestId, dynamicDriverId]);
 
-  // Fallback road coordinates connecting Ambulance/Driver and Hospital
+  // Fallback road coordinates connecting Ambulance/Driver and Hospital (only depends on static destinations)
   const fallbackRoute = useMemo(() => {
-    if (ambulanceLocation) {
-      return [ambulanceLocation, hospitalLocation];
+    if (initialDriverLoc) {
+      return [initialDriverLoc, hospitalLocation];
     }
     if (patientLocation) {
       return [patientLocation, hospitalLocation];
     }
     return [hospitalLocation];
-  }, [ambulanceLocation, patientLocation, hospitalLocation]);
+  }, [patientLocation, hospitalLocation]);
 
-  // Initial Region framing Ambulance/Driver and Hospital
+  // Initial Region framing Ambulance/Driver and Hospital (computed once to prevent MapView remounting)
   const initialRegion: Region = useMemo(() => {
-    const origin = ambulanceLocation || patientLocation;
+    const origin = initialDriverLoc || patientLocation;
     if (origin) {
       const minLat = Math.min(origin.latitude, hospitalLocation.latitude);
       const maxLat = Math.max(origin.latitude, hospitalLocation.latitude);
@@ -226,18 +224,27 @@ const EnRouteScreen = () => {
       latitudeDelta: 0.05,
       longitudeDelta: 0.05,
     };
-  }, [ambulanceLocation, patientLocation, hospitalLocation]);
+  }, [patientLocation, hospitalLocation]);
 
   const currentRegionRef = useRef<Region>(initialRegion);
   const lastRouteFetchLoc = useRef<LatLng | null>(null);
+  const lastRouteFetchTime = useRef<number>(0);
+  const isRouteFetchingRef = useRef<boolean>(false);
+  const lastCameraMoveLoc = useRef<LatLng | null>(null);
+  const lastCameraMoveTime = useRef<number>(0);
 
   const [isRouteLoading, setIsRouteLoading] = useState(true);
 
-  const updateHospitalRoute = async (currentAmbulancePos: LatLng) => {
-    setIsRouteLoading(true);
+  const updateHospitalRoute = async (currentAmbulancePos: LatLng, isInitial: boolean = false) => {
+    if (isRouteFetchingRef.current) return;
+    isRouteFetchingRef.current = true;
+    if (isInitial) {
+      setIsRouteLoading(true);
+    }
+    lastRouteFetchTime.current = Date.now();
     try {
       console.log(
-        `📡 [EN ROUTE] Calculating road route from live driver GPS (${currentAmbulancePos.latitude.toFixed(5)}, ${currentAmbulancePos.longitude.toFixed(5)}) to hospital (${hospitalLocation.latitude.toFixed(5)}, ${hospitalLocation.longitude.toFixed(5)})`
+        `📡 [EN ROUTE] Calculating road route (${isInitial ? 'Initial' : 'Background Silent'}) from live driver GPS (${currentAmbulancePos.latitude.toFixed(5)}, ${currentAmbulancePos.longitude.toFixed(5)}) to hospital (${hospitalLocation.latitude.toFixed(5)}, ${hospitalLocation.longitude.toFixed(5)})`
       );
       const routes = await getDrivingRoutesWithAlternatives(currentAmbulancePos, hospitalLocation);
       if (routes?.primaryRoute && routes.primaryRoute.coordinates.length > 0) {
@@ -255,7 +262,7 @@ const EnRouteScreen = () => {
           altCoordinatesRef.current = routes.alternativeRoute.coordinates;
         }
 
-        // Immediately snap ambulance location onto the newly calculated road polyline
+        // Snap ambulance location onto the newly calculated road polyline
         const rawPos = rawAmbulanceLocationRef.current || currentAmbulancePos;
         const snap = snapToRoutePolyline(rawPos, routes.primaryRoute.coordinates, 60);
         const finalPos = snap.snapped ? snap.point : currentAmbulancePos;
@@ -286,11 +293,16 @@ const EnRouteScreen = () => {
       }
     } catch (routeErr) {
       console.warn('Driving route error in EnRoute:', routeErr);
-      const fallbackDirect = [currentAmbulancePos, hospitalLocation];
-      setActiveCoordinates(fallbackDirect);
-      activeCoordinatesRef.current = fallbackDirect;
+      if (activeCoordinatesRef.current.length === 0) {
+        const fallbackDirect = [currentAmbulancePos, hospitalLocation];
+        setActiveCoordinates(fallbackDirect);
+        activeCoordinatesRef.current = fallbackDirect;
+      }
     } finally {
-      setIsRouteLoading(false);
+      if (isInitial) {
+        setIsRouteLoading(false);
+      }
+      isRouteFetchingRef.current = false;
     }
   };
 
@@ -325,6 +337,7 @@ const EnRouteScreen = () => {
         }
       }
 
+      // ONLY UPDATE AMBULANCE LOCATION & HEADING (No full page/route re-renders!)
       setAmbulanceLocation(finalCoords);
       ambulanceLocationRef.current = finalCoords;
 
@@ -332,12 +345,19 @@ const EnRouteScreen = () => {
         setAmbulanceHeading(currentBearing);
       }
 
+      // Smoothly update distance countdown without API re-fetch flicker
+      const distMeters = getDistanceMeters(finalCoords, hospitalLocation);
+      const distKm = (distMeters / 1000).toFixed(1);
+      setDistanceText(`${distKm} km`);
+      const approxMins = Math.max(1, Math.round((distMeters / 1000 / 35) * 60));
+      setEtaText(`${approxMins} mins`);
+
       if (isFirstFix) {
         console.log(
-          `📍 [DRIVER LIVE GPS ACQUIRED]: ${finalCoords.latitude.toFixed(6)}, ${finalCoords.longitude.toFixed(6)}`
+          `📍 [DRIVER LIVE GPS ACQUIRED in EnRoute]: ${finalCoords.latitude.toFixed(6)}, ${finalCoords.longitude.toFixed(6)}`
         );
         lastRouteFetchLoc.current = finalCoords;
-        updateHospitalRoute(finalCoords);
+        updateHospitalRoute(finalCoords, true);
 
         // Center camera directly on driver's live position
         mapRef.current?.animateCamera({
@@ -356,23 +376,34 @@ const EnRouteScreen = () => {
         return;
       }
 
-      // If navigation mode is active, smoothly follow ambulance with camera
+      // Smooth camera following (throttled to avoid rapid camera jumping)
+      const now = Date.now();
       if (isNavigatingRef.current) {
-        mapRef.current?.animateCamera({
-          center: finalCoords,
-          pitch: 45,
-          heading: currentBearing ?? ambulanceHeading,
-          zoom: 17,
-        }, { duration: 600 });
+        if (
+          !lastCameraMoveLoc.current ||
+          getDistanceMeters(lastCameraMoveLoc.current, finalCoords) >= 8 ||
+          now - lastCameraMoveTime.current >= 3000
+        ) {
+          lastCameraMoveLoc.current = finalCoords;
+          lastCameraMoveTime.current = now;
+          mapRef.current?.animateCamera({
+            center: finalCoords,
+            pitch: 45,
+            heading: currentBearing ?? ambulanceHeading,
+            zoom: 17,
+          }, { duration: 800 });
+        }
       }
 
-      // Check distance from last route calculation (> 40 meters)
+      // Only silently recalculate route in background if driver deviated > 200m off-route
+      // and at least 60 seconds have passed since last calculation
       if (
-        !lastRouteFetchLoc.current ||
-        getDistanceMeters(lastRouteFetchLoc.current, rawCoords) > 40
+        activeCoordinatesRef.current.length > 0 &&
+        now - lastRouteFetchTime.current > 60000 &&
+        getDistanceMeters(lastRouteFetchLoc.current || finalCoords, rawCoords) > 200
       ) {
         lastRouteFetchLoc.current = rawCoords;
-        updateHospitalRoute(rawCoords);
+        updateHospitalRoute(rawCoords, false);
       }
     };
 
@@ -382,9 +413,9 @@ const EnRouteScreen = () => {
 
       try {
         Geolocation.setRNConfiguration({
-          skipPermissionRequests: false,
+          skipPermissionRequests: true,
           authorizationLevel: 'whenInUse',
-          locationProvider: 'auto',
+          locationProvider: 'playServices',
           enableBackgroundLocationUpdates: false,
         });
       } catch (cfgErr) {
@@ -394,10 +425,10 @@ const EnRouteScreen = () => {
       // If initial driver location was passed from previous screen, start route calculation immediately
       if (initialDriverLoc) {
         lastRouteFetchLoc.current = initialDriverLoc;
-        updateHospitalRoute(initialDriverLoc);
+        updateHospitalRoute(initialDriverLoc, true);
       }
 
-      // 1. Instant low-accuracy / cached fix (< 200ms)
+      // 1. Initial GPS fix from device GPS hardware
       Geolocation.getCurrentPosition(
         pos => {
           applyDriverLocation({
@@ -405,20 +436,8 @@ const EnRouteScreen = () => {
             longitude: pos.coords.longitude,
           }, pos.coords.heading ?? undefined);
         },
-        err => console.log('Fast cached GPS info:', err?.message),
-        { enableHighAccuracy: false, timeout: 4000, maximumAge: 60000 }
-      );
-
-      // 2. High-accuracy GPS fix from device GPS hardware
-      Geolocation.getCurrentPosition(
-        pos => {
-          applyDriverLocation({
-            latitude: pos.coords.latitude,
-            longitude: pos.coords.longitude,
-          }, pos.coords.heading ?? undefined);
-        },
-        err => console.warn('High-accuracy GPS fix error:', err?.message),
-        { enableHighAccuracy: true, timeout: 10000, maximumAge: 5000 }
+        err => console.log('Initial GPS fix notice in EnRouteScreen:', err?.message),
+        { enableHighAccuracy: true, timeout: 8000, maximumAge: 10000 }
       );
 
       // 3. Continuous real-time tracking
@@ -647,13 +666,26 @@ const EnRouteScreen = () => {
     navigation,
   ]);
 
+  // Intercept mobile hardware back button: block backward navigation and redirect to Home
+  useFocusEffect(
+    useCallback(() => {
+      const onBackPress = () => {
+        navigation.navigate('MainTabs' as never);
+        return true;
+      };
+
+      const subscription = BackHandler.addEventListener('hardwareBackPress', onBackPress);
+      return () => subscription.remove();
+    }, [navigation])
+  );
+
   return (
     <SafeAreaView
       style={styles.container}
       edges={['top', 'bottom']}
     >
       {/* HEADER */}
-      <Header backEnabled onLeftPress={handleBack} title="En-Route To Hospital" />
+      <Header title="En-Route To Hospital" backEnabled={false} showLeftIcon={false} />
 
       {/* PATIENT TRIP CONTEXT BAR */}
       <View style={styles.patientContextBar}>
@@ -971,7 +1003,7 @@ const EnRouteScreen = () => {
         <View style={styles.bottomButtonsRow}>
           <Button
             title="Navigating"
-            onPress={() => {}}
+            onPress={() => { }}
             icon="navigation"
             variant="secondary"
             style={styles.startButton}
