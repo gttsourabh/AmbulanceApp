@@ -23,6 +23,11 @@ import { storage } from '../../../storage/storage';
 import { STORAGE_KEYS } from '../../../storage/storageKeys';
 import { respondToEmergencyRequest } from '../../../api';
 import Geolocation from '@react-native-community/geolocation';
+import {
+  isDeviceLocationEnabled,
+  promptEnableDeviceLocation,
+  requestLocationPermission,
+} from '../../../utils/locationPermission';
 
 const IncomingRequestScreen = () => {
   const navigation = useNavigation();
@@ -217,6 +222,24 @@ const IncomingRequestScreen = () => {
     if (!requestId) {
       Alert.alert('Invalid Request', 'No valid emergency request ID found to accept.');
       return;
+    }
+
+    const hasPerm = await requestLocationPermission();
+    if (!hasPerm) {
+      Alert.alert('Permission Required', 'Location permission is required to navigate to the emergency patient.');
+      return;
+    }
+
+    const gpsOn = await isDeviceLocationEnabled();
+    if (!gpsOn) {
+      const turnedOn = await promptEnableDeviceLocation(
+        'Enable Location (GPS)',
+        'Device Location is turned off. Please turn on GPS so AmbulanceApp can navigate to the patient.'
+      );
+      if (!turnedOn) {
+        Alert.alert('GPS Required', 'Please enable device location to proceed with the emergency pickup.');
+        return;
+      }
     }
 
     setIsSubmitting('accept');

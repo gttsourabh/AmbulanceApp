@@ -310,19 +310,8 @@ const LoginScreen = () => {
                         </View>
                     </View>
 
-                {/* =========================
-                    Bottom Illustration
-                ========================== */}
-                <View style={styles.illustrationContainer}>
-                    <Image
-                        source={{
-                            uri: 'https://via.placeholder.com/800x400/F4F7FB/888888?text=Ambulance+Illustration+Here',
-                        }}
-                        style={styles.illustrationImage}
-                        resizeMode="cover"
-                    />
-                </View>
-            </KeyboardAvoidingView>
+
+                </KeyboardAvoidingView>
             )}
 
             {/* =========================

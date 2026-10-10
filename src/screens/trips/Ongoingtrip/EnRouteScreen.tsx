@@ -33,7 +33,11 @@ import {
 
 import { getDrivingRoutesWithAlternatives, RouteResult, LatLng } from '../../../services/directionsService';
 import Geolocation from '@react-native-community/geolocation';
-import { requestLocationPermission } from '../../../utils/locationPermission';
+import {
+  requestLocationPermission,
+  isDeviceLocationEnabled,
+  promptEnableDeviceLocation,
+} from '../../../utils/locationPermission';
 import { snapToRoutePolyline, getDistanceMeters } from '../../../utils/geoUtils';
 import { updateDriverLocation } from '../../../api';
 import {
@@ -345,12 +349,14 @@ const EnRouteScreen = () => {
         setAmbulanceHeading(currentBearing);
       }
 
-      // Smoothly update distance countdown without API re-fetch flicker
-      const distMeters = getDistanceMeters(finalCoords, hospitalLocation);
-      const distKm = (distMeters / 1000).toFixed(1);
-      setDistanceText(`${distKm} km`);
-      const approxMins = Math.max(1, Math.round((distMeters / 1000 / 35) * 60));
-      setEtaText(`${approxMins} mins`);
+      // Initial fallback distance countdown before road routing resolves
+      if (!activeCoordinatesRef.current || activeCoordinatesRef.current.length <= 2) {
+        const distMeters = getDistanceMeters(finalCoords, hospitalLocation);
+        const distKm = (distMeters / 1000).toFixed(1);
+        setDistanceText(`${distKm} km`);
+        const approxMins = Math.max(1, Math.round((distMeters / 1000 / 35) * 60));
+        setEtaText(`${approxMins} mins`);
+      }
 
       if (isFirstFix) {
         console.log(
@@ -411,6 +417,14 @@ const EnRouteScreen = () => {
       const hasPermission = await requestLocationPermission();
       if (!hasPermission || !isMounted) return;
 
+      const isGpsOn = await isDeviceLocationEnabled();
+      if (!isGpsOn && isMounted) {
+        promptEnableDeviceLocation(
+          'Enable Location (GPS)',
+          'Location services are turned off. Please enable GPS so we can navigate to the hospital.'
+        );
+      }
+
       try {
         Geolocation.setRNConfiguration({
           skipPermissionRequests: true,
@@ -436,7 +450,12 @@ const EnRouteScreen = () => {
             longitude: pos.coords.longitude,
           }, pos.coords.heading ?? undefined);
         },
-        err => console.log('Initial GPS fix notice in EnRouteScreen:', err?.message),
+        err => {
+          console.log('Initial GPS fix notice in EnRouteScreen:', err?.message);
+          if (err?.code === 2) {
+            promptEnableDeviceLocation();
+          }
+        },
         { enableHighAccuracy: true, timeout: 8000, maximumAge: 10000 }
       );
 
@@ -450,6 +469,9 @@ const EnRouteScreen = () => {
         },
         watchErr => {
           console.warn('EnRoute watchPosition error:', watchErr?.message);
+          if (watchErr?.code === 2) {
+            promptEnableDeviceLocation();
+          }
         },
         {
           enableHighAccuracy: true,

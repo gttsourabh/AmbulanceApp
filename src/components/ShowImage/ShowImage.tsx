@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+
 import {
     ActivityIndicator,
     Image,
@@ -8,7 +9,9 @@ import {
     ImageStyle,
     View,
 } from 'react-native';
-import { API_BASE_URL, API_KEY } from '@env';
+
+import { API_KEY } from '@env';
+import { API_BASE_URL } from '../../api/axiosInstance';
 import { store } from '../../redux/store';
 import { storage } from '../../storage/storage';
 import { STORAGE_KEYS } from '../../storage/storageKeys';

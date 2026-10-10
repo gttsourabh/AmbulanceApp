@@ -2,7 +2,13 @@ import axios from 'axios';
 import { store } from '../redux/store';
 import { API_BASE_URL as ENV_API_BASE_URL, API_KEY, API_TIMEOUT } from '@env';
 
-export const API_BASE_URL = ENV_API_BASE_URL;
+// Sanitize URL: trim whitespace and remove any trailing slash
+const rawBaseUrl = (ENV_API_BASE_URL ? String(ENV_API_BASE_URL).trim() : '') || 'https://portalbackend.arvayahealth.com';
+export const API_BASE_URL = rawBaseUrl.replace(/\/+$/, '');
+
+if (__DEV__) {
+    console.log('🌐 [AXIOS INITIALIZED] Active Base URL:', API_BASE_URL);
+}
 
 const axiosInstance = axios.create({
     baseURL: API_BASE_URL,

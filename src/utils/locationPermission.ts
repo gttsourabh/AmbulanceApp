@@ -1,4 +1,5 @@
-import { Platform, PermissionsAndroid, Alert, Linking } from 'react-native';
+import { Platform, PermissionsAndroid, Alert, Linking, NativeModules } from 'react-native';
+import Geolocation from '@react-native-community/geolocation';
 
 export interface AppPermissionsStatus {
     foregroundLocation: boolean;
@@ -313,4 +314,136 @@ export function openAppSettings(): void {
     Linking.openSettings().catch(err => {
         console.warn('Failed to open app settings:', err);
     });
+}
+
+/**
+ * Checks if the device's hardware location/GPS switch is turned ON.
+ */
+export async function isDeviceLocationEnabled(): Promise<boolean> {
+    if (Platform.OS !== 'android') {
+        return true;
+    }
+
+    // 1. Try instant native check via DownloadModule
+    if (NativeModules.DownloadModule?.isLocationEnabled) {
+        try {
+            const enabled = await NativeModules.DownloadModule.isLocationEnabled();
+            return Boolean(enabled);
+        } catch (err) {
+            console.warn('Native isLocationEnabled check error:', err);
+        }
+    }
+
+    // 2. Fallback: Quick GPS provider check via Geolocation (maximumAge: 0 to avoid cached stale fixes)
+    return new Promise(resolve => {
+        Geolocation.getCurrentPosition(
+            () => resolve(true),
+            err => {
+                // Error code 2 = POSITION_UNAVAILABLE (provider disabled / GPS off)
+                if (err?.code === 2) {
+                    resolve(false);
+                } else {
+                    resolve(true);
+                }
+            },
+            { enableHighAccuracy: false, timeout: 3000, maximumAge: 0 }
+        );
+    });
+}
+
+/**
+ * Opens device Location settings where the user can toggle GPS on.
+ */
+export async function openLocationSettings(): Promise<void> {
+    if (Platform.OS === 'android') {
+        if (NativeModules.DownloadModule?.openLocationSettings) {
+            try {
+                await NativeModules.DownloadModule.openLocationSettings();
+                return;
+            } catch (err) {
+                console.warn('Native openLocationSettings error:', err);
+            }
+        }
+
+        try {
+            await Linking.sendIntent('android.settings.LOCATION_SOURCE_SETTINGS');
+            return;
+        } catch {
+            openAppSettings();
+        }
+    } else {
+        openAppSettings();
+    }
+}
+
+/**
+ * Checks if device location is enabled. If disabled:
+ * 1. Prompts the native Google Play Services dialog ("To continue, turn on device location...").
+ *    Tapping "OK" turns on the device location toggle directly in the Android quick settings.
+ * 2. If the user dismisses or resolution is unavailable, shows an Alert with direct link to Location Settings.
+ * Returns true if device location is ON after prompt, false otherwise.
+ */
+export async function promptEnableDeviceLocation(
+    customTitle?: string,
+    customMessage?: string
+): Promise<boolean> {
+    const isEnabled = await isDeviceLocationEnabled();
+    if (isEnabled) {
+        return true;
+    }
+
+    // 1. Native Google Play Services resolution prompt
+    if (Platform.OS === 'android' && NativeModules.DownloadModule?.promptEnableLocation) {
+        try {
+            const result = await NativeModules.DownloadModule.promptEnableLocation();
+            if (result === true) {
+                // Verify hardware location switch is now ON
+                const nowEnabled = await isDeviceLocationEnabled();
+                return nowEnabled;
+            }
+        } catch (err) {
+            console.warn('Native promptEnableLocation error:', err);
+        }
+    }
+
+    // 2. Fallback: Prompt via Alert and open Location Settings
+    return new Promise(resolve => {
+        Alert.alert(
+            customTitle || 'Enable Device Location (GPS)',
+            customMessage ||
+                'Location services are turned off on your device. Please turn on GPS so AmbulanceApp can navigate and receive emergency trips.',
+            [
+                {
+                    text: 'Cancel',
+                    style: 'cancel',
+                    onPress: () => resolve(false),
+                },
+                {
+                    text: 'Turn On Location',
+                    onPress: async () => {
+                        await openLocationSettings();
+                        resolve(false);
+                    },
+                },
+            ],
+            { cancelable: false }
+        );
+    });
+}
+
+/**
+ * Verifies both Android permissions and hardware GPS switch.
+ */
+export async function checkAllPermissionsAndLocation(): Promise<{
+    permissions: AppPermissionsStatus;
+    isGpsEnabled: boolean;
+    canProceed: boolean;
+}> {
+    const permissions = await checkAllPermissions();
+    const isGpsEnabled = await isDeviceLocationEnabled();
+    return {
+        permissions,
+        isGpsEnabled,
+        canProceed: Boolean(permissions.allGranted && isGpsEnabled),
+    };
 }

@@ -32,7 +32,11 @@ import {
 } from '../../../components/Map';
 import { getDrivingRoutesWithAlternatives, RouteResult, LatLng } from '../../../services/directionsService';
 import Geolocation from '@react-native-community/geolocation';
-import { requestLocationPermission } from '../../../utils/locationPermission';
+import {
+    requestLocationPermission,
+    isDeviceLocationEnabled,
+    promptEnableDeviceLocation,
+} from '../../../utils/locationPermission';
 import { snapToRoutePolyline, getDistanceMeters } from '../../../utils/geoUtils';
 import { updateDriverLocation, updateAmbulanceStatusApi } from '../../../api';
 import {
@@ -437,6 +441,14 @@ const NavigationToPickup = () => {
             const hasPermission = await requestLocationPermission();
             if (!hasPermission || !isMounted) return;
 
+            const isGpsOn = await isDeviceLocationEnabled();
+            if (!isGpsOn && isMounted) {
+                promptEnableDeviceLocation(
+                    'Enable Location (GPS)',
+                    'Location services are turned off. Please enable GPS so we can navigate to the patient pickup.'
+                );
+            }
+
             // Configure Geolocation to use playServices / high accuracy hardware GPS
             try {
                 Geolocation.setRNConfiguration({
@@ -463,7 +475,12 @@ const NavigationToPickup = () => {
                         longitude: pos.coords.longitude,
                     }, pos.coords.heading ?? undefined);
                 },
-                err => console.log('Initial GPS fix notice in NavigationToPickup:', err?.message),
+                err => {
+                    console.log('Initial GPS fix notice in NavigationToPickup:', err?.message);
+                    if (err?.code === 2) {
+                        promptEnableDeviceLocation();
+                    }
+                },
                 { enableHighAccuracy: true, timeout: 8000, maximumAge: 10000 }
             );
 
@@ -477,6 +494,9 @@ const NavigationToPickup = () => {
                 },
                 watchErr => {
                     console.warn('NavigationToPickup watchPosition error:', watchErr?.message);
+                    if (watchErr?.code === 2) {
+                        promptEnableDeviceLocation();
+                    }
                 },
                 {
                     enableHighAccuracy: true,

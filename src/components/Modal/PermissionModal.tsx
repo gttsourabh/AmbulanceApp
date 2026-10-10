@@ -20,13 +20,17 @@ import {
     checkAllPermissions,
     requestAllPermissionsSequentially,
     openAppSettings,
+    isDeviceLocationEnabled,
+    openLocationSettings,
+    promptEnableDeviceLocation,
 } from '../../utils/locationPermission';
 
 export interface PermissionModalProps {
     visible: boolean;
     status: AppPermissionsStatus | null;
     onClose: () => void;
-    onPermissionsUpdated?: (status: AppPermissionsStatus) => void;
+    onPermissionsUpdated?: (status: AppPermissionsStatus, isGpsEnabled: boolean) => void;
+    mandatory?: boolean;
 }
 
 const PermissionModal: React.FC<PermissionModalProps> = ({
@@ -34,24 +38,30 @@ const PermissionModal: React.FC<PermissionModalProps> = ({
     status,
     onClose,
     onPermissionsUpdated,
+    mandatory = false,
 }) => {
     const [currentStatus, setCurrentStatus] = useState<AppPermissionsStatus | null>(status);
+    const [isGpsEnabled, setIsGpsEnabled] = useState(true);
     const [isRequesting, setIsRequesting] = useState(false);
     const [hasAttemptedRequest, setHasAttemptedRequest] = useState(false);
 
-    // Keep internal status synchronized with prop
+    // Keep internal status synchronized with prop & check device GPS
     useEffect(() => {
         if (status) {
             setCurrentStatus(status);
         }
+        isDeviceLocationEnabled().then(setIsGpsEnabled).catch(() => {});
     }, [status]);
 
-    // Re-check permissions when returning from Settings or background
+    // Re-check permissions & device GPS when returning from Settings or background
     const handleRecheck = useCallback(async () => {
         const updated = await checkAllPermissions();
+        const gpsOn = await isDeviceLocationEnabled();
         setCurrentStatus(updated);
-        onPermissionsUpdated?.(updated);
-        if (updated.allGranted) {
+        setIsGpsEnabled(gpsOn);
+        onPermissionsUpdated?.(updated, gpsOn);
+        // Only allow user to proceed and close modal when ALL permissions AND hardware GPS are enabled
+        if (updated.allGranted && gpsOn) {
             onClose();
         }
     }, [onClose, onPermissionsUpdated]);
@@ -73,18 +83,53 @@ const PermissionModal: React.FC<PermissionModalProps> = ({
         setHasAttemptedRequest(true);
 
         try {
+            // 1. Sequentially request all Android runtime permissions
             const updated = await requestAllPermissionsSequentially();
-            setCurrentStatus(updated);
-            onPermissionsUpdated?.(updated);
 
-            if (updated.allGranted) {
+            // 2. Check and prompt hardware GPS switch via native resolution popup
+            let gpsOn = await isDeviceLocationEnabled();
+            if (!gpsOn) {
+                gpsOn = await promptEnableDeviceLocation();
+            }
+
+            setCurrentStatus(updated);
+            setIsGpsEnabled(gpsOn);
+            onPermissionsUpdated?.(updated, gpsOn);
+
+            // 3. WAIT for all permissions AND device location to be allowed before proceeding!
+            if (updated.allGranted && gpsOn) {
                 onClose();
             } else if (!updated.backgroundLocation && updated.foregroundLocation) {
                 // On Android 11+, Background Location requires manual selection of "Allow all the time" in Settings
                 openAppSettings();
+            } else if (updated.allGranted && !gpsOn) {
+                // Permissions are granted, but GPS switch is still OFF
+                await openLocationSettings();
             }
         } catch (err) {
             console.warn('Error during permission grant flow:', err);
+        } finally {
+            setIsRequesting(false);
+        }
+    };
+
+    const handleTurnOnGps = async () => {
+        setIsRequesting(true);
+        try {
+            const gpsOn = await promptEnableDeviceLocation();
+            const updated = await checkAllPermissions();
+            setCurrentStatus(updated);
+            setIsGpsEnabled(gpsOn);
+            onPermissionsUpdated?.(updated, gpsOn);
+
+            // Only close and proceed if both all permissions AND GPS are now allowed
+            if (updated.allGranted && gpsOn) {
+                onClose();
+            } else if (!gpsOn) {
+                await openLocationSettings();
+            }
+        } catch (err) {
+            console.warn('Error enabling GPS:', err);
         } finally {
             setIsRequesting(false);
         }
@@ -94,15 +139,22 @@ const PermissionModal: React.FC<PermissionModalProps> = ({
     const isBgGranted = Boolean(currentStatus?.backgroundLocation);
     const isNotifGranted = Boolean(currentStatus?.notifications);
 
+    // If all permissions are granted but device GPS switch is turned off
+    const isGpsPrompt = Boolean(currentStatus?.allGranted && !isGpsEnabled);
+
     // If foreground is already granted but background is still missing after an attempt, guide to Settings
-    const isSettingsPrompt = isFgGranted && !isBgGranted && hasAttemptedRequest;
+    const isSettingsPrompt = isFgGranted && !isBgGranted && hasAttemptedRequest && !isGpsPrompt;
 
     return (
         <Modal
             visible={visible}
             animationType="fade"
             transparent={true}
-            onRequestClose={onClose}
+            onRequestClose={() => {
+                if (!mandatory) {
+                    onClose();
+                }
+            }}
         >
             <View style={styles.overlay}>
                 <View style={styles.modalCard}>
@@ -193,7 +245,7 @@ const PermissionModal: React.FC<PermissionModalProps> = ({
                                 </View>
                             </View>
 
-                            {/* 3. Notifications */}
+                            {/* 3. Emergency Notifications */}
                             <View style={styles.permissionItem}>
                                 <View style={[styles.itemIconCircle, isNotifGranted && styles.itemIconCircleGranted]}>
                                     <AppIcon
@@ -215,6 +267,29 @@ const PermissionModal: React.FC<PermissionModalProps> = ({
                                     </Text>
                                 </View>
                             </View>
+
+                            {/* 4. Device Location (GPS Switch) */}
+                            <View style={styles.permissionItem}>
+                                <View style={[styles.itemIconCircle, isGpsEnabled && styles.itemIconCircleGranted]}>
+                                    <AppIcon
+                                        family="material"
+                                        name="crosshairs-gps"
+                                        size={20}
+                                        color={isGpsEnabled ? colors.successDark : colors.primary}
+                                    />
+                                </View>
+                                <View style={styles.itemTextContainer}>
+                                    <Text style={styles.itemTitle}>Device Location (GPS Switch)</Text>
+                                    <Text style={styles.itemDescription}>
+                                        Phone hardware GPS must be ON to receive trips and navigate.
+                                    </Text>
+                                </View>
+                                <View style={[styles.badge, isGpsEnabled ? styles.badgeGranted : styles.badgeMissing]}>
+                                    <Text style={[styles.badgeText, isGpsEnabled ? styles.badgeTextGranted : styles.badgeTextMissing]}>
+                                        {isGpsEnabled ? 'Turned On' : 'Disabled'}
+                                    </Text>
+                                </View>
+                            </View>
                         </View>
 
                         {/* HELPER HINT FOR BACKGROUND LOCATION */}
@@ -226,37 +301,56 @@ const PermissionModal: React.FC<PermissionModalProps> = ({
                             </View>
                         )}
 
+                        {/* HELPER HINT FOR DEVICE GPS */}
+                        {isGpsPrompt && (
+                            <View style={styles.settingsHintBox}>
+                                <Text style={styles.settingsHintText}>
+                                    👉 Device Location (GPS) is turned off on your phone. Tap below to turn on Location services.
+                                </Text>
+                            </View>
+                        )}
+
                         {/* ACTION BUTTONS */}
                         <TouchableOpacity
                             style={styles.primaryButton}
                             activeOpacity={0.85}
                             disabled={isRequesting}
-                            onPress={isSettingsPrompt ? openAppSettings : handleGrantPress}
+                            onPress={
+                                isGpsPrompt
+                                    ? handleTurnOnGps
+                                    : isSettingsPrompt
+                                    ? openAppSettings
+                                    : handleGrantPress
+                            }
                         >
                             <AppIcon
                                 family="material"
-                                name={isSettingsPrompt ? "cog" : "check-circle"}
+                                name={isGpsPrompt ? "crosshairs-gps" : isSettingsPrompt ? "cog" : "check-circle"}
                                 size={18}
                                 color="#FFFFFF"
                             />
                             <Text style={styles.primaryButtonText}>
                                 {isRequesting
-                                    ? 'Requesting...'
+                                    ? (isGpsPrompt ? 'Enabling GPS...' : 'Requesting...')
+                                    : isGpsPrompt
+                                    ? 'Turn On Device Location (GPS)'
                                     : isSettingsPrompt
                                     ? 'Open Settings to Allow All the Time'
-                                    : 'Grant Permissions'}
+                                    : 'Grant All Permissions & Enable GPS'}
                             </Text>
                         </TouchableOpacity>
 
-                        <TouchableOpacity
-                            style={styles.secondaryButton}
-                            activeOpacity={0.7}
-                            onPress={onClose}
-                        >
-                            <Text style={styles.secondaryButtonText}>
-                                Not Now (Stay Offline)
-                            </Text>
-                        </TouchableOpacity>
+                        {!mandatory && (
+                            <TouchableOpacity
+                                style={styles.secondaryButton}
+                                activeOpacity={0.7}
+                                onPress={onClose}
+                            >
+                                <Text style={styles.secondaryButtonText}>
+                                    Not Now (Stay Offline)
+                                </Text>
+                            </TouchableOpacity>
+                        )}
                     </ScrollView>
                 </View>
             </View>

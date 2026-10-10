@@ -26,6 +26,9 @@ import { useAppSelector } from '../../redux/hook';
 import {
     checkAllPermissions,
     AppPermissionsStatus,
+    isDeviceLocationEnabled,
+    promptEnableDeviceLocation,
+    checkAllPermissionsAndLocation,
 } from '../../utils/locationPermission';
 import {
     updateDriverOnlineStatus,
@@ -183,17 +186,25 @@ const HomeScreen = () => {
 
     useEffect(() => {
         const initOnlineStatus = async () => {
-            // Check all permissions (Foreground Location, Background Location, Notifications)
+            // Check all permissions (Foreground Location, Background Location, Notifications) & hardware GPS
             const perms = await checkAllPermissions();
             setPermissionStatus(perms);
+            const gpsEnabled = await isDeviceLocationEnabled();
 
             // Only show permission modal if permissions missing AND no pending emergency request
             const pendingReq = await storage.get(STORAGE_KEYS.PENDING_EMERGENCY_REQUEST);
             if (!perms.allGranted && !pendingReq) {
                 setShowPermissionModal(true);
+            } else if (perms.allGranted && !gpsEnabled && !pendingReq) {
+                promptEnableDeviceLocation().then(nowOn => {
+                    if (nowOn) {
+                        setIsOnline(true);
+                        sendStatusUpdate(true);
+                    }
+                });
             }
 
-            const canBeOnline = perms.allGranted;
+            const canBeOnline = Boolean(perms.allGranted && gpsEnabled);
             setIsOnline(canBeOnline);
 
             const userId = await getEffectiveUserId();
@@ -216,6 +227,15 @@ const HomeScreen = () => {
             if (!perms.allGranted) {
                 setShowPermissionModal(true);
                 return;
+            }
+
+            const gpsEnabled = await isDeviceLocationEnabled();
+            if (!gpsEnabled) {
+                const turnedOn = await promptEnableDeviceLocation();
+                if (!turnedOn) {
+                    setShowPermissionModal(true);
+                    return;
+                }
             }
         }
 
@@ -269,8 +289,24 @@ const HomeScreen = () => {
         return status.charAt(0).toUpperCase() + status.slice(1);
     };
 
-    const handleResumeActiveTrip = () => {
+    const handleResumeActiveTrip = async () => {
         if (!activeTrip) return;
+
+        const { canProceed, permissions, isGpsEnabled: gpsOn } = await checkAllPermissionsAndLocation();
+        if (!canProceed) {
+            setPermissionStatus(permissions);
+            if (!permissions.allGranted) {
+                setShowPermissionModal(true);
+                return;
+            }
+            if (!gpsOn) {
+                const turnedOn = await promptEnableDeviceLocation();
+                if (!turnedOn) {
+                    setShowPermissionModal(true);
+                    return;
+                }
+            }
+        }
 
         const reqId = Number(activeTrip.id || activeTrip.request_id || activeTrip.ambulance_request_id || 0);
         const pLat = Number(activeTrip.pickup_lat || activeTrip.latitude || activeTrip.lat || 0);
@@ -751,13 +787,18 @@ const HomeScreen = () => {
             <PermissionModal
                 visible={showPermissionModal}
                 status={permissionStatus}
-                onClose={() => setShowPermissionModal(false)}
-                onPermissionsUpdated={(updated) => {
+                onClose={() => {
+                    setShowPermissionModal(false);
+                    checkAllPermissionsAndLocation().then(({ canProceed }) => {
+                        setIsOnline(canProceed);
+                        sendStatusUpdate(canProceed);
+                    });
+                }}
+                onPermissionsUpdated={async (updated, gpsOn) => {
                     setPermissionStatus(updated);
-                    if (updated.allGranted) {
-                        setIsOnline(true);
-                        sendStatusUpdate(true);
-                    }
+                    const canGoOnline = Boolean(updated.allGranted && gpsOn);
+                    setIsOnline(canGoOnline);
+                    await sendStatusUpdate(canGoOnline);
                 }}
             />
         </SafeAreaView>
