@@ -25,6 +25,7 @@ import { colors, typography } from '../../../theme';
 import { AppIcon } from '../../../icons';
 import Header from '../../../components/Header/Header';
 import Button from '../../../components/Button/Button';
+import DistanceWarningModal from '../../../components/Modal/DistanceWarningModal';
 
 import {
   AmbulanceMarker,
@@ -135,6 +136,8 @@ const EnRouteScreen = () => {
   const [selectedRouteType, setSelectedRouteType] = useState<'nearest' | 'alternative'>('nearest');
   const selectedRouteTypeRef = useRef<'nearest' | 'alternative'>('nearest');
   const [isNavigating, setIsNavigating] = useState(route?.params?.autoStartTracking !== false);
+  const [showDistanceModal, setShowDistanceModal] = useState(false);
+  const [warningDistance, setWarningDistance] = useState(0);
   const isNavigatingRef = useRef(isNavigating);
 
   useEffect(() => {
@@ -590,11 +593,11 @@ const EnRouteScreen = () => {
   };
 
   // =====================================================
-  // MANUAL REACHED HOSPITAL HANDLER (200m cap removed for manual control)
+  // MANUAL REACHED HOSPITAL HANDLER (WITH 300m DISTANCE WARNING)
   // =====================================================
   const isProcessingReachedRef = useRef(false);
 
-  const handleReachedHospital = useCallback(() => {
+  const executeReachedHospital = useCallback(() => {
     if (isProcessingReachedRef.current) return;
     isProcessingReachedRef.current = true;
 
@@ -640,7 +643,9 @@ const EnRouteScreen = () => {
     stopBackgroundLocationTracking();
     setIsNavigating(false);
 
-    (navigation.navigate as any)('TripCompleted', {
+    const navAny = navigation as any;
+    const navMethod = typeof navAny.replace === 'function' ? navAny.replace.bind(navAny) : navAny.navigate.bind(navAny);
+    navMethod('TripCompleted', {
       requestId: ambulanceRequestId,
       driverId: dynamicDriverId,
       patientName: patientName,
@@ -687,6 +692,32 @@ const EnRouteScreen = () => {
     emergencyType,
     navigation,
   ]);
+
+  const handleReachedHospital = useCallback(() => {
+    if (isProcessingReachedRef.current) return;
+
+    const currentLoc = rawAmbulanceLocationRef.current || ambulanceLocationRef.current || ambulanceLocation;
+    if (currentLoc && hospitalLocation?.latitude && hospitalLocation?.longitude) {
+      const distMeters = Math.round(getDistanceMeters(currentLoc, hospitalLocation));
+      if (distMeters > 300) {
+        setWarningDistance(distMeters);
+        setShowDistanceModal(true);
+        return;
+      }
+    }
+
+    executeReachedHospital();
+  }, [ambulanceLocation, hospitalLocation, executeReachedHospital]);
+
+  const handleProceedAnywayHospital = useCallback(() => {
+    setShowDistanceModal(false);
+    executeReachedHospital();
+  }, [executeReachedHospital]);
+
+  const handleCancelHospital = useCallback(() => {
+    setShowDistanceModal(false);
+    isProcessingReachedRef.current = false;
+  }, []);
 
   // Intercept mobile hardware back button: block backward navigation and redirect to Home
   useFocusEffect(
@@ -1073,6 +1104,15 @@ const EnRouteScreen = () => {
           </View>
         </View>
       </Modal>
+      {/* DISTANCE WARNING MODAL (300m+ CHECK) */}
+      <DistanceWarningModal
+        visible={showDistanceModal}
+        distanceMeters={warningDistance}
+        destinationName={chosenHospitalName}
+        thresholdMeters={300}
+        onProceedAnyway={handleProceedAnywayHospital}
+        onCancel={handleCancelHospital}
+      />
     </SafeAreaView>
   );
 };

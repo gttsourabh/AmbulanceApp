@@ -3,7 +3,7 @@ import { store } from '../redux/store';
 import { API_BASE_URL as ENV_API_BASE_URL, API_KEY, API_TIMEOUT } from '@env';
 
 // Sanitize URL: trim whitespace and remove any trailing slash
-const rawBaseUrl = (ENV_API_BASE_URL ? String(ENV_API_BASE_URL).trim() : '') || 'https://portalbackend.arvayahealth.com';
+const rawBaseUrl = (ENV_API_BASE_URL ? String(ENV_API_BASE_URL).trim() : '')
 export const API_BASE_URL = rawBaseUrl.replace(/\/+$/, '');
 
 if (__DEV__) {

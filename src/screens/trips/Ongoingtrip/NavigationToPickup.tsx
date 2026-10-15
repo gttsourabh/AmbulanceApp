@@ -26,6 +26,7 @@ import { colors, typography } from '../../../theme';
 import { AppIcon } from '../../../icons';
 import Header from '../../../components/Header/Header';
 import Button from '../../../components/Button/Button';
+import DistanceWarningModal from '../../../components/Modal/DistanceWarningModal';
 import {
     AmbulanceMarker,
     LocationMarker,
@@ -76,6 +77,8 @@ const NavigationToPickup = () => {
         initialTripStatus.includes('dispatch') || route?.params?.isNavigating === true
     );
     const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
+    const [showDistanceModal, setShowDistanceModal] = useState(false);
+    const [warningDistance, setWarningDistance] = useState(0);
     const isNavigatingRef = useRef(isNavigating);
     const isStartingNavRef = useRef(false);
 
@@ -603,11 +606,11 @@ const NavigationToPickup = () => {
     };
 
     // =====================================================
-    // MANUAL ARRIVAL HANDLER (200m cap removed for manual control)
+    // MANUAL ARRIVAL HANDLER (WITH 300m DISTANCE WARNING)
     // =====================================================
     const isProcessingArrivalRef = useRef(false);
 
-    const handleArrived = useCallback(() => {
+    const executeArrival = useCallback(() => {
         if (isProcessingArrivalRef.current) return;
         isProcessingArrivalRef.current = true;
 
@@ -661,6 +664,32 @@ const NavigationToPickup = () => {
         primaryRouteInfo,
         navigation,
     ]);
+
+    const handleArrived = useCallback(() => {
+        if (isProcessingArrivalRef.current) return;
+
+        const currentLoc = rawDriverLocationRef.current || driverLocationRef.current || driverLocation;
+        if (currentLoc && pickupLocation?.latitude && pickupLocation?.longitude) {
+            const distMeters = Math.round(getDistanceMeters(currentLoc, pickupLocation));
+            if (distMeters > 300) {
+                setWarningDistance(distMeters);
+                setShowDistanceModal(true);
+                return;
+            }
+        }
+
+        executeArrival();
+    }, [driverLocation, pickupLocation, executeArrival]);
+
+    const handleProceedAnywayArrival = useCallback(() => {
+        setShowDistanceModal(false);
+        executeArrival();
+    }, [executeArrival]);
+
+    const handleCancelArrival = useCallback(() => {
+        setShowDistanceModal(false);
+        isProcessingArrivalRef.current = false;
+    }, []);
 
     // Intercept mobile hardware back button: block backward navigation and redirect to Home
     useFocusEffect(
@@ -1015,6 +1044,15 @@ const NavigationToPickup = () => {
                     </View>
                 </View>
             </Modal>
+            {/* DISTANCE WARNING MODAL (300m+ CHECK) */}
+            <DistanceWarningModal
+                visible={showDistanceModal}
+                distanceMeters={warningDistance}
+                destinationName={route?.params?.address || route?.params?.pickupAddress || 'Patient Pickup Location'}
+                thresholdMeters={300}
+                onProceedAnyway={handleProceedAnywayArrival}
+                onCancel={handleCancelArrival}
+            />
         </SafeAreaView>
     );
 };

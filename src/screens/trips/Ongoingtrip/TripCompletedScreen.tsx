@@ -7,7 +7,7 @@ import {
     BackHandler,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/native';
+import { useNavigation, useRoute, useFocusEffect, CommonActions } from '@react-navigation/native';
 import { useAppSelector } from '../../../redux/hook';
 
 import { colors, typography } from '../../../theme';
@@ -16,6 +16,7 @@ import Button from '../../../components/Button/Button';
 import { updateAmbulanceStatusApi } from '../../../api/driverApi';
 import { stopBackgroundLocationTracking } from '../../../services/backgroundLocationService';
 import { getDistanceMeters } from '../../../utils/geoUtils';
+import { resetToHome } from '../../../utils/navigationRef';
 
 const TripCompletedScreen = () => {
     const navigation = useNavigation();
@@ -98,7 +99,21 @@ const TripCompletedScreen = () => {
         };
     }, [route?.params]);
 
-    const handleComplete = async () => {
+    const navigateToHome = React.useCallback(() => {
+        try {
+            navigation.dispatch(
+                CommonActions.reset({
+                    index: 0,
+                    routes: [{ name: 'MainTabs' }],
+                })
+            );
+        } catch (err) {
+            console.warn('⚠️ [TRIP COMPLETED] navigation.dispatch reset error, falling back to resetToHome:', err);
+            resetToHome();
+        }
+    }, [navigation]);
+
+    const handleComplete = React.useCallback(async () => {
         if (isSubmitting) return;
         setIsSubmitting(true);
 
@@ -118,21 +133,25 @@ const TripCompletedScreen = () => {
             console.warn('⚠️ [TRIP COMPLETED] update-status error:', err?.message || err);
         } finally {
             setIsSubmitting(false);
-            navigation.navigate('MainTabs' as never);
+            navigateToHome();
         }
-    };
+    }, [isSubmitting, route?.params?.requestId, tripDistances.totalDistance, navigateToHome]);
 
-    // Intercept mobile hardware back button: block returning to en route and redirect to Home
+    // Intercept mobile hardware back button: prevent returning to en route and reset to Home
     useFocusEffect(
         React.useCallback(() => {
             const onBackPress = () => {
-                navigation.navigate('MainTabs' as never);
+                if (!isSubmitting) {
+                    handleComplete();
+                } else {
+                    navigateToHome();
+                }
                 return true;
             };
 
             const subscription = BackHandler.addEventListener('hardwareBackPress', onBackPress);
             return () => subscription.remove();
-        }, [navigation])
+        }, [handleComplete, isSubmitting, navigateToHome])
     );
 
     return (

@@ -1,13 +1,16 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import {
+    BackHandler,
     Image,
     ImageBackground,
     Linking,
+    Platform,
     RefreshControl,
     ScrollView,
     StyleSheet,
     Switch,
     Text,
+    ToastAndroid,
     TouchableOpacity,
     View,
 } from 'react-native';
@@ -273,6 +276,30 @@ const HomeScreen = () => {
                 isActive = false;
                 setShowPermissionModal(false);
             };
+        }, [])
+    );
+
+    // Prevent hardware back button from navigating back to TripCompleted or other trip screens.
+    // Allow double-tap back within 2 seconds to exit the app smoothly.
+    useFocusEffect(
+        useCallback(() => {
+            let lastBackPress = 0;
+
+            const onBackPress = () => {
+                const now = Date.now();
+                if (now - lastBackPress < 2000) {
+                    BackHandler.exitApp();
+                    return true;
+                }
+                lastBackPress = now;
+                if (Platform.OS === 'android') {
+                    ToastAndroid.show('Press back again to exit', ToastAndroid.SHORT);
+                }
+                return true;
+            };
+
+            const subscription = BackHandler.addEventListener('hardwareBackPress', onBackPress);
+            return () => subscription.remove();
         }, [])
     );
 

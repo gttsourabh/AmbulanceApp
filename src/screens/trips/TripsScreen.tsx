@@ -11,6 +11,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AppIcon } from '../../icons';
 import { colors, typography } from '../../theme';
+
 import {
     Skeleton,
     TripCardSkeleton,
@@ -18,13 +19,16 @@ import {
     ExportTripModal,
     formatDisplayDate,
 } from '../../components';
+
 import { useAppSelector } from '../../redux/hook';
+
 import {
     getAmbulanceRequestApi,
     AmbulanceRequestItem,
     GetAmbulanceRequestPayload,
     RequestFilterItem,
 } from '../../api/driverApi';
+
 import { storage } from '../../storage/storage';
 import { STORAGE_KEYS } from '../../storage/storageKeys';
 
@@ -156,7 +160,9 @@ const TripsScreen = () => {
                     else displayStatus = rawSt.charAt(0).toUpperCase() + rawSt.slice(1);
 
                     let dateCategory: 'Today' | 'Yesterday' | 'Earlier' = 'Earlier';
+
                     let timeStr = '--';
+
                     if (item.created_at) {
                         const d = new Date(item.created_at);
                         if (!isNaN(d.getTime())) {
@@ -175,8 +181,10 @@ const TripsScreen = () => {
                     const pickupTimeStr = item.time || (item.eta_minutes ? `${item.eta_minutes} mins` : timeStr);
 
                     // Real distance from np_distance or ph_distance or distance
+
                     const rawDist = item.np_distance || item.ph_distance || item.distance;
                     let distanceStr = '';
+
                     if (rawDist) {
                         const num = parseFloat(String(rawDist));
                         distanceStr = !isNaN(num) ? `${num.toFixed(1)} km` : `${rawDist} km`;
@@ -202,6 +210,7 @@ const TripsScreen = () => {
                         cancellationReason: item.cancellation_reason || '--',
                         createdAt: item.created_at || '',
                     };
+
                 });
 
                 setTrips(mapped);
