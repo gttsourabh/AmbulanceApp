@@ -78,12 +78,13 @@ android {
     compileSdk rootProject.ext.compileSdkVersion
 
     namespace 'com.secureambulance'
+    
     defaultConfig {
         applicationId 'com.secureambulance'
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 2 // second build for play store
-        versionName '1.2'
+        versionCode 4 // third build for play store
+        versionName '1.4'
     }
     // signingConfigs {
     //     debug {
