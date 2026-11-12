@@ -447,3 +447,32 @@ export async function checkAllPermissionsAndLocation(): Promise<{
         canProceed: Boolean(permissions.allGranted && isGpsEnabled),
     };
 }
+
+/**
+ * Quick helper to get current GPS coordinates ({ lat, lng }).
+ * 1. Attempts high-accuracy hardware GPS (5s timeout, 10s cache).
+ * 2. Falls back to network/balanced provider (4s timeout, 30s cache).
+ */
+export async function getCurrentCoordinates(): Promise<{ lat: number; lng: number } | null> {
+    const getPos = (highAccuracy: boolean, timeout: number, maxAge: number) =>
+        new Promise<{ lat: number; lng: number } | null>(resolve => {
+            Geolocation.getCurrentPosition(
+                pos => {
+                    const lat = pos?.coords?.latitude;
+                    const lng = pos?.coords?.longitude;
+                    if (typeof lat === 'number' && typeof lng === 'number') {
+                        resolve({ lat, lng });
+                    } else {
+                        resolve(null);
+                    }
+                },
+                () => resolve(null),
+                { enableHighAccuracy: highAccuracy, timeout, maximumAge: maxAge }
+            );
+        });
+
+    const high = await getPos(true, 5000, 10000);
+    if (high) return high;
+
+    return await getPos(false, 4000, 30000);
+}

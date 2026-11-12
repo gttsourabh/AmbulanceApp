@@ -32,6 +32,7 @@ import {
     isDeviceLocationEnabled,
     promptEnableDeviceLocation,
     checkAllPermissionsAndLocation,
+    getCurrentCoordinates,
 } from '../../utils/locationPermission';
 import {
     updateDriverOnlineStatus,
@@ -176,10 +177,20 @@ const HomeScreen = () => {
             return;
         }
         try {
-            console.log(`📡 [HomeScreen] Sending PUT driver status: user_id=${userId}, is_online=${online}`);
+            console.log(`📡 [HomeScreen] Sending PUT driver status: userId=${userId}, isOnline=${online}`);
+            let coords: { lat: number; lng: number } | null = null;
+            try {
+                coords = await getCurrentCoordinates();
+            } catch (locErr) {
+                console.warn('⚠️ [HomeScreen] Could not get coordinates for status update:', locErr);
+            }
+            console.log('📡 [HomeScreen] Driver coordinates for status update:', coords);
+
             const res = await updateDriverOnlineStatus({
-                user_id: userId,
-                is_online: online,
+                lat: coords?.lat ?? null,
+                lng: coords?.lng ?? null,
+                userId: userId,
+                isOnline: online,
             });
             console.log('✅ [HomeScreen] Driver online status updated:', res.data);
         } catch (error) {

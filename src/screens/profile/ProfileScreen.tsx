@@ -157,8 +157,8 @@ const ProfileScreen = () => {
                         try {
                             if (user?.id !== undefined && user?.id !== null) {
                                 await updateDriverOnlineStatus({
-                                    user_id: user.id,
-                                    is_online: false,
+                                    userId: user.id,
+                                    isOnline: false,
                                 });
                             }
                         } catch (err) {
