@@ -20,6 +20,7 @@ import { logout } from '../../redux/slices/authSlice';
 import { useNavigation, NavigationProp } from '@react-navigation/native';
 import { storage } from '../../storage/storage';
 import { resetToLogin } from '../../utils/navigationRef';
+import { stopPeriodicStatusUpdates } from '../../services/driverStatusService';
 import { ProfileStackParamList } from '../../Navigation/stacks/Profilestack';
 
 interface SettingItemProps {
@@ -83,6 +84,7 @@ const SettingsScreen = () => {
           text: 'Logout',
           style: 'destructive',
           onPress: async () => {
+            stopPeriodicStatusUpdates();
             await storage.clear();
             dispatch(logout());
             resetToLogin();

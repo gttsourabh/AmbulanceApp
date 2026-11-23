@@ -8,6 +8,7 @@ import { restoreSession, UserData, SubscribedChannel } from '../redux/slices/aut
 import { subscribeToTopic } from '../services/notificationService';
 import { storage } from '../storage/storage';
 import { STORAGE_KEYS } from '../storage/storageKeys';
+import { stopPeriodicStatusUpdates } from '../services/driverStatusService';
 
 const RootNavigator = () => {
     const dispatch = useAppDispatch();
@@ -62,6 +63,7 @@ const RootNavigator = () => {
     // Handle logout or auth state loss: immediately reset navigation to Login
     useEffect(() => {
         if (!isAuthenticated && !isRestoring) {
+            stopPeriodicStatusUpdates();
             setHasSeenSplash(true);
             const timer = setTimeout(() => {
                 if (navigationRef.isReady()) {

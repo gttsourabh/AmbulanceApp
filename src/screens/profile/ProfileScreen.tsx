@@ -21,6 +21,7 @@ import { STORAGE_KEYS } from '../../storage/storageKeys';
 import { unsubscribeFromTopic } from '../../services/notificationService';
 import { getProfileImageUrl, normalizeDriverProfile, IMAGE_FOLDERS } from '../../utils/imageUtils';
 import { ShowImage } from '../../components';
+import { stopPeriodicStatusUpdates } from '../../services/driverStatusService';
 
 import {
     colors,
@@ -154,10 +155,14 @@ const ProfileScreen = () => {
                     text: 'Logout',
                     style: 'destructive',
                     onPress: async () => {
+                        stopPeriodicStatusUpdates();
                         try {
                             if (user?.id !== undefined && user?.id !== null) {
                                 await updateDriverOnlineStatus({
+                                    user_id: user.id,
+                                    driver_id: user.id,
                                     userId: user.id,
+                                    is_online: false,
                                     isOnline: false,
                                 });
                             }

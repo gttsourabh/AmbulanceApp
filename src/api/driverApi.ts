@@ -1,5 +1,6 @@
 import axiosInstance from './axiosInstance';
 import { normalizeDriverProfile } from '../utils/imageUtils';
+import { store } from '../redux/store';
 
 export type TripNavigationType = 'np' | 'ph';
 
@@ -61,10 +62,15 @@ export const respondToEmergencyRequest = async (
 export interface UpdateDriverOnlineStatusPayload {
     lat?: number | null;
     lng?: number | null;
+    latitude?: number | null;
+    longitude?: number | null;
     userId?: number | string;
     isOnline?: boolean;
     user_id?: number | string;
+    driver_id?: number | string;
     is_online?: boolean;
+    curr_address?: string | null;
+    address?: string | null;
 }
 
 export interface UpdateDriverOnlineStatusResponse {
@@ -77,21 +83,82 @@ export interface UpdateDriverOnlineStatusResponse {
 /**
  * PUT /api/ambulance/driver/status
  * Updates driver online/offline availability status.
- * Payload: { lat, lng, userId, isOnline }
+ * Supports both snake_case (user_id, is_online) and camelCase (userId, isOnline).
  */
 export const updateDriverOnlineStatus = async (
     payload: UpdateDriverOnlineStatusPayload
 ) => {
-    const finalPayload = {
-        lat: payload.lat ?? null,
-        lng: payload.lng ?? null,
-        userId: payload.userId !== undefined ? payload.userId : payload.user_id,
-        isOnline: payload.isOnline !== undefined ? payload.isOnline : payload.is_online,
+    const isValidId = (v: any): boolean => {
+        if (v === undefined || v === null || v === '' || v === 0 || v === '0') return false;
+        const num = Number(v);
+        return !isNaN(num) && num > 0;
     };
-    return await axiosInstance.put<UpdateDriverOnlineStatusResponse>(
-        '/api/ambulance/driver/status',
-        finalPayload
-    );
+
+    let effectiveUserId: number | null = null;
+    if (isValidId(payload.user_id)) effectiveUserId = Number(payload.user_id);
+    else if (isValidId(payload.userId)) effectiveUserId = Number(payload.userId);
+    else if (isValidId(payload.driver_id)) effectiveUserId = Number(payload.driver_id);
+
+    // Fallback to Redux store if caller didn't pass valid userId
+    if (!effectiveUserId) {
+        try {
+            const stateUser = store.getState()?.auth?.user;
+            if (isValidId(stateUser?.id)) effectiveUserId = Number(stateUser.id);
+            else if (isValidId(stateUser?.user_id)) effectiveUserId = Number(stateUser.user_id);
+            else if (isValidId(stateUser?.userId)) effectiveUserId = Number(stateUser.userId);
+            else if (isValidId(stateUser?.driver_id)) effectiveUserId = Number(stateUser.driver_id);
+        } catch {
+            // ignore
+        }
+    }
+
+    const effectiveIsOnline =
+        payload.is_online !== undefined
+            ? Boolean(payload.is_online)
+            : (payload.isOnline !== undefined ? Boolean(payload.isOnline) : true);
+
+    const lat = typeof payload.lat === 'number' ? payload.lat : (typeof payload.latitude === 'number' ? payload.latitude : 0);
+    const lng = typeof payload.lng === 'number' ? payload.lng : (typeof payload.longitude === 'number' ? payload.longitude : 0);
+    const currAddress = payload.curr_address ?? payload.address ?? '';
+
+    // Exactly matching backend: `let {lat, lng, userId, isOnline} = req.body`
+    const finalPayload = {
+        lat,
+        lng,
+        userId: effectiveUserId,
+        isOnline: effectiveIsOnline,
+
+        // Also include snake_case for backward compatibility
+        user_id: effectiveUserId,
+        driver_id: effectiveUserId,
+        is_online: effectiveIsOnline,
+        latitude: lat,
+        longitude: lng,
+        curr_address: currAddress,
+    };
+
+    console.log('====================================================');
+    console.log('🚀 [updateDriverOnlineStatus API CALLED]');
+    console.log('   Endpoint: PUT /api/ambulance/driver/status');
+    console.log('   Time    :', new Date().toLocaleTimeString());
+    console.log('   Payload :', JSON.stringify(finalPayload, null, 2));
+    console.log('====================================================');
+
+    try {
+        const response = await axiosInstance.put<UpdateDriverOnlineStatusResponse>(
+            '/api/ambulance/driver/status',
+            finalPayload
+        );
+        console.log('✅ [updateDriverOnlineStatus API SUCCESS]');
+        console.log('   HTTP Status:', response.status);
+        console.log('   Response Data:', JSON.stringify(response.data, null, 2));
+        return response;
+    } catch (error: any) {
+        console.error('❌ [updateDriverOnlineStatus API ERROR]');
+        console.error('   HTTP Status:', error?.response?.status);
+        console.error('   Error Data :', error?.response?.data || error?.message || error);
+        return error?.response || ({ data: { success: false, message: error?.message || 'Network request failed' } } as any);
+    }
 };
 
 export interface RequestFilterItem {

@@ -83,7 +83,7 @@ android {
         applicationId 'com.secureambulance'
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 4 // third build for play store
+        versionCode 5 // third build for play store
         versionName '1.4'
     }
     // signingConfigs {

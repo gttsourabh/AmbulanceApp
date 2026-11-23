@@ -1,5 +1,7 @@
 import { Platform, PermissionsAndroid, Alert, Linking, NativeModules } from 'react-native';
 import Geolocation from '@react-native-community/geolocation';
+import { storage } from '../storage/storage';
+import { STORAGE_KEYS } from '../storage/storageKeys';
 
 export interface AppPermissionsStatus {
     foregroundLocation: boolean;
@@ -450,29 +452,72 @@ export async function checkAllPermissionsAndLocation(): Promise<{
 
 /**
  * Quick helper to get current GPS coordinates ({ lat, lng }).
- * 1. Attempts high-accuracy hardware GPS (5s timeout, 10s cache).
- * 2. Falls back to network/balanced provider (4s timeout, 30s cache).
+ * 1. Returns valid cached coordinates from storage immediately if available.
+ * 2. Attempts network/balanced provider first for fast (~200ms) location lock.
+ * 3. Falls back to high-accuracy satellite GPS.
+ * Safely executes a single Geolocation request without overlapping calls.
  */
+let activeCoordinatesPromise: Promise<{ lat: number; lng: number } | null> | null = null;
+
 export async function getCurrentCoordinates(): Promise<{ lat: number; lng: number } | null> {
-    const getPos = (highAccuracy: boolean, timeout: number, maxAge: number) =>
-        new Promise<{ lat: number; lng: number } | null>(resolve => {
-            Geolocation.getCurrentPosition(
-                pos => {
-                    const lat = pos?.coords?.latitude;
-                    const lng = pos?.coords?.longitude;
-                    if (typeof lat === 'number' && typeof lng === 'number') {
-                        resolve({ lat, lng });
-                    } else {
-                        resolve(null);
-                    }
-                },
-                () => resolve(null),
-                { enableHighAccuracy: highAccuracy, timeout, maximumAge: maxAge }
-            );
-        });
+    if (activeCoordinatesPromise) {
+        return activeCoordinatesPromise;
+    }
 
-    const high = await getPos(true, 5000, 10000);
-    if (high) return high;
+    const fetchSingleCoords = async (): Promise<{ lat: number; lng: number } | null> => {
+        // Step 1: Check storage for fast non-zero cached coordinates
+        try {
+            const saved = await storage.get<{ lat: number; lng: number }>(STORAGE_KEYS.LAST_DRIVER_LOCATION);
+            if (saved && typeof saved.lat === 'number' && typeof saved.lng === 'number' && saved.lat !== 0 && saved.lng !== 0) {
+                // Return cached coordinates immediately to unblock API calls
+                return saved;
+            }
+        } catch {
+            // ignore
+        }
 
-    return await getPos(false, 4000, 30000);
+        const queryPos = (highAccuracy: boolean, timeout: number, maxAge: number) =>
+            new Promise<{ lat: number; lng: number } | null>(resolve => {
+                try {
+                    Geolocation.getCurrentPosition(
+                        pos => {
+                            const lat = pos?.coords?.latitude;
+                            const lng = pos?.coords?.longitude;
+                            if (typeof lat === 'number' && typeof lng === 'number' && lat !== 0 && lng !== 0) {
+                                storage.set(STORAGE_KEYS.LAST_DRIVER_LOCATION, { lat, lng }).catch(() => {});
+                                resolve({ lat, lng });
+                            } else {
+                                resolve(null);
+                            }
+                        },
+                        () => resolve(null),
+                        { enableHighAccuracy: highAccuracy, timeout, maximumAge: maxAge }
+                    );
+                } catch {
+                    resolve(null);
+                }
+            });
+
+        // Step 2: Try fast network/fused provider (returns in ~200ms)
+        const fastCoords = await queryPos(false, 3000, 60000);
+        if (fastCoords) return fastCoords;
+
+        // Step 3: Try high-accuracy satellite GPS
+        const highCoords = await queryPos(true, 6000, 15000);
+        if (highCoords) return highCoords;
+
+        // Fallback: storage check one last time
+        try {
+            const saved = await storage.get<{ lat: number; lng: number }>(STORAGE_KEYS.LAST_DRIVER_LOCATION);
+            if (saved && saved.lat !== 0 && saved.lng !== 0) return saved;
+        } catch {}
+
+        return null;
+    };
+
+    activeCoordinatesPromise = fetchSingleCoords().finally(() => {
+        activeCoordinatesPromise = null;
+    });
+
+    return await activeCoordinatesPromise;
 }

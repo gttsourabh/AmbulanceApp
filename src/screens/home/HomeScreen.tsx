@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import {
+    Alert,
     BackHandler,
     Image,
     ImageBackground,
@@ -14,6 +15,7 @@ import {
     TouchableOpacity,
     View,
 } from 'react-native';
+import Geolocation from '@react-native-community/geolocation';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
     colors,
@@ -23,7 +25,7 @@ import {
 import { AppIcon } from '../../icons';
 import Header from '../../components/Header/Header';
 import { HomeScreenSkeleton } from '../../components/Skeleton';
-import { PermissionModal } from '../../components';
+import { PermissionModal, GpsInfoModal } from '../../components';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { useAppSelector } from '../../redux/hook';
 import {
@@ -35,7 +37,6 @@ import {
     getCurrentCoordinates,
 } from '../../utils/locationPermission';
 import {
-    updateDriverOnlineStatus,
     getDriverApi,
     getRouteOverviewApi,
     getActiveTripApi,
@@ -46,6 +47,12 @@ import { storage } from '../../storage/storage';
 import { STORAGE_KEYS } from '../../storage/storageKeys';
 import { getProfileImageUrl, IMAGE_FOLDERS } from '../../utils/imageUtils';
 import { ShowImage } from '../../components';
+import {
+    sendDriverStatusUpdate,
+    startPeriodicStatusUpdates,
+    stopPeriodicStatusUpdates,
+    isPeriodicStatusRunning,
+} from '../../services/driverStatusService';
 
 const getGreetingText = () => {
     const hours = new Date().getHours();
@@ -74,18 +81,31 @@ const HomeScreen = () => {
     const [activeTrip, setActiveTrip] = useState<any | null>(null);
     const [permissionStatus, setPermissionStatus] = useState<AppPermissionsStatus | null>(null);
     const [showPermissionModal, setShowPermissionModal] = useState(false);
+    const [showGpsModal, setShowGpsModal] = useState(false);
     const initialStatusSentRef = useRef(false);
+    const [gpsStatus, setGpsStatus] = useState<'acquiring' | 'locked' | 'disabled'>('acquiring');
+    const [currentCoords, setCurrentCoords] = useState<{ lat: number; lng: number } | null>(null);
+    const gpsWatchIdRef = useRef<number | null>(null);
 
     // Helper to get userId from Redux or storage fallback
     const getEffectiveUserId = async (): Promise<number | string | null> => {
-        if (user?.id !== undefined && user?.id !== null) return user.id;
-        if (user?.driver_id !== undefined && user?.driver_id !== null) return user.driver_id;
-        if (user?.userId !== undefined && user?.userId !== null) return user.userId;
+        const isValidId = (v: any): boolean => {
+            if (v === undefined || v === null || v === '' || v === 0 || v === '0') return false;
+            const num = Number(v);
+            return !isNaN(num) && num > 0;
+        };
+
+        if (isValidId(user?.id)) return Number(user.id);
+        if (isValidId(user?.user_id)) return Number(user.user_id);
+        if (isValidId(user?.userId)) return Number(user.userId);
+        if (isValidId(user?.driver_id)) return Number(user.driver_id);
+
         try {
             const storedUser = await storage.get<any>(STORAGE_KEYS.USER_DATA);
-            if (storedUser?.id !== undefined && storedUser?.id !== null) return storedUser.id;
-            if (storedUser?.driver_id !== undefined && storedUser?.driver_id !== null) return storedUser.driver_id;
-            if (storedUser?.userId !== undefined && storedUser?.userId !== null) return storedUser.userId;
+            if (isValidId(storedUser?.id)) return Number(storedUser.id);
+            if (isValidId(storedUser?.user_id)) return Number(storedUser.user_id);
+            if (isValidId(storedUser?.userId)) return Number(storedUser.userId);
+            if (isValidId(storedUser?.driver_id)) return Number(storedUser.driver_id);
         } catch {
             // ignore
         }
@@ -166,37 +186,98 @@ const HomeScreen = () => {
                 sendStatusUpdate(isOnline),
                 fetchHomeData(userId),
             ]);
+            if (isOnline) {
+                startPeriodicStatusUpdates(userId);
+            }
         }
         setRefreshing(false);
     };
 
-    const sendStatusUpdate = async (online: boolean) => {
+    const sendStatusUpdate = async (online: boolean, coordsOverride?: { lat: number; lng: number } | null) => {
         const userId = await getEffectiveUserId();
-        if (!userId && userId !== 0) {
-            console.log('⚠️ [HomeScreen] user_id not available, skipping status update');
-            return;
-        }
-        try {
-            console.log(`📡 [HomeScreen] Sending PUT driver status: userId=${userId}, isOnline=${online}`);
-            let coords: { lat: number; lng: number } | null = null;
-            try {
-                coords = await getCurrentCoordinates();
-            } catch (locErr) {
-                console.warn('⚠️ [HomeScreen] Could not get coordinates for status update:', locErr);
-            }
-            console.log('📡 [HomeScreen] Driver coordinates for status update:', coords);
-
-            const res = await updateDriverOnlineStatus({
-                lat: coords?.lat ?? null,
-                lng: coords?.lng ?? null,
-                userId: userId,
-                isOnline: online,
-            });
-            console.log('✅ [HomeScreen] Driver online status updated:', res.data);
-        } catch (error) {
-            console.error('❌ [HomeScreen] Failed to update driver status:', error);
-        }
+        const coordsToUse = coordsOverride || currentCoords;
+        return await sendDriverStatusUpdate(online, userId, coordsToUse);
     };
+
+    const handleGpsIconPress = () => {
+        setShowGpsModal(true);
+    };
+
+    const handleEnableGpsFromModal = () => {
+        promptEnableDeviceLocation(
+            'Enable GPS',
+            'Device Location (GPS) is turned off. Please turn on GPS so the ambulance dispatch system can track your vehicle.'
+        ).then(nowOn => {
+            if (nowOn) {
+                setGpsStatus('acquiring');
+                startGpsWatcher();
+            }
+        });
+    };
+
+    const startGpsWatcher = useCallback((targetUserId?: number | string | null) => {
+        // 1. Check storage for fast non-zero cached location
+        storage.get<{ lat: number; lng: number }>(STORAGE_KEYS.LAST_DRIVER_LOCATION).then(saved => {
+            if (saved && saved.lat && saved.lng && saved.lat !== 0 && saved.lng !== 0) {
+                setCurrentCoords(saved);
+                setGpsStatus('locked');
+            }
+        });
+
+        // 2. Clear any active watch
+        if (gpsWatchIdRef.current !== null) {
+            Geolocation.clearWatch(gpsWatchIdRef.current);
+            gpsWatchIdRef.current = null;
+        }
+
+        // 3. Start Geolocation.watchPosition
+        try {
+            gpsWatchIdRef.current = Geolocation.watchPosition(
+                async pos => {
+                    const lat = pos?.coords?.latitude;
+                    const lng = pos?.coords?.longitude;
+                    if (typeof lat === 'number' && typeof lng === 'number' && lat !== 0 && lng !== 0) {
+                        const freshCoords = { lat, lng };
+                        setCurrentCoords(freshCoords);
+                        setGpsStatus('locked');
+                        storage.set(STORAGE_KEYS.LAST_DRIVER_LOCATION, freshCoords).catch(() => {});
+
+                        // When coordinates lock for the first time, send status update if online
+                        const uid = targetUserId || (await getEffectiveUserId());
+                        if (!initialStatusSentRef.current && isOnline && uid) {
+                            initialStatusSentRef.current = true;
+                            console.log('🛰️ [HomeScreen] GPS Locked! Dispatching online status update with real coords:', freshCoords);
+                            await sendDriverStatusUpdate(true, uid, freshCoords);
+                            startPeriodicStatusUpdates(uid);
+                        }
+                    }
+                },
+                err => {
+                    console.log('📡 [HomeScreen] GPS watch notice:', err?.code, err?.message);
+                    if (err?.code === 2) {
+                        setGpsStatus('disabled');
+                    }
+                },
+                {
+                    enableHighAccuracy: true,
+                    distanceFilter: 3,
+                    interval: 3000,
+                    fastestInterval: 1500,
+                }
+            );
+        } catch (err) {
+            console.warn('⚠️ [HomeScreen] Failed to start Geolocation.watchPosition:', err);
+        }
+    }, [isOnline]);
+
+    useEffect(() => {
+        return () => {
+            if (gpsWatchIdRef.current !== null) {
+                Geolocation.clearWatch(gpsWatchIdRef.current);
+                gpsWatchIdRef.current = null;
+            }
+        };
+    }, []);
 
     useEffect(() => {
         const initOnlineStatus = async () => {
@@ -205,34 +286,70 @@ const HomeScreen = () => {
             setPermissionStatus(perms);
             const gpsEnabled = await isDeviceLocationEnabled();
 
+            if (!gpsEnabled || !perms.allGranted) {
+                setGpsStatus('disabled');
+            } else {
+                setGpsStatus('acquiring');
+                startGpsWatcher();
+            }
+
             // Only show permission modal if permissions missing AND no pending emergency request
             const pendingReq = await storage.get(STORAGE_KEYS.PENDING_EMERGENCY_REQUEST);
             if (!perms.allGranted && !pendingReq) {
                 setShowPermissionModal(true);
             } else if (perms.allGranted && !gpsEnabled && !pendingReq) {
-                promptEnableDeviceLocation().then(nowOn => {
+                promptEnableDeviceLocation().then(async nowOn => {
                     if (nowOn) {
                         setIsOnline(true);
-                        sendStatusUpdate(true);
+                        storage.set(STORAGE_KEYS.IS_DRIVER_ONLINE, true);
+                        setGpsStatus('acquiring');
+                        startGpsWatcher();
+                        const coords = await getCurrentCoordinates();
+                        if (coords) {
+                            setCurrentCoords(coords);
+                            setGpsStatus('locked');
+                            await sendStatusUpdate(true, coords);
+                        }
+                        const uid = await getEffectiveUserId();
+                        if (uid) startPeriodicStatusUpdates(uid);
                     }
                 });
             }
 
             const canBeOnline = Boolean(perms.allGranted && gpsEnabled);
-            setIsOnline(canBeOnline);
+            const savedOnlinePref = await storage.get<boolean>(STORAGE_KEYS.IS_DRIVER_ONLINE);
+            const shouldBeOnline = savedOnlinePref !== null && savedOnlinePref !== undefined
+                ? (savedOnlinePref && canBeOnline)
+                : canBeOnline;
+
+            setIsOnline(shouldBeOnline);
 
             const userId = await getEffectiveUserId();
-            if (userId || userId === 0) {
-                if (!initialStatusSentRef.current) {
-                    initialStatusSentRef.current = true;
-                    await sendStatusUpdate(canBeOnline);
+            if (userId) {
+                if (shouldBeOnline) {
+                    // Try getting coordinates immediately
+                    const coords = await getCurrentCoordinates();
+                    if (coords) {
+                        setCurrentCoords(coords);
+                        setGpsStatus('locked');
+                        if (!initialStatusSentRef.current) {
+                            initialStatusSentRef.current = true;
+                            await sendStatusUpdate(true, coords);
+                            startPeriodicStatusUpdates(userId);
+                        }
+                    } else {
+                        // GPS is still warming up; startGpsWatcher will fire the status update as soon as coordinates lock!
+                        console.log('⏳ [HomeScreen] GPS warming up. Status update will dispatch as soon as coordinates lock.');
+                    }
+                } else {
+                    stopPeriodicStatusUpdates();
                 }
                 await fetchHomeData(userId);
             }
         };
 
         initOnlineStatus();
-    }, [fetchHomeData]);
+    }, [fetchHomeData, startGpsWatcher]);
 
     const handleToggleOnline = async (nextValue: boolean) => {
         if (nextValue) {
@@ -251,10 +368,23 @@ const HomeScreen = () => {
                     return;
                 }
             }
+
+            setGpsStatus('acquiring');
+            startGpsWatcher();
         }
 
         setIsOnline(nextValue);
-        await sendStatusUpdate(nextValue);
+        await storage.set(STORAGE_KEYS.IS_DRIVER_ONLINE, nextValue);
+        const userId = await getEffectiveUserId();
+        if (nextValue) {
+            if (currentCoords) {
+                await sendStatusUpdate(true, currentCoords);
+            }
+            if (userId) startPeriodicStatusUpdates(userId);
+        } else {
+            await sendStatusUpdate(false);
+            stopPeriodicStatusUpdates();
+        }
     };
 
     const handleNotifications = () => {
@@ -265,6 +395,9 @@ const HomeScreen = () => {
     useFocusEffect(
         useCallback(() => {
             let isActive = true;
+            if (isOnline && !isPeriodicStatusRunning()) {
+                startPeriodicStatusUpdates();
+            }
             getEffectiveUserId().then(userId => {
                 if ((userId || userId === 0) && isActive) {
                     getActiveTripApi({ driver_id: userId })
@@ -287,7 +420,7 @@ const HomeScreen = () => {
                 isActive = false;
                 setShowPermissionModal(false);
             };
-        }, [])
+        }, [isOnline])
     );
 
     // Prevent hardware back button from navigating back to TripCompleted or other trip screens.
@@ -328,9 +461,11 @@ const HomeScreen = () => {
     };
 
     const handleResumeActiveTrip = async () => {
+        
         if (!activeTrip) return;
 
         const { canProceed, permissions, isGpsEnabled: gpsOn } = await checkAllPermissionsAndLocation();
+
         if (!canProceed) {
             setPermissionStatus(permissions);
             if (!permissions.allGranted) {
@@ -406,10 +541,46 @@ const HomeScreen = () => {
             edges={['top']}
         >
             <Header
-                leftImage={require('../../assets/images/app_logo_tra.png')}
+                leftImage={require('../../assets/images/app_logo_round.png')}
                 leftImageStyle={styles.headerLogo}
-                rightIcon="bell-outline"
-                onRightPress={handleNotifications}
+                rightContent={
+                    <View style={styles.headerRightContainer}>
+                        <TouchableOpacity
+                            activeOpacity={0.7}
+                            onPress={handleGpsIconPress}
+                            style={[
+                                styles.headerGpsButton,
+                                gpsStatus === 'locked'
+                                    ? styles.headerGpsActive
+                                    : styles.headerGpsInactive,
+                            ]}
+                        >
+                            <AppIcon
+                                family="material"
+                                name="map-marker"
+                                size={20}
+                                color={
+                                    gpsStatus === 'locked'
+                                        ? '#16A34A'
+                                        : '#DC2626'
+                                }
+                            />
+                        </TouchableOpacity>
+
+                        <TouchableOpacity
+                            activeOpacity={0.7}
+                            style={styles.headerBellButton}
+                            onPress={handleNotifications}
+                        >
+                            <AppIcon
+                                family="material"
+                                name="bell-outline"
+                                size={22}
+                                color={colors.textPrimary}
+                            />
+                        </TouchableOpacity>
+                    </View>
+                }
                 centerContent={
                     <View style={styles.headerToggleContainer}>
                         <TouchableOpacity
@@ -829,16 +1000,37 @@ const HomeScreen = () => {
                     setShowPermissionModal(false);
                     checkAllPermissionsAndLocation().then(({ canProceed }) => {
                         setIsOnline(canProceed);
+                        storage.set(STORAGE_KEYS.IS_DRIVER_ONLINE, canProceed);
                         sendStatusUpdate(canProceed);
+                        if (canProceed) {
+                            startPeriodicStatusUpdates();
+                        } else {
+                            stopPeriodicStatusUpdates();
+                        }
                     });
                 }}
                 onPermissionsUpdated={async (updated, gpsOn) => {
                     setPermissionStatus(updated);
                     const canGoOnline = Boolean(updated.allGranted && gpsOn);
                     setIsOnline(canGoOnline);
+                    await storage.set(STORAGE_KEYS.IS_DRIVER_ONLINE, canGoOnline);
                     await sendStatusUpdate(canGoOnline);
+                    if (canGoOnline) {
+                        startPeriodicStatusUpdates();
+                    } else {
+                        stopPeriodicStatusUpdates();
+                    }
                 }}
             />
+
+            <GpsInfoModal
+                visible={showGpsModal}
+                gpsStatus={gpsStatus}
+                coords={currentCoords}
+                onClose={() => setShowGpsModal(false)}
+                onEnableGps={handleEnableGpsFromModal}
+            />
+
         </SafeAreaView>
     );
 };
@@ -858,9 +1050,40 @@ const styles = StyleSheet.create({
     },
 
     headerLogo: {
-        width: 55,
-        height: 55,
-        // borderRadius: 10,
+        width: 40,
+        height: 40,
+    },
+
+    headerRightContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+    },
+
+    headerGpsButton: {
+        width: 36,
+        height: 36,
+        borderRadius: 18,
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderWidth: 1,
+    },
+
+    headerGpsActive: {
+        backgroundColor: '#DCFCE7',
+        borderColor: '#86EFAC',
+    },
+
+    headerGpsInactive: {
+        backgroundColor: '#FEE2E2',
+        borderColor: '#FCA5A5',
+    },
+
+    headerBellButton: {
+        width: 36,
+        height: 36,
+        alignItems: 'center',
+        justifyContent: 'center',
     },
 
     headerToggleContainer: {

@@ -11,5 +11,7 @@ export { default as ImageViewerModal } from './Modal/ImageViewerModal';
 export * from './Modal/ImageViewerModal';
 export { default as ExportTripModal } from './Modal/ExportTripModal';
 export * from './Modal/ExportTripModal';
+export { default as GpsInfoModal } from './Modal/GpsInfoModal';
+export * from './Modal/GpsInfoModal';
 export { default as ShowImage, fetchImageBase64, extractFilename } from './ShowImage/ShowImage';
 export * from './ShowImage/ShowImage';

@@ -41,6 +41,7 @@ interface HeaderProps {
     rightIconColor?: string;
     onRightPress?: () => void;
     showRightIcon?: boolean;
+    rightContent?: React.ReactNode;
 
     // Center
     centerContent?: React.ReactNode;
@@ -72,6 +73,7 @@ const Header: React.FC<HeaderProps> = ({
     rightIconColor = colors.textPrimary,
     onRightPress,
     showRightIcon = true,
+    rightContent,
 
     centerContent,
 
@@ -169,7 +171,9 @@ const Header: React.FC<HeaderProps> = ({
             {/* RIGHT */}
             <View style={styles.side}>
 
-                {showRightIcon && rightIcon ? (
+                {rightContent ? (
+                    rightContent
+                ) : showRightIcon && rightIcon ? (
                     <TouchableOpacity
                         activeOpacity={0.7}
                         style={styles.iconButton}
@@ -202,7 +206,7 @@ const styles = StyleSheet.create({
     },
 
     side: {
-        width: 48,
+        minWidth: 44,
         alignItems: 'center',
         justifyContent: 'center',
     },
