@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>API_KEY</key>
+	<string>AIzaSyBXC1co1Y6uqXqFz0FS-9ItZ9b2pRJZ-gI</string>
+	<key>GCM_SENDER_ID</key>
+	<string>577574167930</string>
+	<key>PLIST_VERSION</key>
+	<string>1</string>
+	<key>BUNDLE_ID</key>
+	<string>com.secureambulance</string>
+	<key>PROJECT_ID</key>
+	<string>arvaya-d841e</string>
+	<key>STORAGE_BUCKET</key>
+	<string>arvaya-d841e.firebasestorage.app</string>
+	<key>IS_ADS_ENABLED</key>
+	<false></false>
+	<key>IS_ANALYTICS_ENABLED</key>
+	<false></false>
+	<key>IS_APPINVITE_ENABLED</key>
+	<true></true>
+	<key>IS_GCM_ENABLED</key>
+	<true></true>
+	<key>IS_SIGNIN_ENABLED</key>
+	<true></true>
+	<key>GOOGLE_APP_ID</key>
+	<string>1:577574167930:ios:f17ee617dd949db776a2c3</string>
+	<key>NSHealthUpdateUsageDescription</key>
+	<string>Arvaya needs access to update your health data to provide health-related features and keep your information up to date.</string>
+</dict>
+</plist>

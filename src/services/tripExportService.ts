@@ -1,5 +1,5 @@
 import * as XLSX from 'xlsx';
-import { NativeModules, Alert } from 'react-native';
+import { NativeModules, Alert, Platform } from 'react-native';
 import { requestStoragePermission, openAppSettings } from '../utils/locationPermission';
 import {
     getAmbulanceRequestApi,
@@ -334,6 +334,15 @@ export const downloadTripReportToDevice = async (
 
         if (DownloadModule && typeof DownloadModule.downloadFile === 'function') {
             await DownloadModule.downloadFile(base64Xlsx, fileName, mimeType);
+            if (Platform.OS === 'ios') {
+                // iOS saves into the app's Documents folder and opens the share sheet (Save to Files, AirDrop, Mail).
+                Alert.alert(
+                    'Download Complete ✅',
+                    `File saved in the Files app:\nOn My iPhone › SecureAmbulance\n\n📁 ${fileName}`,
+                    [{ text: 'OK' }],
+                );
+                return { success: true, fileName };
+            }
             Alert.alert(
                 'Download Complete ✅',
                 `File saved to your device Downloads folder:\n\n📁 ${fileName}`,

@@ -8,6 +8,7 @@ import App from './App';
 import { name as appName } from './app.json';
 
 import { parseEmergencyTripPayload } from './src/utils/emergencyNotificationHandler';
+import { logRemoteMessage } from './src/services/notificationService';
 import { storage } from './src/storage/storage';
 import { STORAGE_KEYS } from './src/storage/storageKeys';
 import Geolocation from '@react-native-community/geolocation';
@@ -23,14 +24,10 @@ Geolocation.setRNConfiguration({
 // Register background and quit-state FCM message handler
 const messagingInstance = getMessaging();
 setBackgroundMessageHandler(messagingInstance, async remoteMessage => {
-    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-    console.log('📬 [FCM BACKGROUND / QUIT STATE MESSAGE]');
-    console.log('Title:', remoteMessage.notification?.title);
-    console.log('Body:', remoteMessage.notification?.body);
-    console.log('Data:', remoteMessage.data);
-    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    logRemoteMessage('BACKGROUND / QUIT STATE MESSAGE', remoteMessage);
 
     const emergencyData = parseEmergencyTripPayload(remoteMessage?.data || remoteMessage);
+    console.log('🔔 [FCM BACKGROUND] parsed as emergency trip:', Boolean(emergencyData));
     if (emergencyData) {
         console.log('🚨 [BACKGROUND] Caching incoming emergency trip:', emergencyData);
         await storage.set(STORAGE_KEYS.PENDING_EMERGENCY_REQUEST, emergencyData);

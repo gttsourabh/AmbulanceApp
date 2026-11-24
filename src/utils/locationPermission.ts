@@ -2,6 +2,14 @@ import { Platform, PermissionsAndroid, Alert, Linking, NativeModules } from 'rea
 import Geolocation from '@react-native-community/geolocation';
 import { storage } from '../storage/storage';
 import { STORAGE_KEYS } from '../storage/storageKeys';
+import {
+    PERMISSIONS,
+    RESULTS,
+    check,
+    request,
+    checkNotifications,
+    requestNotifications,
+} from 'react-native-permissions';
 
 export interface AppPermissionsStatus {
     foregroundLocation: boolean;
@@ -11,11 +19,57 @@ export interface AppPermissionsStatus {
     allGranted: boolean;
 }
 
+const isIosGranted = (status: string) => status === RESULTS.GRANTED || status === RESULTS.LIMITED;
+
+async function checkIosForegroundLocation(): Promise<boolean> {
+    const [whenInUse, always] = await Promise.all([
+        check(PERMISSIONS.IOS.LOCATION_WHEN_IN_USE),
+        check(PERMISSIONS.IOS.LOCATION_ALWAYS),
+    ]);
+    return isIosGranted(whenInUse) || isIosGranted(always);
+}
+
+async function checkIosBackgroundLocation(): Promise<boolean> {
+    return isIosGranted(await check(PERMISSIONS.IOS.LOCATION_ALWAYS));
+}
+
+async function checkIosNotifications(): Promise<boolean> {
+    const { status } = await checkNotifications();
+    return isIosGranted(status);
+}
+
 /**
- * Checks all required permissions (Foreground Location, Background Location, Notifications).
+ * Checks app permissions. Only Foreground + Background Location are required (allGranted).
+ * Notifications are optional (App Store Guideline 4.5.4): reported, but never block going online.
  * Storage is optional and requested on-demand when downloading files.
  */
 export async function checkAllPermissions(): Promise<AppPermissionsStatus> {
+    if (Platform.OS === 'ios') {
+        try {
+            const [foregroundLocation, backgroundLocation, notifications] = await Promise.all([
+                checkIosForegroundLocation(),
+                checkIosBackgroundLocation(),
+                checkIosNotifications(),
+            ]);
+            return {
+                foregroundLocation,
+                backgroundLocation,
+                notifications,
+                storage: true,
+                allGranted: Boolean(foregroundLocation && backgroundLocation),
+            };
+        } catch (err) {
+            console.warn('❌ [PERMISSIONS] Error checking iOS permissions:', err);
+            return {
+                foregroundLocation: false,
+                backgroundLocation: false,
+                notifications: false,
+                storage: true,
+                allGranted: false,
+            };
+        }
+    }
+
     if (Platform.OS !== 'android') {
         return {
             foregroundLocation: true,
@@ -122,6 +176,16 @@ export async function requestLocationPermission(): Promise<boolean> {
         }
     }
 
+    if (Platform.OS === 'ios') {
+        try {
+            if (await checkIosForegroundLocation()) return true;
+            return isIosGranted(await request(PERMISSIONS.IOS.LOCATION_WHEN_IN_USE));
+        } catch (err) {
+            console.warn('Error requesting iOS location permission:', err);
+            return false;
+        }
+    }
+
     return true;
 }
 
@@ -140,6 +204,14 @@ export async function checkLocationPermission(): Promise<boolean> {
             return hasFine || hasCoarse;
         } catch (err) {
             console.warn('Error checking location permission:', err);
+            return false;
+        }
+    }
+    if (Platform.OS === 'ios') {
+        try {
+            return await checkIosForegroundLocation();
+        } catch (err) {
+            console.warn('Error checking iOS location permission:', err);
             return false;
         }
     }
@@ -172,6 +244,16 @@ export async function requestBackgroundLocationPermission(): Promise<boolean> {
             return false;
         }
     }
+    if (Platform.OS === 'ios') {
+        // iOS requires "While Using" first; the "Always" request then shows the upgrade prompt (only once).
+        try {
+            if (await checkIosBackgroundLocation()) return true;
+            return isIosGranted(await request(PERMISSIONS.IOS.LOCATION_ALWAYS));
+        } catch (err) {
+            console.warn('Error requesting iOS background location permission:', err);
+            return false;
+        }
+    }
     return true;
 }
 
@@ -196,6 +278,16 @@ export async function requestNotificationPermission(): Promise<boolean> {
                 console.warn('Notification permission error:', err);
                 return false;
             }
+        }
+    }
+    if (Platform.OS === 'ios') {
+        try {
+            if (await checkIosNotifications()) return true;
+            const { status } = await requestNotifications(['alert', 'sound', 'badge']);
+            return isIosGranted(status);
+        } catch (err) {
+            console.warn('iOS notification permission error:', err);
+            return false;
         }
     }
     return true;
@@ -269,6 +361,19 @@ export async function requestStoragePermission(): Promise<boolean> {
  * Note: Storage is non-mandatory and requested on-demand only when downloading files.
  */
 export async function requestAllPermissionsSequentially(): Promise<AppPermissionsStatus> {
+    if (Platform.OS === 'ios') {
+        try {
+            await requestLocationPermission();
+            await requestNotificationPermission();
+            if (await checkIosForegroundLocation()) {
+                await requestBackgroundLocationPermission();
+            }
+        } catch (err) {
+            console.warn('Error in iOS sequential permission flow:', err);
+        }
+        return checkAllPermissions();
+    }
+
     if (Platform.OS !== 'android') {
         return checkAllPermissions();
     }

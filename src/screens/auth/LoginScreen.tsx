@@ -6,6 +6,8 @@ import {
     TextInput,
     TouchableOpacity,
     KeyboardAvoidingView,
+    TouchableWithoutFeedback,
+    Keyboard,
     Platform,
     StatusBar,
     Image,
@@ -180,6 +182,7 @@ const LoginScreen = () => {
             {isPageLoading ? (
                 <LoginScreenSkeleton />
             ) : (
+                <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
                 <KeyboardAvoidingView
                     style={styles.keyboardView}
                     behavior={
@@ -312,6 +315,7 @@ const LoginScreen = () => {
 
 
                 </KeyboardAvoidingView>
+                </TouchableWithoutFeedback>
             )}
 
             {/* =========================

@@ -4,6 +4,7 @@ import {
     AppState,
     AppStateStatus,
     Modal,
+    Platform,
     StyleSheet,
     Text,
     TouchableOpacity,
@@ -235,7 +236,7 @@ const PermissionModal: React.FC<PermissionModalProps> = ({
                                 <View style={styles.itemTextContainer}>
                                     <Text style={styles.itemTitle}>Background Location</Text>
                                     <Text style={styles.itemDescription}>
-                                        Select "Allow all the time" so patients can track your incoming ambulance.
+                                        {Platform.OS === 'ios' ? 'Select "Always"' : 'Select "Allow all the time"'} so patients can track your incoming ambulance.
                                     </Text>
                                 </View>
                                 <View style={[styles.badge, isBgGranted ? styles.badgeGranted : styles.badgeMissing]}>
@@ -258,12 +259,12 @@ const PermissionModal: React.FC<PermissionModalProps> = ({
                                 <View style={styles.itemTextContainer}>
                                     <Text style={styles.itemTitle}>Emergency Notifications</Text>
                                     <Text style={styles.itemDescription}>
-                                        Alerts you instantly with sirens when an emergency trip is assigned to you.
+                                        Optional. Alerts you when an emergency trip is assigned while the app is in the background. If you decline, new trips appear only while the app is open. You can change this anytime in Settings.
                                     </Text>
                                 </View>
-                                <View style={[styles.badge, isNotifGranted ? styles.badgeGranted : styles.badgeMissing]}>
-                                    <Text style={[styles.badgeText, isNotifGranted ? styles.badgeTextGranted : styles.badgeTextMissing]}>
-                                        {isNotifGranted ? 'Granted' : 'Required'}
+                                <View style={[styles.badge, isNotifGranted ? styles.badgeGranted : styles.badgeOptional]}>
+                                    <Text style={[styles.badgeText, isNotifGranted ? styles.badgeTextGranted : styles.badgeTextOptional]}>
+                                        {isNotifGranted ? 'Granted' : 'Optional'}
                                     </Text>
                                 </View>
                             </View>
@@ -295,9 +296,15 @@ const PermissionModal: React.FC<PermissionModalProps> = ({
                         {/* HELPER HINT FOR BACKGROUND LOCATION */}
                         {isSettingsPrompt && (
                             <View style={styles.settingsHintBox}>
-                                <Text style={styles.settingsHintText}>
-                                    👉 Tap below to open Settings, choose <Text style={styles.boldText}>Permissions</Text> → <Text style={styles.boldText}>Location</Text>, and select <Text style={styles.boldText}>"Allow all the time"</Text>.
-                                </Text>
+                                {Platform.OS === 'ios' ? (
+                                    <Text style={styles.settingsHintText}>
+                                        👉 Tap below to open Settings, choose <Text style={styles.boldText}>Location</Text>, and select <Text style={styles.boldText}>"Always"</Text>.
+                                    </Text>
+                                ) : (
+                                    <Text style={styles.settingsHintText}>
+                                        👉 Tap below to open Settings, choose <Text style={styles.boldText}>Permissions</Text> → <Text style={styles.boldText}>Location</Text>, and select <Text style={styles.boldText}>"Allow all the time"</Text>.
+                                    </Text>
+                                )}
                             </View>
                         )}
 
@@ -335,8 +342,8 @@ const PermissionModal: React.FC<PermissionModalProps> = ({
                                     : isGpsPrompt
                                     ? 'Turn On Device Location (GPS)'
                                     : isSettingsPrompt
-                                    ? 'Open Settings to Allow All the Time'
-                                    : 'Grant All Permissions & Enable GPS'}
+                                    ? (Platform.OS === 'ios' ? 'Open Settings to Allow Always' : 'Open Settings to Allow All the Time')
+                                    : 'Continue & Enable GPS'}
                             </Text>
                         </TouchableOpacity>
 
@@ -503,6 +510,12 @@ const styles = StyleSheet.create({
     },
     badgeTextMissing: {
         color: '#B91C1C',
+    },
+    badgeOptional: {
+        backgroundColor: '#F3F4F6',
+    },
+    badgeTextOptional: {
+        color: '#4B5563',
     },
     settingsHintBox: {
         width: '100%',

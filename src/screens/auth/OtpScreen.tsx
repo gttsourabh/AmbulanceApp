@@ -5,6 +5,7 @@ import {
   View,
   TouchableOpacity,
   KeyboardAvoidingView,
+  TouchableWithoutFeedback,
   Platform,
   StatusBar,
   TextInput,
@@ -19,7 +20,6 @@ import { useAppDispatch } from '../../redux/hook';
 import { loginSuccess } from '../../redux/slices/authSlice';
 import { storage } from '../../storage/storage';
 import { STORAGE_KEYS } from '../../storage/storageKeys';
-import { resetToHome } from '../../utils/navigationRef';
 
 import Button from '../../components/Button/Button';
 import {
@@ -127,6 +127,10 @@ const OtpScreen = () => {
 
     const fcmToken = await getFcmToken();
     const cloudIdToSend = fcmToken || STATIC_CLOUD_ID;
+    if (!fcmToken) {
+      // Backend pushes to this cloud_id, so the static fallback means this device will NOT receive dispatches.
+      console.warn(`⚠️ [FCM] No FCM token on ${Platform.OS}; sending fallback cloud_id "${STATIC_CLOUD_ID}". Notifications will not reach this device.`);
+    }
 
     console.log('Verifying OTP:', {
       mobile_number: mobileNumber,
@@ -184,18 +188,7 @@ const OtpScreen = () => {
           driverTopic,
         });
 
-        // 2. Store in Redux (token, user profile, subscribed channels, userChannel, driverChannel)
-        dispatch(
-          loginSuccess({
-            token,
-            user: userData,
-            subscribedChannels,
-            userChannel: userTopic,
-            driverChannel: driverTopic,
-          }),
-        );
-
-        // 3. Subscribe to FCM topics for live dispatch notifications
+        // 2. Subscribe to FCM topics for live dispatch notifications
         if (driverTopic) {
           subscribeToTopic(driverTopic);
         }
@@ -208,7 +201,7 @@ const OtpScreen = () => {
           }
         }
 
-        // 4. Persist to AsyncStorage for auto-login / session restore
+        // 3. Persist to AsyncStorage for auto-login / session restore
         if (token) {
           await storage.set(STORAGE_KEYS.AUTH_TOKEN, token);
           await storage.set(STORAGE_KEYS.USER_DATA, userData);
@@ -221,7 +214,17 @@ const OtpScreen = () => {
           }
         }
 
-        resetToHome();
+        // 4. Store in Redux LAST. Flipping isAuthenticated makes RootNavigator swap to AppNavigator,
+        //    which mounts Home once. No manual reset here, or Home would mount a second time.
+        dispatch(
+          loginSuccess({
+            token,
+            user: userData,
+            subscribedChannels,
+            userChannel: userTopic,
+            driverChannel: driverTopic,
+          }),
+        );
       } else {
         const errorMsg =
           response?.msg ||
@@ -357,6 +360,7 @@ const OtpScreen = () => {
         backgroundColor={colors.white}
       />
 
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
       <KeyboardAvoidingView
         style={styles.keyboardView}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -553,6 +557,7 @@ const OtpScreen = () => {
           </View>
         </View>
       </KeyboardAvoidingView>
+      </TouchableWithoutFeedback>
     </SafeAreaView>
   );
 };

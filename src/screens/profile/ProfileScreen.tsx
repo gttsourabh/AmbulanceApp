@@ -15,7 +15,6 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useAppDispatch, useAppSelector } from '../../redux/hook';
 import { logout } from '../../redux/slices/authSlice';
 import { storage } from '../../storage/storage';
-import { resetToLogin } from '../../utils/navigationRef';
 import { updateDriverOnlineStatus, getDriverApi, DriverProfileData } from '../../api';
 import { STORAGE_KEYS } from '../../storage/storageKeys';
 import { unsubscribeFromTopic } from '../../services/notificationService';
@@ -178,8 +177,8 @@ const ProfileScreen = () => {
                         }
 
                         await storage.clear();
+                        // RootNavigator swaps to AuthNavigator (Login) when isAuthenticated flips.
                         dispatch(logout());
-                        resetToLogin();
                     },
                 },
             ],

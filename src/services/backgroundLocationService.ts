@@ -1,3 +1,4 @@
+import { Platform } from 'react-native';
 import BackgroundService from 'react-native-background-actions';
 import Geolocation from '@react-native-community/geolocation';
 import { updateDriverLocation, UpdateDriverLocationPayload, TripNavigationType } from '../api/driverApi';
@@ -193,8 +194,10 @@ export async function startBackgroundLocationTracking(options?: BackgroundTracki
     }
 
     try {
-        // Ensure notification permission is granted on Android 13+
-        await requestNotificationPermission();
+        // Android 13+: the foreground-service notification needs POST_NOTIFICATIONS. Optional; tracking runs either way.
+        if (Platform.OS === 'android') {
+            await requestNotificationPermission();
+        }
 
         const taskOptions = {
             taskName: 'AmbulanceLiveNavigation',

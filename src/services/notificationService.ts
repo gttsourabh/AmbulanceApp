@@ -6,15 +6,38 @@ import {
     onTokenRefresh,
     requestPermission,
     getInitialNotification,
+    getAPNSToken,
+    isDeviceRegisteredForRemoteMessages,
+    registerDeviceForRemoteMessages,
     subscribeToTopic as fcmSubscribeToTopic,
     unsubscribeFromTopic as fcmUnsubscribeFromTopic,
     AuthorizationStatus,
     RemoteMessage,
 } from '@react-native-firebase/messaging';
-import { Alert, Platform } from 'react-native';
+import { Alert, AppState, Platform } from 'react-native';
 import { requestNotificationPermission } from '../utils/locationPermission';
 
 let cachedFcmToken: string | null = null;
+
+/**
+ * Logs the full FCM message (notification + data) so delivery can be checked in Metro / Xcode console.
+ */
+export function logRemoteMessage(label: string, remoteMessage: RemoteMessage | null | undefined) {
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    console.log(`🔔 [FCM ${label}] platform=${Platform.OS} appState=${AppState.currentState} at ${new Date().toISOString()}`);
+    if (!remoteMessage) {
+        console.log('   (no message)');
+        console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+        return;
+    }
+    console.log('   messageId:', remoteMessage.messageId);
+    console.log('   from:', remoteMessage.from);
+    console.log('   title:', remoteMessage.notification?.title);
+    console.log('   body:', remoteMessage.notification?.body);
+    console.log('   data:', JSON.stringify(remoteMessage.data ?? {}, null, 2));
+    console.log('   full message:', JSON.stringify(remoteMessage, null, 2));
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+}
 
 const getMessagingInstance = () => {
     return getMessaging();
@@ -35,12 +58,44 @@ export async function requestUserPermission(): Promise<boolean> {
             authStatus === AuthorizationStatus.AUTHORIZED ||
             authStatus === AuthorizationStatus.PROVISIONAL;
 
-        console.log('🔔 [FCM PERMISSION STATUS]:', enabled ? 'GRANTED' : 'DENIED');
+        console.log('🔔 [FCM PERMISSION STATUS]:', enabled ? 'GRANTED' : 'DENIED', `(authStatus=${authStatus})`);
         return enabled;
     } catch (err) {
         console.warn('Error requesting FCM permission:', err);
         return false;
     }
+}
+
+const sleep = (ms: number) => new Promise<void>(resolve => setTimeout(resolve, ms));
+
+/**
+ * iOS: FCM can only issue a token after iOS delivers the APNs token, which arrives asynchronously
+ * after launch. Calling getToken before that fails, so wait for it (up to ~10s).
+ */
+async function waitForApnsToken(timeoutMs: number = 10000): Promise<boolean> {
+    const messaging = getMessagingInstance();
+    try {
+        if (!isDeviceRegisteredForRemoteMessages(messaging)) {
+            await registerDeviceForRemoteMessages(messaging);
+        }
+    } catch (err) {
+        console.warn('🍎 [APNS] registerDeviceForRemoteMessages failed:', err);
+    }
+
+    const started = Date.now();
+    while (Date.now() - started < timeoutMs) {
+        try {
+            const apnsToken = await getAPNSToken(messaging);
+            if (apnsToken) {
+                console.log('🍎 [APNS TOKEN READY]:', apnsToken);
+                return true;
+            }
+        } catch {
+            // Not available yet, keep polling.
+        }
+        await sleep(500);
+    }
+    return false;
 }
 
 /**
@@ -53,6 +108,13 @@ export async function getFcmToken(): Promise<string | null> {
 
     try {
         const messaging = getMessagingInstance();
+        if (Platform.OS === 'ios') {
+            const apnsReady = await waitForApnsToken();
+            if (!apnsReady) {
+                console.warn('🍎 [APNS] no APNs token yet, so no FCM token can be created on iOS');
+                return null;
+            }
+        }
         const token = await getToken(messaging);
         if (token) {
             cachedFcmToken = token;
@@ -119,15 +181,11 @@ export function setupForegroundListener(
 ) {
     const messaging = getMessagingInstance();
     return onMessage(messaging, async (remoteMessage: RemoteMessage) => {
-        console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-        console.log('📩 [FOREGROUND FCM MESSAGE RECEIVED]');
-        console.log('Title:', remoteMessage.notification?.title);
-        console.log('Body:', remoteMessage.notification?.body);
-        console.log('Data:', remoteMessage.data);
-        console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+        logRemoteMessage('FOREGROUND MESSAGE RECEIVED', remoteMessage);
 
         // Automatically detect and present emergency trip modal & notification
         const handledEmergency = await handleEmergencyTripNotification(remoteMessage, true);
+        console.log('🔔 [FCM FOREGROUND] handled as emergency trip:', handledEmergency);
 
         if (onMessageCallback) {
             onMessageCallback(remoteMessage);
@@ -150,7 +208,7 @@ export function setupNotificationOpenedListener(
 
     // When app was running in background and user taps notification
     onNotificationOpenedApp(messaging, async (remoteMessage: RemoteMessage) => {
-        console.log('📲 [FCM NOTIFICATION OPENED FROM BACKGROUND]:', remoteMessage.data);
+        logRemoteMessage('NOTIFICATION OPENED FROM BACKGROUND', remoteMessage);
         await handleEmergencyTripNotification(remoteMessage, false);
         if (onOpenCallback) onOpenCallback(remoteMessage);
     });
@@ -158,8 +216,11 @@ export function setupNotificationOpenedListener(
     // When app was killed/quit and launched by tapping notification
     getInitialNotification(messaging)
         .then(async (remoteMessage: RemoteMessage | null) => {
+            if (!remoteMessage) {
+                console.log('🚀 [FCM INITIAL NOTIFICATION] app was not launched from a notification');
+            }
             if (remoteMessage) {
-                console.log('🚀 [FCM APP LAUNCHED FROM NOTIFICATION]:', remoteMessage.data);
+                logRemoteMessage('APP LAUNCHED FROM NOTIFICATION (QUIT STATE)', remoteMessage);
                 await handleEmergencyTripNotification(remoteMessage, false);
                 if (onOpenCallback) onOpenCallback(remoteMessage);
             }
@@ -168,15 +229,28 @@ export function setupNotificationOpenedListener(
 
 /**
  * Initializes Firebase Cloud Messaging:
- * 1. Requests permission.
- * 2. Fetches & logs device FCM token.
- * 3. Sets up token refresh listener.
+ * 1. Fetches & logs device FCM token.
+ * 2. Sets up token refresh listener.
+ *
+ * It does NOT ask for notification permission. Notifications are optional (App Store Guideline 4.5.4),
+ * so the system prompt is shown only from the permission screen, after we explain why, and the
+ * driver can decline it and still use the app.
  */
 export async function initNotificationService(): Promise<string | null> {
-    await requestUserPermission();
-    const token = await getFcmToken();
 
     const messaging = getMessagingInstance();
+    if (Platform.OS === 'ios') {
+        // FCM on iOS only works once the device has an APNs token (needs the Push Notifications entitlement).
+        console.log('🍎 [APNS] registered for remote messages:', isDeviceRegisteredForRemoteMessages(messaging));
+        try {
+            const apnsToken = await getAPNSToken(messaging);
+            console.log('🍎 [APNS TOKEN]:', apnsToken ?? 'null (push not set up: check entitlement / APNs key / real device)');
+        } catch (err) {
+            console.warn('🍎 [APNS TOKEN] failed to read:', err);
+        }
+    }
+
+    const token = await getFcmToken();
     // Listen for FCM token refresh
     onTokenRefresh(messaging, (newToken: string) => {
         cachedFcmToken = newToken;

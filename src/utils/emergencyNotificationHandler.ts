@@ -110,6 +110,7 @@ export async function handleEmergencyTripNotification(
     const emergencyData = parseEmergencyTripPayload(data);
 
     if (!emergencyData) {
+        console.log('ℹ️ [EMERGENCY HANDLER] not an emergency trip (AMBULANCE_TRIP != "True"); data:', JSON.stringify(data ?? {}));
         return false;
     }
 
@@ -124,6 +125,7 @@ export async function handleEmergencyTripNotification(
             showCircularAlert: showCircularAlert,
         };
 
+        console.log(`🧭 [EMERGENCY HANDLER] opening IncomingRequests (showCircularAlert=${showCircularAlert}, navReady=${navigationRef.isReady()})`);
         if (navigationRef.isReady()) {
             navigate('IncomingRequests', navParams);
         } else {
